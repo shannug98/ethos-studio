@@ -1,0 +1,643 @@
+/* ETHOS DANCE STUDIO — WORKSHOP PASS / TICKET MODAL */
+
+.workshop-pass-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  animation: passFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes passFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.workshop-pass-container {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+
+.workshop-pass-close-btn {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workshop-pass-close-btn:hover {
+  background: rgba(233, 121, 99, 0.2);
+  border-color: #e97963;
+  color: #e97963;
+  transform: rotate(90deg);
+}
+
+/* TICKET CARD */
+.workshop-ticket-card {
+  background: #141210;
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(233, 121, 99, 0.1);
+  position: relative;
+}
+
+/* HEADER STRIP */
+.workshop-ticket-header {
+  background: linear-gradient(135deg, rgba(233, 121, 99, 0.18) 0%, rgba(18, 16, 14, 0.95) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ticket-brand-emblem {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(233, 121, 99, 0.2);
+  border: 1px solid #e97963;
+  color: #e97963;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+}
+
+.ticket-brand-text strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+}
+
+.ticket-brand-text small {
+  display: block;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  margin-top: 1px;
+}
+
+.ticket-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(115, 200, 128, 0.15);
+  border: 1px solid rgba(115, 200, 128, 0.4);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #73c880;
+}
+
+.ticket-status-icon {
+  color: #73c880;
+}
+
+/* BODY */
+.workshop-ticket-body {
+  padding: 24px;
+}
+
+.ticket-title-section {
+  margin-bottom: 20px;
+}
+
+.ticket-eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ticket-workshop-title {
+  font-family: var(--student-font-display, 'Cinzel', serif);
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* GRID */
+.ticket-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.ticket-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ticket-detail-icon {
+  color: #e97963;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.detail-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.detail-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+/* META STRIP */
+.ticket-meta-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.meta-label {
+  display: block;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.meta-value {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-price-highlight {
+  color: #73c880;
+}
+
+.ticket-ref-code {
+  font-family: monospace;
+  letter-spacing: 0.08em;
+  color: #e97963;
+}
+
+.meta-sub {
+  display: block;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
+/* PERFORATION */
+.ticket-perforation {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 20px -24px;
+}
+
+.perforation-line {
+  flex: 1;
+  border-top: 2px dashed rgba(255, 255, 255, 0.12);
+}
+
+.perforation-notch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #000000;
+  position: absolute;
+}
+
+.notch-left {
+  left: -12px;
+  border-right: 1px solid rgba(233, 121, 99, 0.3);
+}
+
+.notch-right {
+  right: -12px;
+  border-left: 1px solid rgba(233, 121, 99, 0.3);
+}
+
+/* QR SECTION */
+.ticket-qr-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.ticket-qr-box {
+  padding: 10px;
+  background: #12100e;
+  border: 1px solid rgba(233, 121, 99, 0.4);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.ticket-qr-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qr-security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #e97963;
+}
+
+.qr-instructions {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.qr-ref-pill {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  font-family: monospace;
+}
+
+.qr-ref-pill strong {
+  color: #ffffff;
+}
+
+/* FOOTER */
+.workshop-ticket-footer {
+  padding: 14px 24px;
+  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.ticket-footer-terms {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+}
+
+/* MODAL ACTIONS */
+.workshop-pass-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.pass-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pass-action-print {
+  background: linear-gradient(135deg, #e97963 0%, #d86650 100%);
+  border: none;
+  color: #0d0c0b;
+}
+
+.pass-action-print:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.pass-action-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pass-action-close:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* PRINT MEDIA */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #workshop-print-ticket, #workshop-print-ticket * {
+    visibility: visible;
+  }
+  #workshop-print-ticket {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+
+/* MULTI-TICKET SWITCHER BAR */
+.workshop-multi-ticket-bar {
+  background: rgba(20, 18, 16, 0.95);
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.multi-ticket-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e97963;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.multi-ticket-info strong {
+  color: #ffffff;
+}
+
+.multi-ticket-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ticket-nav-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ticket-nav-btn:hover:not(:disabled) {
+  background: #e97963;
+  border-color: #e97963;
+  color: #12100e;
+}
+
+.ticket-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ticket-nav-counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6e4e2;
+}
+
+.ticket-title-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ticket-num-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #e97963;
+  font-weight: 600;
+}
+
+.status-checked-in {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+}
+
+.meta-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-guest-btn {
+  background: transparent;
+  border: none;
+  color: #e97963;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.edit-guest-btn:hover {
+  text-decoration: underline;
+}
+
+/* GUEST EDIT FORM */
+.guest-edit-form {
+  margin: 16px 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px dashed rgba(233, 121, 99, 0.4);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.guest-form-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e97963;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.guest-close-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}
+
+.guest-input-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.guest-input-group label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #aaa;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.guest-input-group input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.guest-input-group input:focus {
+  outline: none;
+  border-color: #e97963;
+}
+
+.guest-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.guest-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #bbb;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.guest-submit-btn {
+  background: #e97963;
+  border: none;
+  color: #12100e;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.guest-form-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.guest-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin: 8px 0;
+}
+
+.ticket-resend-feedback {
+  margin-top: 10px;
+  background: rgba(233, 121, 99, 0.12);
+  border: 1px solid rgba(233, 121, 99, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e97963;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pass-action-resend {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.pass-action-resend:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+}

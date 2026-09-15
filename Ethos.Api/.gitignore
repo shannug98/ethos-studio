@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# User Secrets
+secrets.json
+
+# Environment files
+.env
+.env.*
+
+# Archive & OS files
+*.zip
+.DS_Store
+Thumbs.db
+
+# IDE & Logs
+.idea/
+.vscode/
+*.log

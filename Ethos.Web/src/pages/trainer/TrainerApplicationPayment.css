@@ -1,0 +1,417 @@
+.trainer-payment-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(233, 138, 104, 0.09),
+      transparent 35%
+    ),
+    #090909;
+  color: #f5f1eb;
+  padding: 80px 24px;
+}
+
+.trainer-payment-shell {
+  width: min(1050px, 100%);
+  margin: 0 auto;
+}
+
+.trainer-payment-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  margin-bottom: 65px;
+}
+
+.trainer-payment-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+}
+
+.trainer-payment-header h1 {
+  margin: 18px 0;
+  font-size: clamp(55px, 8vw, 100px);
+  line-height: 0.9;
+  font-weight: 400;
+}
+
+.trainer-payment-header h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.trainer-payment-header p {
+  max-width: 540px;
+  color: rgba(245, 241, 235, 0.55);
+  line-height: 1.7;
+}
+
+.trainer-payment-progress {
+  min-width: 170px;
+}
+
+.trainer-payment-progress span,
+.trainer-payment-progress small {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.trainer-payment-progress span,
+.trainer-payment-progress small {
+  display: block;
+}
+
+.trainer-payment-progress div {
+  height: 1px;
+  margin: 15px 0;
+  background: rgba(255,255,255,.14);
+}
+
+.trainer-payment-progress i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #e98a68;
+}
+
+.trainer-payment-alert,
+.trainer-payment-message {
+  margin-bottom: 22px;
+  padding: 15px 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  font-size: 13px;
+}
+
+.trainer-payment-alert {
+  color: #ffaaa0;
+  border-color: rgba(255,100,100,.3);
+}
+
+.trainer-payment-message {
+  color: rgba(255,255,255,.7);
+}
+
+.trainer-payment-card {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.015)
+    );
+  border: 1px solid rgba(255,255,255,.12);
+  padding: clamp(28px, 5vw, 55px);
+}
+
+.trainer-payment-card-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: .18em;
+  opacity: .45;
+}
+
+.trainer-payment-tier {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  margin-top: 55px;
+}
+
+.trainer-payment-tier-mark {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.2);
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+
+.trainer-payment-tier span,
+.trainer-payment-amount span,
+.trainer-payment-security strong {
+  font-size: 9px;
+  letter-spacing: .16em;
+}
+
+.trainer-payment-tier h2 {
+  margin: 8px 0;
+  font-size: 38px;
+  font-weight: 400;
+}
+
+.trainer-payment-tier p {
+  margin: 0;
+  color: rgba(255,255,255,.5);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.trainer-payment-divider {
+  height: 1px;
+  margin: 45px 0;
+  background: rgba(255,255,255,.1);
+}
+
+.trainer-payment-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 30px;
+}
+
+.trainer-payment-amount span,
+.trainer-payment-amount small {
+  display: block;
+}
+
+.trainer-payment-amount small {
+  margin-top: 8px;
+  color: rgba(255,255,255,.4);
+}
+
+.trainer-payment-amount strong {
+  font-size: clamp(35px, 5vw, 58px);
+  font-weight: 400;
+}
+
+.trainer-payment-security {
+  display: flex;
+  gap: 18px;
+  margin-top: 45px;
+  padding: 20px;
+  background: rgba(255,255,255,.025);
+}
+
+.trainer-payment-security > div:first-child {
+  font-size: 25px;
+  opacity: .6;
+}
+
+.trainer-payment-security strong {
+  display: block;
+}
+
+.trainer-payment-security p {
+  max-width: 650px;
+  margin: 8px 0 0;
+  color: rgba(255,255,255,.45);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.trainer-payment-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 35px;
+}
+
+.trainer-payment-actions button {
+  padding: 17px 25px;
+  border: 1px solid rgba(255,255,255,.2);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .14em;
+}
+
+.trainer-payment-actions button:last-child {
+  background: #e98a68;
+  border-color: #e98a68;
+  color: #111;
+}
+
+.trainer-payment-actions button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.trainer-payment-loading {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  opacity: .6;
+}
+
+.trainer-payment-error-page {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.trainer-payment-error-page > span {
+  font-size: 10px;
+  letter-spacing: .2em;
+  opacity: .5;
+}
+
+.trainer-payment-error-page h1 {
+  margin: 20px 0;
+  font-size: clamp(50px, 7vw, 90px);
+  font-weight: 400;
+  line-height: .9;
+}
+
+.trainer-payment-error-page h1 em {
+  font-family: Georgia, serif;
+}
+
+.trainer-payment-error-page p {
+  color: rgba(255,255,255,.5);
+}
+
+.trainer-payment-error-page button {
+  margin-top: 25px;
+  padding: 15px 22px;
+  border: 1px solid rgba(255,255,255,.2);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+@media (max-width: 650px) {
+  .trainer-payment-page {
+    padding: 45px 16px;
+  }
+
+  .trainer-payment-header {
+    display: block;
+    margin-bottom: 45px;
+  }
+
+  .trainer-payment-progress {
+    margin-top: 30px;
+  }
+
+  .trainer-payment-tier {
+    align-items: flex-start;
+  }
+
+  .trainer-payment-tier h2 {
+    font-size: 30px;
+  }
+
+  .trainer-payment-amount {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainer-payment-actions {
+    flex-direction: column-reverse;
+  }
+
+  .trainer-payment-actions button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   TRAINER APPLICATION PAYMENT
+   ========================================================= */
+
+.trainer-payment-page {
+  background: #0d0f13;
+  color: #f5f7fb;
+}
+
+.trainer-payment-header {
+  border-color: #343d4b;
+}
+
+.trainer-payment-eyebrow {
+  color: #ff806b;
+}
+
+.trainer-payment-header h1 {
+  color: #ffffff;
+}
+
+.trainer-payment-header p {
+  color: #b7c0ce;
+}
+
+/* Progress */
+.trainer-payment-progress {
+  color: #dbe3ee;
+}
+
+.trainer-payment-progress span,
+.trainer-payment-progress small {
+  color: #aeb8c7;
+}
+
+.trainer-payment-progress div {
+  background: #343d4b;
+}
+
+.trainer-payment-progress i {
+  background: #ff806b;
+}
+
+/* Payment card */
+.trainer-payment-card {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-payment-tier span,
+.trainer-payment-amount span,
+.trainer-payment-amount small {
+  color: #d6d6d6;
+}
+
+.trainer-payment-tier h2 {
+  color: #ffffff;
+}
+
+.trainer-payment-tier p {
+  color: #d6d6d6;
+}
+
+.trainer-payment-tier-mark {
+  color: #ed7965;
+}
+
+.trainer-payment-divider {
+  border-color: #333333;
+}
+
+.trainer-payment-amount strong {
+  color: #ffffff;
+}
+
+.trainer-payment-security {
+  background: #191919;
+  border: 1px solid #444444;
+}
+
+.trainer-payment-security strong {
+  color: #ffffff;
+}
+
+.trainer-payment-security p {
+  color: #d6d6d6;
+}
+
+.trainer-payment-actions {
+  border-color: #333333;
+}
+
+.trainer-payment-actions button {
+  min-height: 54px;
+}
+
+.trainer-payment-actions button:last-child {
+  background: #ff806b;
+  color: #111318;
+}
+
+.trainer-payment-actions button:last-child:hover {
+  background: #ff967f;
+}
+

@@ -1,0 +1,217 @@
+.ethos-policy-modal__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ethosPolicyFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ethosPolicyFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ethos-policy-modal__card {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 28px;
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 44px 40px 40px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  animation: ethosPolicySlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+@keyframes ethosPolicySlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ethos-policy-modal__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f1f1;
+  border: none;
+  font-size: 16px;
+  color: #555555;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ethos-policy-modal__close:hover {
+  background: #e2e2e2;
+  color: #000000;
+  transform: scale(1.05);
+}
+
+.ethos-policy-modal__header-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ethos-policy-modal__header-logo img {
+  width: 44px;
+  height: 44px;
+  background: #000000;
+  padding: 6px;
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ethos-policy-modal__title {
+  text-align: center;
+  font-family: "Georgia", "Playfair Display", "Times New Roman", serif;
+  font-size: 2.3rem;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-top: 0;
+  margin-bottom: 32px;
+  line-height: 1.25;
+}
+
+.ethos-policy-modal__title--refund {
+  color: #b91c1c;
+}
+
+.ethos-policy-modal__title--privacy {
+  color: #15803d;
+}
+
+.ethos-policy-modal__title--terms {
+  color: #0284c7;
+}
+
+.ethos-policy-modal__intro {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin-bottom: 24px;
+}
+
+.ethos-policy-modal__section {
+  margin-bottom: 28px;
+}
+
+.ethos-policy-modal__section h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.ethos-policy-modal__section p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.ethos-policy-modal__text-danger {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.ethos-policy-modal__subsection-title {
+  font-weight: 600;
+  color: #1f2937 !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
+}
+
+.ethos-policy-modal__list {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.ethos-policy-modal__list li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.ethos-policy-modal__link-green {
+  color: #16a34a;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.ethos-policy-modal__link-green:hover {
+  color: #15803d;
+}
+
+.ethos-policy-modal__inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0284c7;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  display: inline;
+}
+
+.ethos-policy-modal__inline-link:hover {
+  color: #0369a1;
+}
+
+@media (max-width: 640px) {
+  .ethos-policy-modal__card {
+    padding: 32px 20px 28px;
+    border-radius: 20px;
+    max-height: 92vh;
+  }
+
+  .ethos-policy-modal__title {
+    font-size: 1.75rem;
+    margin-bottom: 24px;
+  }
+
+  .ethos-policy-modal__section h2 {
+    font-size: 1.1rem;
+  }
+}

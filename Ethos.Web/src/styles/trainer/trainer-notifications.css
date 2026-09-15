@@ -1,0 +1,29 @@
+.trainer-notification-hero {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--trainer-border);
+  background: var(--trainer-panel);
+  margin-bottom: 12px;
+  padding: 40px;
+}
+
+.trainer-notification-hero span {
+  color: var(--trainer-coral-soft);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.trainer-notification-hero strong {
+  margin-top: 10px;
+  font-family: Georgia, serif;
+  font-size: 100px;
+  font-weight: 400;
+  line-height: 0.85;
+}
+
+.trainer-notification-hero p {
+  color: var(--trainer-muted);
+}

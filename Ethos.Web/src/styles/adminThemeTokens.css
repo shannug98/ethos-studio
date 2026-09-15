@@ -1,0 +1,206 @@
+/* ==========================================================================
+   ETHOS ADMIN DESIGN TOKENS & THEME SYSTEM (Phase 18.17)
+   Supports: Obsidian Dark (Default), Clean Light, High-Contrast Accessibility
+   ========================================================================== */
+
+:root,
+[data-theme="light"] {
+  --admin-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --admin-font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Menlo, monospace;
+
+  /* Surfaces & Backgrounds */
+  --admin-bg: #f8fafc;
+  --admin-bg-surface: #ffffff;
+  --admin-bg-surface-elevated: #f8fafc;
+  --admin-bg-hover: #f9fafb;
+  --admin-bg-active: #f1f5f9;
+  --admin-bg-input: #ffffff;
+
+  /* Text & Hierarchy (High Contrast & Clear Readability) */
+  --admin-text-primary: #101828;
+  --admin-text-body: #344054;
+  --admin-text-secondary: #667085;
+  --admin-text-th: #475467;
+  --admin-text-tertiary: #98a2b3;
+  --admin-text-disabled: #98a2b3;
+  --admin-text-inverse: #ffffff;
+
+  /* Borders & Dividers */
+  --admin-border: #eaecf0;
+  --admin-border-subtle: #e4e7ec;
+  --admin-border-focus: #ef233c;
+
+  /* Brand / Accent */
+  --admin-accent: #ef233c;
+  --admin-accent-hover: #d90429;
+  --admin-accent-glow: rgba(239, 35, 60, 0.15);
+  --admin-accent-contrast: #ffffff;
+
+  /* Semantic Status Colors */
+  --admin-success: #027a48;
+  --admin-success-bg: #ecfdf3;
+  --admin-success-border: #a6f4c5;
+
+  --admin-warning: #b54708;
+  --admin-warning-bg: #fffaeb;
+  --admin-warning-border: #fedf89;
+
+  --admin-danger: #b42318;
+  --admin-danger-bg: #fef3f2;
+  --admin-danger-border: #fecdca;
+
+  --admin-info: #026aa2;
+  --admin-info-bg: #f0f9ff;
+  --admin-info-border: #b9e6fe;
+
+  --admin-neutral: #475467;
+  --admin-neutral-bg: #f8fafc;
+  --admin-neutral-border: #e2e8f0;
+
+  /* Shadows */
+  --admin-shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  --admin-shadow-md: 0 4px 6px -1px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --admin-shadow-lg: 0 10px 15px -3px rgba(16, 24, 40, 0.1), 0 4px 6px -4px rgba(16, 24, 40, 0.05);
+
+  /* Radii */
+  --admin-radius-sm: 4px;
+  --admin-radius-md: 8px;
+  --admin-radius-lg: 12px;
+  --admin-radius-full: 9999px;
+
+  /* Typography Scales */
+  --admin-font-size-page-title: 28px;
+  --admin-font-weight-page-title: 750;
+  --admin-line-height-page-title: 1.2;
+  --admin-letter-spacing-page-title: -0.6px;
+
+  --admin-font-size-description: 14px;
+  --admin-font-weight-description: 400;
+
+  --admin-font-size-section-title: 17px;
+  --admin-font-weight-section-title: 700;
+
+  --admin-font-size-card-title: 15px;
+  --admin-font-weight-card-title: 700;
+
+  --admin-font-size-table-th: 11px;
+  --admin-font-weight-table-th: 700;
+  --admin-letter-spacing-table-th: 0.25px;
+
+  --admin-font-size-table-td: 13px;
+  --admin-font-weight-table-td: 500;
+  --admin-line-height-table-td: 1.45;
+
+  --admin-font-size-primary-text: 13px;
+  --admin-font-weight-primary-text: 700;
+
+  --admin-font-size-secondary-text: 12px;
+  --admin-font-weight-secondary-text: 400;
+
+  --admin-font-size-button: 12px;
+  --admin-font-weight-button: 650;
+
+  --admin-font-size-badge: 11px;
+  --admin-font-weight-badge: 700;
+  --admin-letter-spacing-badge: 0.1px;
+}
+
+[data-theme="obsidian"] {
+  /* Obsidian Dark surfaces & palette */
+  --admin-bg: #0b0f17;
+  --admin-bg-surface: #111827;
+  --admin-bg-surface-elevated: #1a2234;
+  --admin-bg-hover: #1f293d;
+  --admin-bg-active: #28354f;
+  --admin-bg-input: #0e1420;
+
+  --admin-text-primary: #f3f4f6;
+  --admin-text-body: #e5e7eb;
+  --admin-text-secondary: #9ca3af;
+  --admin-text-th: #9ca3af;
+  --admin-text-tertiary: #6b7280;
+  --admin-text-disabled: #4b5563;
+  --admin-text-inverse: #0b0f17;
+
+  --admin-border: #1f2937;
+  --admin-border-subtle: #162032;
+  --admin-border-focus: #f59e0b;
+
+  --admin-accent: #f59e0b;
+  --admin-accent-hover: #d97706;
+  --admin-accent-glow: rgba(245, 158, 11, 0.2);
+  --admin-accent-contrast: #000000;
+
+  --admin-success: #10b981;
+  --admin-success-bg: rgba(16, 185, 129, 0.12);
+  --admin-success-border: rgba(16, 185, 129, 0.3);
+
+  --admin-warning: #f59e0b;
+  --admin-warning-bg: rgba(245, 158, 11, 0.12);
+  --admin-warning-border: rgba(245, 158, 11, 0.3);
+
+  --admin-danger: #ef4444;
+  --admin-danger-bg: rgba(239, 68, 68, 0.12);
+  --admin-danger-border: rgba(239, 68, 68, 0.3);
+
+  --admin-info: #06b6d4;
+  --admin-info-bg: rgba(6, 182, 212, 0.12);
+  --admin-info-border: rgba(6, 182, 212, 0.3);
+
+  --admin-neutral: #9ca3af;
+  --admin-neutral-bg: rgba(156, 163, 175, 0.12);
+  --admin-neutral-border: rgba(156, 163, 175, 0.25);
+}
+
+[data-theme="contrast"] {
+  /* Surfaces & Backgrounds */
+  --admin-bg: #000000;
+  --admin-bg-surface: #0a0a0a;
+  --admin-bg-surface-elevated: #141414;
+  --admin-bg-hover: #222222;
+  --admin-bg-active: #333333;
+  --admin-bg-input: #000000;
+
+  /* Text & Hierarchy */
+  --admin-text-primary: #ffffff;
+  --admin-text-secondary: #e5e5e5;
+  --admin-text-tertiary: #cccccc;
+  --admin-text-inverse: #000000;
+
+  /* Borders & Dividers */
+  --admin-border: #ffffff;
+  --admin-border-subtle: #888888;
+  --admin-border-focus: #ffff00;
+
+  /* Brand / Accent */
+  --admin-accent: #ffff00;
+  --admin-accent-hover: #ffea00;
+  --admin-accent-glow: rgba(255, 255, 0, 0.5);
+  --admin-accent-contrast: #000000;
+
+  /* Semantic Status Colors */
+  --admin-success: #00ff66;
+  --admin-success-bg: #002b11;
+  --admin-success-border: #00ff66;
+
+  --admin-warning: #ffff00;
+  --admin-warning-bg: #2b2b00;
+  --admin-warning-border: #ffff00;
+
+  --admin-danger: #ff3333;
+  --admin-danger-bg: #2b0000;
+  --admin-danger-border: #ff3333;
+
+  --admin-info: #00e5ff;
+  --admin-info-bg: #00222b;
+  --admin-info-border: #00e5ff;
+
+  --admin-neutral: #ffffff;
+  --admin-neutral-bg: #222222;
+  --admin-neutral-border: #ffffff;
+
+  /* Shadows */
+  --admin-shadow-sm: none;
+  --admin-shadow-md: none;
+  --admin-shadow-lg: none;
+}

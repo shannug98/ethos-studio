@@ -1,0 +1,171 @@
+/* ==========================================================================
+   Resolve Payment Issue Modal CSS
+   ========================================================================== */
+
+.resolve-payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resolve-context-card {
+  background: #f8f9fc;
+  border: 1px solid #d8dcff;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.resolve-context-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.resolve-context-desc {
+  font-size: 12px;
+  color: #475467;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.resolve-action-select {
+  font-weight: 600;
+}
+
+.action-warning-box {
+  background: #fffdf5;
+  border: 1px solid #fedf89;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  color: #b54708;
+}
+
+.action-warning-box ul {
+  margin: 6px 0 0 16px;
+  padding: 0;
+}
+
+.action-warning-box li {
+  margin-bottom: 2px;
+}
+
+/* Success View */
+.resolution-success-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resolution-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: #ecfdf3;
+  border: 1px solid #a6f4c5;
+  border-radius: 8px;
+}
+
+.resolution-success-banner .success-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #12b76a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.resolution-success-banner h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #027a48;
+  margin: 0 0 2px 0;
+}
+
+.resolution-success-banner p {
+  font-size: 13px;
+  color: #344054;
+  margin: 0;
+}
+
+.resolution-impact-box {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.impact-label {
+  color: #667085;
+}
+
+.customer-msg-box {
+  background: #fafbfd;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.customer-msg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.customer-msg-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #344054;
+}
+
+.copy-msg-btn {
+  background: #1570ef;
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-msg-btn:hover {
+  background: #175cd3;
+}
+
+.customer-msg-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #101828;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.customer-msg-hint {
+  display: block;
+  font-size: 11px;
+  color: #667085;
+  margin-top: 6px;
+}

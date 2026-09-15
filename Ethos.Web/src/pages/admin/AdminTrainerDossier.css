@@ -1,0 +1,1614 @@
+/* =========================================================
+   ETHOS ADMIN PORTAL - TRAINER DOSSIER (LIGHT THEME OVERHAUL)
+   High readability, dark navy typography (#101828), charcoal (#344054),
+   crisp light cards (#ffffff), high-contrast table, and legible tabs.
+   ========================================================= */
+
+.admin-trainer-dossier-view {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  color: #101828;
+}
+
+/* Breadcrumb */
+.admin-trainer-dossier-view .dossier-breadcrumb {
+  margin-bottom: 16px;
+}
+
+.admin-trainer-dossier-view .back-link {
+  color: #175cd3;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 150ms ease;
+}
+
+.admin-trainer-dossier-view .back-link:hover {
+  color: #1570ef;
+  text-decoration: underline;
+}
+
+/* Header Bar */
+.admin-trainer-dossier-view .dossier-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 26px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #ffffff !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .dossier-identity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.admin-trainer-dossier-view .avatar-placeholder.trainer-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #eff8ff !important;
+  border: 2px solid #b2ddff;
+  color: #175cd3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.admin-trainer-dossier-view .avatar-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-trainer-dossier-view .student-name {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: #101828 !important;
+  letter-spacing: -0.3px;
+}
+
+.admin-trainer-dossier-view .name-tier-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-trainer-dossier-view .student-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: #344054 !important;
+}
+
+.admin-trainer-dossier-view .student-meta .mono-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  color: #101828 !important;
+  background: #f2f4f7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #eaecf0;
+}
+
+.admin-trainer-dossier-view .student-meta .separator {
+  color: #d0d5dd;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions .btn-secondary {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions .btn-secondary:hover {
+  background: #f9fafb;
+  color: #101828;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions .btn-outline {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+}
+
+.admin-trainer-dossier-view .dossier-header-actions .btn-outline:hover {
+  background: #f9fafb;
+  color: #101828;
+}
+
+/* Two-Level Information Architecture: Trainer Overview & Attention Items */
+.admin-trainer-dossier-view .account-overview-card {
+  background: #ffffff !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .overview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.admin-trainer-dossier-view .overview-card-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #101828 !important;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+}
+
+.admin-trainer-dossier-view .overview-card-subtitle {
+  font-size: 13.5px;
+  color: #475467 !important;
+  margin: 0;
+}
+
+.admin-trainer-dossier-view .health-badge {
+  font-size: 13px;
+  font-weight: 750;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-trainer-dossier-view .health-badge.healthy {
+  background: #ecfdf3;
+  color: #027a48 !important;
+  border: 1px solid #a6f4c5;
+}
+
+.admin-trainer-dossier-view .health-badge.attention {
+  background: #fffaeb;
+  color: #b54708 !important;
+  border: 1px solid #fedf89;
+}
+
+.admin-trainer-dossier-view .overview-kpis-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-trainer-dossier-view .kpi-box {
+  background: #f8fafc !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.admin-trainer-dossier-view .kpi-box.attention {
+  background: #fffaeb !important;
+  border-color: #fedf89 !important;
+}
+
+.admin-trainer-dossier-view .kpi-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475467 !important;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.admin-trainer-dossier-view .kpi-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #101828 !important;
+  display: block;
+}
+
+.admin-trainer-dossier-view .kpi-number.highlight-attn {
+  color: #d92d20 !important;
+}
+
+.admin-trainer-dossier-view .kpi-badge {
+  font-size: 12px;
+  font-weight: 750;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.admin-trainer-dossier-view .kpi-active {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.admin-trainer-dossier-view .kpi-inactive {
+  background: #fef3f2;
+  color: #d92d20;
+  border: 1px solid #fecdca;
+}
+
+.admin-trainer-dossier-view .kpi-sub {
+  font-size: 11.5px;
+  color: #475467 !important;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Attention Required Section */
+.admin-trainer-dossier-view .attention-required-section {
+  border-top: 1px solid #eaecf0;
+  padding-top: 20px;
+  margin-top: 10px;
+}
+
+.admin-trainer-dossier-view .attention-section-header {
+  margin-bottom: 16px;
+}
+
+.admin-trainer-dossier-view .attention-section-header h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #101828 !important;
+  margin: 0 0 4px 0;
+}
+
+.admin-trainer-dossier-view .attention-section-header p {
+  font-size: 13px;
+  color: #475467 !important;
+  margin: 0;
+}
+
+.admin-trainer-dossier-view .attention-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-trainer-dossier-view .attention-card {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-left: 5px solid #f79009;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.admin-trainer-dossier-view .attention-card.sev-critical {
+  border-left-color: #f04438;
+  background: #fffdfd;
+}
+
+.admin-trainer-dossier-view .attention-card.sev-warning {
+  border-left-color: #f79009;
+  background: #fffefb;
+}
+
+.admin-trainer-dossier-view .attention-card.sev-info {
+  border-left-color: #175cd3;
+  background: #fbfdff;
+}
+
+.admin-trainer-dossier-view .attention-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-trainer-dossier-view .attention-title-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-trainer-dossier-view .attention-title-col h4 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #101828 !important;
+  margin: 0;
+}
+
+.admin-trainer-dossier-view .attention-icon {
+  font-size: 16px;
+}
+
+.admin-trainer-dossier-view .attention-severity-badge {
+  font-size: 11px;
+  font-weight: 750;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-trainer-dossier-view .attention-severity-badge.critical {
+  background: #fef3f2;
+  color: #d92d20;
+  border: 1px solid #fecdca;
+}
+
+.admin-trainer-dossier-view .attention-severity-badge.warning {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+.admin-trainer-dossier-view .attention-severity-badge.info {
+  background: #eff8ff;
+  color: #175cd3;
+  border: 1px solid #b2ddff;
+}
+
+.admin-trainer-dossier-view .attention-description {
+  font-size: 13.5px;
+  color: #344054 !important;
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+
+.admin-trainer-dossier-view .attention-explanation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #eaecf0;
+}
+
+@media (max-width: 800px) {
+  .admin-trainer-dossier-view .attention-explanation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-trainer-dossier-view .explanation-block {
+  font-size: 13px;
+}
+
+.admin-trainer-dossier-view .explanation-block .block-title {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+  color: #475467 !important;
+}
+
+.admin-trainer-dossier-view .explanation-block p {
+  margin: 0;
+  color: #101828 !important;
+  line-height: 1.4;
+}
+
+.admin-trainer-dossier-view .attention-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.admin-trainer-dossier-view .admin-action-btn {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  border: none;
+}
+
+.admin-trainer-dossier-view .admin-action-btn.primary {
+  background: #175cd3;
+  color: #ffffff;
+}
+
+.admin-trainer-dossier-view .admin-action-btn.primary:hover {
+  background: #154294;
+}
+
+.admin-trainer-dossier-view .admin-action-btn.secondary {
+  background: #f2f4f7;
+  color: #101828;
+  border: 1px solid #d0d5dd;
+}
+
+.admin-trainer-dossier-view .admin-action-btn.secondary:hover {
+  background: #eaecf0;
+}
+
+.admin-trainer-dossier-view .reminder-copied-toast {
+  font-size: 12px;
+  font-weight: 700;
+  color: #027a48;
+  margin-left: 6px;
+}
+
+/* Level 2: Advanced Technical Details (Collapsible) */
+.admin-trainer-dossier-view .advanced-technical-details {
+  margin-top: 12px;
+  border-top: 1px dashed #d0d5dd;
+  padding-top: 10px;
+}
+
+.admin-trainer-dossier-view .advanced-summary {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475467;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-trainer-dossier-view .advanced-summary:hover {
+  color: #101828;
+}
+
+.admin-trainer-dossier-view .summary-chevron {
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+
+.admin-trainer-dossier-view details[open] .summary-chevron {
+  transform: rotate(90deg);
+}
+
+.admin-trainer-dossier-view .advanced-technical-content {
+  margin-top: 10px;
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-trainer-dossier-view .tech-meta-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  color: #475467;
+  align-items: center;
+}
+
+.admin-trainer-dossier-view .tech-meta-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #eaecf0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #101828;
+  font-weight: 600;
+}
+
+.admin-trainer-dossier-view .btn-copy-mini {
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  color: #344054;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: all 120ms ease;
+}
+
+.admin-trainer-dossier-view .btn-copy-mini:hover {
+  background: #f9fafb;
+  color: #101828;
+}
+
+.admin-trainer-dossier-view .tech-evidence-block {
+  margin-top: 4px;
+}
+
+.admin-trainer-dossier-view .tech-evidence-block pre {
+  background: #101828;
+  color: #12b76a;
+  padding: 10px;
+  border-radius: 6px;
+  margin: 6px 0 0 0;
+  overflow-x: auto;
+  font-size: 11px;
+}
+
+.admin-trainer-dossier-view .account-healthy-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: #ecfdf3;
+  border: 1px solid #a6f4c5;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.admin-trainer-dossier-view .healthy-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #12b76a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.admin-trainer-dossier-view .healthy-text h4 {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #027a48;
+  margin: 0 0 3px 0;
+}
+
+.admin-trainer-dossier-view .healthy-text p {
+  font-size: 13px;
+  color: #05603a;
+  margin: 0;
+}
+
+/* Tabs Navigation - High Contrast */
+.admin-trainer-dossier-view .dossier-tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #eaecf0;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+
+.admin-trainer-dossier-view .tab-btn {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: #101828 !important;
+  padding: 10px 18px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+
+.admin-trainer-dossier-view .tab-btn:hover {
+  color: #175cd3 !important;
+  background: #f9fafb !important;
+  border-radius: 6px 6px 0 0;
+}
+
+.admin-trainer-dossier-view .tab-btn.active {
+  color: #175cd3 !important;
+  border-bottom: 2px solid #175cd3 !important;
+  background: transparent !important;
+  font-weight: 800 !important;
+}
+
+/* Tab Panes */
+.admin-trainer-dossier-view .tab-pane {
+  background: #ffffff !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  padding: 24px;
+  margin-bottom: 24px;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .section-title {
+  margin: 0 0 18px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #101828 !important;
+}
+
+/* Tab 1: Profile Grid */
+.admin-trainer-dossier-view .profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.admin-trainer-dossier-view .profile-grid .label {
+  display: block;
+  font-size: 11.5px;
+  color: #475467 !important;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.admin-trainer-dossier-view .profile-grid .val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .bio-text {
+  font-size: 13.5px;
+  color: #344054 !important;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+.admin-trainer-dossier-view .external-link {
+  color: #175cd3 !important;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-trainer-dossier-view .external-link:hover {
+  text-decoration: underline;
+}
+
+/* Tables (Tier History, Permissions, Workshops) - High Readability Dark Navy / Charcoal */
+.admin-trainer-dossier-view .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-trainer-dossier-view .admin-table thead th {
+  background: #101828 !important;
+  color: #ffffff !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 13px 18px !important;
+  border-bottom: 1px solid #101828 !important;
+  white-space: nowrap;
+}
+
+.admin-trainer-dossier-view .admin-table tbody td {
+  padding: 14px 18px !important;
+  color: #101828 !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #eaecf0 !important;
+  font-size: 13.5px !important;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.admin-trainer-dossier-view .admin-table tbody tr:hover td {
+  background: #f9fafb !important;
+}
+
+.admin-trainer-dossier-view .admin-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.admin-trainer-dossier-view .admin-table .text-secondary {
+  color: #344054 !important;
+  font-weight: 500;
+}
+
+.admin-trainer-dossier-view .tier-transition,
+.admin-trainer-dossier-view .level-transition-cell {
+  font-size: 13.5px;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .level-transition-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+}
+
+.admin-trainer-dossier-view .level-transition-text .prev-level {
+  color: #475467;
+  font-weight: 500;
+}
+
+.admin-trainer-dossier-view .level-transition-text .arrow-sep {
+  color: #98a2b3;
+  font-weight: 700;
+}
+
+.admin-trainer-dossier-view .level-transition-text .new-level,
+.admin-trainer-dossier-view .tier-transition strong {
+  color: #101828 !important;
+  font-weight: 800;
+}
+
+.admin-trainer-dossier-view .reason-primary-text {
+  font-size: 13.5px;
+  color: #101828 !important;
+  line-height: 1.4;
+}
+
+.admin-trainer-dossier-view .mono-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #344054 !important;
+  font-size: 14px;
+  font-weight: 600;
+  background: #f8fafc;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+}
+
+/* COMMUNITY FEEDBACK PANEL STYLES - Crisp Light Theme & Black / Charcoal Fonts */
+.admin-trainer-dossier-view .trainer-feedback-pane {
+  padding: 24px;
+}
+
+.admin-trainer-dossier-view .feedback-summary-panel {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  background: #f8fafc !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 12px;
+  padding: 1.8rem 2.2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+@media (max-width: 768px) {
+  .admin-trainer-dossier-view .feedback-summary-panel {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+}
+
+.admin-trainer-dossier-view .feedback-score-box {
+  min-width: 180px;
+  text-align: center;
+  border-right: 1px solid #eaecf0;
+  padding-right: 2rem;
+}
+
+@media (max-width: 768px) {
+  .admin-trainer-dossier-view .feedback-score-box {
+    border-right: none;
+    padding-right: 0;
+    text-align: left;
+  }
+}
+
+.admin-trainer-dossier-view .feedback-score-box .score-big {
+  font-size: 3.5rem;
+  font-weight: 850;
+  line-height: 1;
+  color: #b54708 !important;
+  font-family: Georgia, serif;
+}
+
+.admin-trainer-dossier-view .feedback-score-box .score-stars {
+  font-size: 1.25rem;
+  color: #f79009 !important;
+  letter-spacing: 0.15em;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.admin-trainer-dossier-view .feedback-score-box .score-sub {
+  font-size: 13px;
+  color: #344054 !important;
+  font-weight: 600;
+}
+
+.admin-trainer-dossier-view .feedback-distribution-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.admin-trainer-dossier-view .dist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 13px;
+}
+
+.admin-trainer-dossier-view .dist-star-label {
+  min-width: 42px;
+  color: #101828 !important;
+  font-weight: 750;
+  text-align: right;
+}
+
+.admin-trainer-dossier-view .dist-bar-track {
+  flex: 1;
+  height: 9px;
+  background: #eaecf0 !important;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.admin-trainer-dossier-view .dist-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f79009, #eaaa08) !important;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.admin-trainer-dossier-view .dist-count-label {
+  min-width: 70px;
+  font-size: 12.5px;
+  color: #101828 !important;
+  font-weight: 700;
+}
+
+.admin-trainer-dossier-view .reviews-subheading {
+  font-size: 16px;
+  font-weight: 800;
+  color: #101828 !important;
+  margin: 0 0 1.2rem;
+}
+
+.admin-trainer-dossier-view .feedback-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-trainer-dossier-view .feedback-dossier-card {
+  background: #ffffff !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 12px;
+  padding: 1.3rem 1.6rem;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-trainer-dossier-view .feedback-dossier-card:hover {
+  border-color: #d0d5dd !important;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.06);
+}
+
+.admin-trainer-dossier-view .feedback-dossier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.admin-trainer-dossier-view .feedback-author-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.admin-trainer-dossier-view .feedback-author-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .feedback-badge {
+  font-size: 11px;
+  font-weight: 750;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-trainer-dossier-view .badge-student {
+  background: #eff8ff !important;
+  color: #175cd3 !important;
+  border: 1px solid #b2ddff !important;
+}
+
+.admin-trainer-dossier-view .badge-guest {
+  background: #fffaeb !important;
+  color: #b54708 !important;
+  border: 1px solid #fedf89 !important;
+}
+
+.admin-trainer-dossier-view .feedback-booking-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #344054 !important;
+  background: #f2f4f7 !important;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #eaecf0;
+}
+
+.admin-trainer-dossier-view .feedback-rating-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-trainer-dossier-view .stars-gold {
+  color: #f79009 !important;
+  letter-spacing: 0.1em;
+  font-size: 1rem;
+}
+
+.admin-trainer-dossier-view .rating-num {
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .feedback-workshop-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 13px;
+}
+
+.admin-trainer-dossier-view .workshop-pill-tag {
+  background: #fdf2fa !important;
+  color: #c11574 !important;
+  border: 1px solid #fce7f6 !important;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 1px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.admin-trainer-dossier-view .workshop-title-text {
+  color: #101828 !important;
+  font-weight: 700;
+}
+
+.admin-trainer-dossier-view .workshop-date-text {
+  color: #475467 !important;
+  font-weight: 500;
+}
+
+.admin-trainer-dossier-view .feedback-comment-quote {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #101828 !important;
+  background: #f8fafc !important;
+  padding: 0.85rem 1.1rem;
+  border-radius: 8px;
+  border-left: 3px solid #f79009;
+  border-top: 1px solid #eaecf0;
+  border-right: 1px solid #eaecf0;
+  border-bottom: 1px solid #eaecf0;
+  margin: 0 0 0.75rem;
+  font-style: normal;
+}
+
+.admin-trainer-dossier-view .feedback-comment-empty {
+  font-size: 13px;
+  color: #475467 !important;
+  font-style: italic;
+  margin: 0 0 0.75rem;
+}
+
+.admin-trainer-dossier-view .feedback-footer-meta {
+  font-size: 12px;
+  color: #475467 !important;
+  font-weight: 500;
+}
+
+/* Modals */
+.admin-trainer-dossier-view .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.admin-trainer-dossier-view .modal-box {
+  background: #ffffff !important;
+  border: 1px solid #eaecf0 !important;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 520px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .modal-box h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #101828 !important;
+}
+
+.admin-trainer-dossier-view .modal-desc {
+  font-size: 13.5px;
+  color: #475467 !important;
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+
+.admin-trainer-dossier-view .form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054 !important;
+  margin-bottom: 6px;
+}
+
+.admin-trainer-dossier-view .select-field,
+.admin-trainer-dossier-view .textarea-field {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: #101828 !important;
+  background: #ffffff !important;
+  border: 1px solid #d0d5dd !important;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.admin-trainer-dossier-view .select-field:focus,
+.admin-trainer-dossier-view .textarea-field:focus {
+  outline: none;
+  border-color: #175cd3;
+  box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
+}
+
+.admin-trainer-dossier-view .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.admin-trainer-dossier-view .modal-actions .btn {
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.admin-trainer-dossier-view .modal-actions .btn-secondary {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+}
+
+.admin-trainer-dossier-view .modal-actions .btn-primary {
+  background: #175cd3;
+  color: #ffffff;
+}
+
+/* =========================================================
+   TRAINER ACCESS & PERMISSIONS OVERHAUL STYLES
+   ========================================================= */
+
+.admin-trainer-dossier-view .trainer-permissions-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-trainer-dossier-view .permissions-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.admin-trainer-dossier-view .summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #eaecf0;
+  background: #f8fafc;
+  color: #344054;
+}
+
+.admin-trainer-dossier-view .summary-chip.total {
+  background: #f0f9ff;
+  border-color: #b9e6fe;
+  color: #026aa2;
+}
+
+.admin-trainer-dossier-view .summary-chip.allowed-role {
+  background: #ecfdf3;
+  border-color: #abefc6;
+  color: #067647;
+}
+
+.admin-trainer-dossier-view .summary-chip.restricted-role {
+  background: #fef3f2;
+  border-color: #fecdca;
+  color: #b42318;
+}
+
+.admin-trainer-dossier-view .summary-chip.admin-override {
+  background: #fdf2fa;
+  border-color: #fcceee;
+  color: #c11574;
+}
+
+.admin-trainer-dossier-view .permissions-table th {
+  padding: 12px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475467;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.admin-trainer-dossier-view .permission-row td {
+  padding: 16px;
+  vertical-align: top;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.admin-trainer-dossier-view .permission-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-trainer-dossier-view .permission-display-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #101828;
+}
+
+.admin-trainer-dossier-view .permission-description {
+  font-size: 13px;
+  color: #475467;
+  line-height: 1.4;
+}
+
+.admin-trainer-dossier-view .badge-soft-success {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.admin-trainer-dossier-view .admin-decision-none {
+  font-size: 13px;
+  color: #667085;
+  font-style: italic;
+}
+
+.admin-trainer-dossier-view .btn-outline-danger {
+  background: #ffffff;
+  border: 1px solid #fda29b;
+  color: #b42318;
+  font-weight: 700;
+  transition: all 150ms ease;
+}
+
+.admin-trainer-dossier-view .btn-outline-danger:hover {
+  background: #fee4e2;
+  border-color: #f04438;
+  color: #912018;
+}
+
+.admin-trainer-dossier-view .btn-outline-success {
+  background: #ffffff;
+  border: 1px solid #a6f4c5;
+  color: #067647;
+  font-weight: 700;
+  transition: all 150ms ease;
+}
+
+.admin-trainer-dossier-view .btn-outline-success:hover {
+  background: #dcfae6;
+  border-color: #12b76a;
+  color: #054f31;
+}
+
+/* ==========================================================================
+   Modal styles for Change Trainer Access
+   ========================================================================== */
+.admin-trainer-dossier-view .perm-access-modal {
+  max-width: 650px !important;
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 28px 30px;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(16, 24, 40, 0.1), 0 8px 10px -6px rgba(16, 24, 40, 0.06);
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-header-block {
+  margin-bottom: 18px;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-header-block h3 {
+  font-size: 20px;
+  font-weight: 750;
+  color: #101828 !important;
+  letter-spacing: -0.3px;
+  margin: 0 0 6px;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-desc {
+  font-size: 14px;
+  color: #475467 !important;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Permission Summary Card */
+.admin-trainer-dossier-view .perm-modal-details-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-trainer-dossier-view .perm-modal-row {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  font-size: 13.5px;
+}
+
+.admin-trainer-dossier-view .perm-modal-label {
+  font-weight: 600;
+  color: #475467;
+  font-size: 13px;
+}
+
+.admin-trainer-dossier-view .perm-modal-val {
+  color: #101828;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.admin-trainer-dossier-view .perm-modal-val.font-bold {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Permission Choice Option Cards */
+.admin-trainer-dossier-view .perm-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-trainer-dossier-view .perm-choice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  min-height: 72px;
+  border: 1.5px solid #eaecf0;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 150ms ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.admin-trainer-dossier-view .perm-choice-card:hover {
+  background: #f9fafb;
+  border-color: #d0d5dd;
+}
+
+.admin-trainer-dossier-view .perm-choice-card input[type="radio"] {
+  margin: 3px 0 0 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #1570ef;
+}
+
+.admin-trainer-dossier-view .perm-choice-card:has(input[value="restrict"]) input[type="radio"] {
+  accent-color: #d92d20;
+}
+
+.admin-trainer-dossier-view .perm-choice-card:focus-within {
+  outline: 2px solid #1570ef;
+  outline-offset: 2px;
+}
+
+.admin-trainer-dossier-view .perm-choice-card.selected.restrict {
+  border-color: #fda29b;
+  background: #fef6f5;
+  box-shadow: 0 1px 3px rgba(217, 45, 32, 0.08);
+}
+
+.admin-trainer-dossier-view .perm-choice-card.selected.allow {
+  border-color: #84caff;
+  background: #f0f8ff;
+  box-shadow: 0 1px 3px rgba(21, 112, 239, 0.08);
+}
+
+.admin-trainer-dossier-view .perm-choice-card.selected.default {
+  border-color: #b2ddff;
+  background: #f8fafc;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.admin-trainer-dossier-view .choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-trainer-dossier-view .choice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.35;
+}
+
+.admin-trainer-dossier-view .choice-sub {
+  font-size: 12.5px;
+  color: #475467;
+  line-height: 1.45;
+}
+
+/* Operational Consequence Advisory Callout */
+.admin-trainer-dossier-view .perm-advisory-box {
+  border-radius: 9px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-trainer-dossier-view .advisory-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.admin-trainer-dossier-view .advisory-icon {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-trainer-dossier-view .advisory-heading {
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.admin-trainer-dossier-view .advisory-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding-left: 2px;
+}
+
+.admin-trainer-dossier-view .advisory-restrict {
+  background: #fef6f5;
+  border: 1px solid #fee4e2;
+  color: #912018;
+}
+
+.admin-trainer-dossier-view .advisory-restrict .advisory-title {
+  color: #b42318;
+}
+
+.admin-trainer-dossier-view .advisory-restrict .advisory-body {
+  color: #7a271a;
+}
+
+.admin-trainer-dossier-view .advisory-allow {
+  background: #f6fef9;
+  border: 1px solid #d1fadf;
+  color: #05603a;
+}
+
+.admin-trainer-dossier-view .advisory-allow .advisory-title {
+  color: #027a48;
+}
+
+.admin-trainer-dossier-view .advisory-allow .advisory-body {
+  color: #05603a;
+}
+
+.admin-trainer-dossier-view .advisory-role_default {
+  background: #f5faff;
+  border: 1px solid #d1e9ff;
+  color: #175cd3;
+}
+
+.admin-trainer-dossier-view .advisory-role_default .advisory-title {
+  color: #175cd3;
+}
+
+.admin-trainer-dossier-view .advisory-role_default .advisory-body {
+  color: #1849a9;
+}
+
+/* Audit Reason Textarea */
+.admin-trainer-dossier-view .perm-access-modal .textarea-field {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #101828 !important;
+  background: #ffffff !important;
+  border: 1px solid #d0d5dd !important;
+  border-radius: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .textarea-field::placeholder {
+  color: #98a2b3;
+  font-size: 13px;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .textarea-field:focus {
+  outline: none;
+  border-color: #1570ef !important;
+  box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12) !important;
+}
+
+/* Modal Actions Footer */
+.admin-trainer-dossier-view .perm-access-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eaecf0;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn {
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  line-height: 1.35;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-secondary {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #98a2b3;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-primary {
+  background: #1570ef;
+  border: 1px solid #1570ef;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-primary:hover {
+  background: #175cd3;
+  border-color: #175cd3;
+}
+
+.admin-trainer-dossier-view .perm-access-modal .modal-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive styles for Change Trainer Access Modal */
+@media (max-width: 640px) {
+  .admin-trainer-dossier-view .perm-access-modal {
+    padding: 20px 18px;
+    max-width: 100% !important;
+    border-radius: 12px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .admin-trainer-dossier-view .perm-modal-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .admin-trainer-dossier-view .perm-modal-label {
+    min-width: unset;
+  }
+
+  .admin-trainer-dossier-view .perm-choice-card {
+    padding: 12px 14px;
+  }
+
+  .admin-trainer-dossier-view .perm-access-modal .modal-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .admin-trainer-dossier-view .perm-access-modal .modal-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+

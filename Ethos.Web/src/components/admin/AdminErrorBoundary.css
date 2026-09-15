@@ -1,0 +1,115 @@
+.admin-error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 24px;
+}
+
+.admin-error-card {
+  max-width: 540px;
+  width: 100%;
+  background: #111622;
+  border: 1px solid #7f1d1d;
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.admin-error-badge {
+  display: inline-block;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.admin-error-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 12px;
+}
+
+.admin-error-message {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.admin-error-trace {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #0b0e14;
+  border: 1px solid #1e2638;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  font-family: monospace;
+}
+
+.trace-caption {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.trace-key {
+  font-size: 0.85rem;
+  color: #38bdf8;
+  word-break: break-all;
+}
+
+.admin-error-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.admin-error-actions button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-error-actions .btn-primary {
+  background: #d4af37;
+  color: #0b0e14;
+  border: none;
+}
+
+.admin-error-actions .btn-primary:hover {
+  background: #e5be48;
+}
+
+.admin-error-actions .btn-secondary {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+}
+
+.admin-error-actions .btn-secondary:hover {
+  background: #334155;
+}
+
+.admin-error-actions .btn-danger {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.admin-error-actions .btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}

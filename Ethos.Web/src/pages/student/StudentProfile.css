@@ -1,0 +1,427 @@
+.student-profile-page {
+  width: 100%;
+  color: #f5f1eb;
+}
+
+.student-profile-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0;
+}
+
+/* TOP BAR */
+.student-profile-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 24px;
+  margin-bottom: 40px;
+}
+
+.student-profile-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-profile-back {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.student-profile-back:hover {
+  border-color: #e97963;
+  color: #ffffff;
+  background: rgba(233, 121, 99, 0.1);
+}
+
+/* HEADER */
+.student-profile-header {
+  margin-bottom: 36px;
+}
+
+.student-profile-header h1 {
+  margin: 0 0 14px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(34px, 4.5vw, 56px);
+  line-height: 1.05;
+  font-weight: 400;
+}
+
+.student-profile-header h1 em {
+  font-style: italic;
+  color: #e97963;
+}
+
+.student-profile-header p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  max-width: 650px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* COMPLETENESS STRIP */
+.student-completion-strip {
+  background: #141312;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 22px 26px;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-completion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.student-completion-header strong {
+  color: #e97963;
+  font-size: 13px;
+}
+
+.student-completion-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.student-completion-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d98d76, #e97963);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.student-completion-note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* MAIN LAYOUT GRID */
+.student-profile-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* LEFT SIDEBAR: AVATAR & IMMUTABLE IDENTITY */
+.student-profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.student-profile-avatar-card {
+  background: #141312;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.student-avatar-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(233, 121, 99, 0.4);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.student-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-avatar-placeholder {
+  font-size: 42px;
+  font-family: var(--font-display, Georgia, serif);
+  color: #e97963;
+}
+
+.student-avatar-upload-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f7f0e9;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.student-avatar-upload-btn:hover {
+  border-color: #e97963;
+  color: #e97963;
+  background: rgba(233, 121, 99, 0.05);
+}
+
+.student-identity-card {
+  background: #141312;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-identity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-identity-item span {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+}
+
+.student-identity-item strong {
+  font-size: 13px;
+  color: #f7f0e9;
+  font-family: var(--font-mono, monospace);
+}
+
+.student-identity-pill {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  background: rgba(115, 200, 128, 0.12);
+  border: 1px solid rgba(115, 200, 128, 0.3);
+  color: #73c880;
+  margin-top: 4px;
+}
+
+/* RIGHT MAIN FORM */
+.student-profile-main {
+  background: #141312;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.student-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 28px;
+}
+
+.student-profile-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.student-profile-section h3 {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: #f7f0e9;
+}
+
+.student-profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.student-form-group--full {
+  grid-column: span 2;
+}
+
+.student-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.student-input,
+.student-textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease;
+  color-scheme: dark;
+}
+
+select.student-input {
+  background-color: #171513;
+  color: #ffffff;
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+select.student-input option {
+  background-color: #171513;
+  color: #ffffff;
+  padding: 10px 14px;
+}
+
+select.student-input option:hover,
+select.student-input option:focus,
+select.student-input option:checked {
+  background-color: #24201c;
+  color: #e97963;
+}
+
+.student-input:focus,
+.student-textarea:focus {
+  outline: none;
+  border-color: #e97963;
+}
+
+.student-input:disabled {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.student-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* READ-ONLY MEMBERSHIP CARD */
+.student-membership-summary-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.student-mem-info h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #f7f0e9;
+  font-weight: 500;
+}
+
+.student-mem-info p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.student-mem-stats {
+  display: flex;
+  gap: 24px;
+  text-align: right;
+}
+
+.student-mem-stat strong {
+  display: block;
+  font-size: 20px;
+  color: #e97963;
+}
+
+.student-mem-stat small {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* FORM ACTIONS */
+.student-profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.student-save-profile-btn {
+  background: #e97963;
+  border: none;
+  color: #ffffff;
+  padding: 14px 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-save-profile-btn:hover:not(:disabled) {
+  background: #df6850;
+  transform: translateY(-2px);
+}
+
+.student-save-profile-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 860px) {
+  .student-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-form-group--full {
+    grid-column: span 1;
+  }
+
+  .student-membership-summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-mem-stats {
+    text-align: left;
+  }
+}

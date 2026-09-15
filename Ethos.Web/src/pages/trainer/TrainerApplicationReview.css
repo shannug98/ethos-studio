@@ -1,0 +1,702 @@
+.trainer-review-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(233, 138, 104, 0.08),
+      transparent 35%
+    ),
+    #090909;
+  color: #f5f1eb;
+  padding: 80px 24px;
+}
+
+.trainer-review-shell {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.trainer-review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  margin-bottom: 50px;
+}
+
+.trainer-review-top-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.trainer-review-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+}
+
+.trainer-status-badge {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  padding: 4px 10px;
+  background: rgba(233, 138, 104, 0.15);
+  border: 1px solid rgba(233, 138, 104, 0.4);
+  color: #e98a68;
+}
+
+.trainer-review-header h1 {
+  margin: 18px 0;
+  font-size: clamp(55px, 8vw, 100px);
+  line-height: 0.9;
+  font-weight: 400;
+}
+
+.trainer-review-header h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.trainer-review-header p {
+  max-width: 540px;
+  color: rgba(245, 241, 235, 0.55);
+  line-height: 1.7;
+}
+
+.trainer-review-progress-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.trainer-step-item {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.trainer-step-item.done {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.trainer-step-item.active {
+  color: #e98a68;
+  font-weight: 600;
+}
+
+.trainer-review-content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.trainer-review-card {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.01)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.trainer-review-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trainer-review-card-header > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trainer-review-card-index {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: #e98a68;
+}
+
+.trainer-review-card-header h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+.trainer-edit-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f5f1eb;
+  padding: 8px 14px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.trainer-edit-button:hover {
+  border-color: #e98a68;
+  color: #e98a68;
+}
+
+.trainer-review-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.trainer-review-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trainer-review-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.trainer-review-field label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  opacity: 0.45;
+}
+
+.trainer-review-field strong {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.trainer-review-bio-text,
+.trainer-review-notes {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.7;
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.trainer-review-link {
+  color: #e98a68;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.trainer-review-link:hover {
+  text-decoration: underline;
+}
+
+.trainer-review-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trainer-review-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trainer-review-doc-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: rgba(233, 138, 104, 0.15);
+  border: 1px solid rgba(233, 138, 104, 0.3);
+  color: #e98a68;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.trainer-review-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trainer-review-doc-info strong {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.trainer-review-doc-info span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.trainer-review-tier-display {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.trainer-review-tier-art {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  overflow: hidden;
+  background: #050505;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.trainer-review-tier-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.trainer-tier-art-silver {
+  object-position: 0% center !important;
+}
+
+.trainer-tier-art-gold {
+  object-position: 33.333% center !important;
+}
+
+.trainer-tier-art-diamond {
+  object-position: 66.666% center !important;
+}
+
+.trainer-tier-art-platinum {
+  object-position: 100% center !important;
+}
+
+.trainer-review-card-index--text {
+  min-width: 28px;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+
+.trainer-review-video-confirmed {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trainer-review-video-source {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: #e98a68;
+}
+
+.trainer-review-video-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: #f5f1eb;
+  word-break: break-word;
+}
+
+.trainer-review-video-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.trainer-review-video-confirmed .trainer-review-link {
+  display: inline-block;
+  width: fit-content;
+}
+
+.trainer-review-tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-tier-badge-code {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: #e98a68;
+}
+
+.trainer-review-tier-info h3 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.trainer-review-tier-info p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.trainer-review-tier-fee-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.trainer-review-tier-fee-box span {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  opacity: 0.5;
+}
+
+.trainer-review-tier-fee-box strong {
+  font-size: 18px;
+  color: #f5f1eb;
+}
+
+.trainer-verified-pill {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  padding: 5px 12px;
+  background: rgba(80, 200, 120, 0.15);
+  border: 1px solid rgba(80, 200, 120, 0.4);
+  color: #60d080;
+}
+
+.trainer-review-code {
+  font-family: monospace;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 2px;
+  width: fit-content;
+}
+
+.trainer-review-sub-error {
+  padding: 12px 16px;
+  color: #ffaaa0;
+  font-size: 12px;
+  background: rgba(255, 100, 100, 0.08);
+}
+
+.trainer-review-empty {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+}
+
+.trainer-review-footer-box {
+  margin-top: 40px;
+  padding: 35px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.review-submit-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: rgba(255, 100, 100, 0.08);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  color: #ffaaa0;
+}
+
+.review-submit-error-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 100, 100, 0.2);
+  display: grid;
+  place-items: center;
+  font-weight: bold;
+  font-size: 13px;
+  color: #ff6464;
+  flex-shrink: 0;
+}
+
+.review-submit-error strong {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.review-submit-error p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.trainer-review-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.trainer-review-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #e98a68;
+  cursor: pointer;
+}
+
+.trainer-review-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.trainer-back-btn,
+.trainer-submit-btn {
+  padding: 16px 28px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #f5f1eb;
+  transition: all 0.3s ease;
+}
+
+.trainer-submit-btn {
+  background: #e98a68;
+  border-color: #e98a68;
+  color: #111;
+  font-weight: 600;
+}
+
+.trainer-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.trainer-review-loading {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  opacity: 0.6;
+}
+
+.trainer-review-error-card {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.trainer-review-error-card > span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+}
+
+.trainer-review-error-card h1 {
+  margin: 18px 0;
+  font-size: clamp(45px, 6vw, 80px);
+  font-weight: 400;
+}
+
+.trainer-review-error-card button {
+  margin-top: 20px;
+  padding: 14px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .trainer-review-page {
+    padding: 45px 16px;
+  }
+
+  .trainer-review-header {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .trainer-review-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-review-tier-display {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trainer-review-actions {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+
+  .trainer-back-btn,
+  .trainer-submit-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   TRAINER APPLICATION REVIEW
+   ========================================================= */
+
+.trainer-review-page {
+  background: #0d0f13;
+  color: #f5f7fb;
+}
+
+.trainer-review-header {
+  border-color: #343d4b;
+}
+
+.trainer-review-eyebrow {
+  color: #ff806b;
+}
+
+.trainer-review-header h1 {
+  color: #ffffff;
+}
+
+.trainer-review-header p {
+  color: #b7c0ce;
+}
+
+/* Progress stepper */
+.trainer-review-progress-stepper {
+  border-color: #343d4b;
+}
+
+.trainer-step-item {
+  color: #9da8b8;
+}
+
+.trainer-step-item.done,
+.trainer-step-item.active {
+  color: #ffffff;
+}
+
+.trainer-step-item.active {
+  border-color: #ff806b;
+}
+
+/* Review cards */
+.trainer-review-card {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-review-card-header {
+  border-color: #333333;
+}
+
+.trainer-review-card-index {
+  color: #ed7965;
+}
+
+.trainer-review-card-header h2 {
+  color: #ffffff;
+}
+
+.trainer-edit-button {
+  color: #ffb09f;
+  border-color: #566273;
+}
+
+.trainer-review-field label {
+  color: #ffffff;
+}
+
+.trainer-review-field strong {
+  color: #ffffff;
+}
+
+.trainer-review-bio-text,
+.trainer-review-notes {
+  color: #d6d6d6;
+}
+
+.trainer-review-link {
+  color: #ed7965;
+}
+
+.trainer-review-link:hover {
+  color: #ffffff;
+}
+
+/* Video confirmation */
+.trainer-review-video-confirmed {
+  background: #132619;
+  border-color: #285434;
+}
+
+.trainer-review-video-source,
+.trainer-review-video-name {
+  color: #ffffff;
+}
+
+.trainer-review-video-meta {
+  color: #bdf4d2;
+}
+
+/* Tier information */
+.trainer-review-tier-display {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-review-tier-info h3 {
+  color: #ffffff;
+}
+
+.trainer-review-tier-info p {
+  color: #d6d6d6;
+}
+
+.trainer-review-tier-fee-box {
+  background: #251c19;
+  border: 1px solid #ed7965;
+}
+
+.trainer-review-tier-fee-box span {
+  color: #d6b2a8;
+}
+
+.trainer-review-tier-fee-box strong {
+  color: #ffb09f;
+}
+
+/* Confirmation checkbox */
+.trainer-review-checkbox-label {
+  color: #dbe3ee;
+}
+
+.trainer-review-checkbox-label input[type="checkbox"] {
+  accent-color: #ff806b;
+}
+
+/* Bottom actions */
+.trainer-review-footer-box,
+.trainer-review-actions {
+  border-color: #343d4b;
+}
+
+.trainer-back-btn {
+  background: transparent;
+  color: #dbe3ee;
+  border-color: #566273;
+}
+
+.trainer-submit-btn {
+  background: #ff806b;
+  color: #111318;
+  border-color: #ff806b;
+}
+

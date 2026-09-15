@@ -1,0 +1,1045 @@
+/* ============================================================
+   ETHOS — FOUNDERS SECTION
+   ============================================================ */
+
+.founders-section {
+  position: relative;
+
+  width: 100%;
+
+  padding: 155px 0 145px;
+
+  background: #f4ebe6;
+
+  color: #111;
+
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   BACKGROUND WORD
+   ============================================================ */
+
+.founders-section__background-word {
+  position: absolute;
+
+  top: 155px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(15rem, 32vw, 37rem);
+
+  line-height: 0.72;
+
+  letter-spacing: -0.09em;
+
+  white-space: nowrap;
+
+  color: rgba(20, 15, 14, 0.035);
+
+  pointer-events: none;
+
+  user-select: none;
+}
+
+
+/* ============================================================
+   CONTAINER
+   ============================================================ */
+
+.founders-section__container {
+  position: relative;
+
+  z-index: 2;
+
+  width: min(1440px, calc(100% - 100px));
+
+  margin: 0 auto;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.founders-header {
+  margin-bottom: 70px;
+}
+
+.founders-header__top {
+  display: flex;
+
+  align-items: center;
+
+  gap: 24px;
+
+  margin-bottom: 40px;
+}
+
+.founders-header__eyebrow {
+  font-family: Arial, sans-serif;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.25em;
+
+  white-space: nowrap;
+}
+
+.founders-header__line {
+  flex: 1;
+
+  height: 1px;
+
+  background: rgba(17, 17, 17, 0.18);
+}
+
+.founders-header__main {
+  display: grid;
+
+  grid-template-columns: 1.2fr 0.8fr;
+
+  gap: 60px;
+
+  align-items: end;
+}
+
+.founders-header__title {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(4.5rem, 8vw, 8.5rem);
+
+  font-weight: 400;
+
+  line-height: 0.78;
+
+  letter-spacing: -0.065em;
+}
+
+.founders-header__title span {
+  display: block;
+
+  color: #d48676;
+
+  font-style: italic;
+}
+
+.founders-header__description {
+  max-width: 340px;
+
+  margin: 0 0 5px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 16px;
+
+  line-height: 1.7;
+
+  color: rgba(17, 17, 17, 0.62);
+}
+
+
+/* ============================================================
+   INTERACTIVE STAGE
+   ============================================================ */
+
+.founders-stage {
+  position: relative;
+
+  width: 100%;
+
+  aspect-ratio: 16 / 8.7;
+
+  overflow: hidden;
+
+  background: #d6cbc5;
+
+  isolation: isolate;
+}
+
+
+/* ============================================================
+   IMAGE
+   ============================================================ */
+
+.founders-image-wrapper {
+  position: absolute;
+
+  inset: 0;
+
+  overflow: hidden;
+}
+
+.founders-image {
+  width: 100%;
+
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  transform: scale(1.02);
+
+  transition:
+    transform 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1s ease;
+}
+
+.founders-stage--left-active .founders-image {
+  transform: scale(1.07) translateX(1.5%);
+}
+
+.founders-stage--right-active .founders-image {
+  transform: scale(1.07) translateX(-1.5%);
+}
+
+
+/* ============================================================
+   IMAGE OVERLAY
+   ============================================================ */
+
+.founders-image__overlay {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.03),
+      transparent 45%,
+      rgba(0, 0, 0, 0.12)
+    );
+
+  transition:
+    background 0.8s ease;
+}
+
+.founders-stage--left-active
+.founders-image__overlay {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.38) 0%,
+      rgba(0, 0, 0, 0.04) 52%,
+      rgba(0, 0, 0, 0.18) 100%
+    );
+}
+
+.founders-stage--right-active
+.founders-image__overlay {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.18) 0%,
+      rgba(0, 0, 0, 0.04) 48%,
+      rgba(0, 0, 0, 0.38) 100%
+    );
+}
+
+
+/* ============================================================
+   SUBTLE GRAIN
+   ============================================================ */
+
+.founders-image__grain {
+  position: absolute;
+
+  inset: -50%;
+
+  z-index: 2;
+
+  pointer-events: none;
+
+  opacity: 0.08;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+
+  animation: foundersGrain 0.25s steps(2) infinite;
+}
+
+@keyframes foundersGrain {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(2%, -1%);
+  }
+
+  50% {
+    transform: translate(-1%, 2%);
+  }
+
+  75% {
+    transform: translate(1%, 1%);
+  }
+
+  100% {
+    transform: translate(-2%, -2%);
+  }
+}
+
+
+/* ============================================================
+   INTERACTIVE ZONES
+   ============================================================ */
+
+.founder-zone {
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+
+  z-index: 5;
+
+  width: 50%;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  cursor: pointer;
+}
+
+.founder-zone--left {
+  left: 0;
+}
+
+.founder-zone--right {
+  right: 0;
+}
+
+
+/* ============================================================
+   ZONE INDICATOR
+   ============================================================ */
+
+.founder-zone__indicator {
+  position: absolute;
+
+  bottom: 34px;
+
+  left: 50%;
+
+  width: 42px;
+  height: 42px;
+
+  transform: translateX(-50%);
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.4s ease,
+    border-color 0.4s ease;
+}
+
+.founder-zone__indicator span {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: white;
+
+  transition:
+    transform 0.4s ease,
+    background 0.4s ease;
+}
+
+.founder-zone:hover
+.founder-zone__indicator {
+  transform:
+    translateX(-50%)
+    scale(1.15);
+
+  background: rgba(212, 134, 118, 0.9);
+
+  border-color: #d48676;
+}
+
+.founder-zone:hover
+.founder-zone__indicator span {
+  transform: scale(1.6);
+}
+
+
+/* ============================================================
+   ZONE LABEL
+   ============================================================ */
+
+.founder-zone__label {
+  position: absolute;
+
+  bottom: 47px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 7px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.25em;
+
+  color: white;
+
+  opacity: 0;
+
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.founder-zone--left
+.founder-zone__label {
+  right: 25px;
+
+  transform: translateX(-10px);
+}
+
+.founder-zone--right
+.founder-zone__label {
+  left: 25px;
+
+  transform: translateX(10px);
+}
+
+.founder-zone:hover
+.founder-zone__label {
+  opacity: 1;
+
+  transform: translateX(0);
+}
+
+
+/* ============================================================
+   CENTER MESSAGE
+   ============================================================ */
+
+.founders-stage__center-message {
+  position: absolute;
+
+  z-index: 4;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 3px;
+
+  pointer-events: none;
+
+  color: white;
+
+  transition:
+    opacity 0.5s ease,
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.founders-stage__center-message--hidden {
+  opacity: 0;
+
+  transform:
+    translate(-50%, -50%)
+    scale(0.94);
+}
+
+.founders-stage__center-message span {
+  font-family: Arial, sans-serif;
+
+  font-size: 8px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.35em;
+}
+
+
+/* ============================================================
+   FOUNDER PROFILE
+   ============================================================ */
+
+.founder-profile {
+  position: absolute;
+
+  z-index: 8;
+
+  top: 50%;
+
+  width: min(390px, 36%);
+
+  padding: 30px;
+
+  background: rgba(244, 235, 230, 0.94);
+
+  backdrop-filter: blur(18px);
+
+  -webkit-backdrop-filter: blur(18px);
+
+  transform: translateY(-50%);
+
+  animation: founderProfileReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.founder-profile--left {
+  left: 35px;
+}
+
+.founder-profile--right {
+  right: 35px;
+}
+
+@keyframes founderProfileReveal {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-50%)
+      translateX(35px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(-50%)
+      translateX(0);
+  }
+}
+
+.founder-profile--right {
+  animation-name: founderProfileRevealRight;
+}
+
+@keyframes founderProfileRevealRight {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-50%)
+      translateX(-35px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(-50%)
+      translateX(0);
+  }
+}
+
+
+/* ============================================================
+   PROFILE TOP
+   ============================================================ */
+
+.founder-profile__top {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.founder-profile__eyebrow {
+  max-width: 270px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 8px;
+
+  font-weight: 600;
+
+  line-height: 1.5;
+
+  letter-spacing: 0.18em;
+
+  text-transform: uppercase;
+
+  color: #d48676;
+}
+
+.founder-profile__close {
+  width: 28px;
+  height: 28px;
+
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border: 1px solid rgba(17, 17, 17, 0.25);
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #111;
+
+  font-size: 16px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.3s ease,
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.founder-profile__close:hover {
+  background: #111;
+
+  color: white;
+
+  transform: rotate(90deg);
+}
+
+
+/* ============================================================
+   PROFILE NAME
+   ============================================================ */
+
+.founder-profile__name {
+  margin: 35px 0 22px;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(2.8rem, 4vw, 4.5rem);
+
+  font-weight: 400;
+
+  line-height: 0.82;
+
+  letter-spacing: -0.055em;
+}
+
+
+/* ============================================================
+   PROFILE LINE
+   ============================================================ */
+
+.founder-profile__line {
+  width: 100%;
+
+  height: 1px;
+
+  margin-bottom: 20px;
+
+  background: rgba(17, 17, 17, 0.18);
+}
+
+
+/* ============================================================
+   PROFILE BIO
+   ============================================================ */
+
+.founder-profile__bio {
+  margin: 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 15px;
+
+  line-height: 1.7;
+
+  color: rgba(17, 17, 17, 0.68);
+}
+
+
+/* ============================================================
+   PROFILE SOCIALS
+   ============================================================ */
+
+.founder-profile__socials {
+  display: flex;
+
+  gap: 25px;
+
+  margin-top: 25px;
+
+  padding-top: 15px;
+
+  border-top: 1px solid rgba(17, 17, 17, 0.14);
+}
+
+.founder-profile__socials a {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  text-decoration: none;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 8px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.17em;
+
+  text-transform: uppercase;
+
+  color: #111;
+
+  transition: color 0.3s ease;
+}
+
+.founder-profile__socials a:hover {
+  color: #d48676;
+}
+
+.founder-profile__socials span {
+  font-size: 12px;
+}
+
+
+/* ============================================================
+   BOTTOM STATEMENT
+   ============================================================ */
+
+.founders-statement {
+  margin-top: 105px;
+
+  margin-bottom: 45px;
+}
+
+.founders-statement__line {
+  width: 100%;
+
+  height: 1px;
+
+  background: rgba(17, 17, 17, 0.18);
+
+  margin-bottom: 35px;
+}
+
+.founders-statement__content {
+  display: grid;
+
+  grid-template-columns: 0.4fr 1.2fr 0.55fr;
+
+  gap: 40px;
+
+  align-items: start;
+}
+
+.founders-statement__small {
+  margin: 7px 0 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.25em;
+
+  color: rgba(17, 17, 17, 0.55);
+}
+
+.founders-statement__content h3 {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(3rem, 5vw, 5.5rem);
+
+  font-weight: 400;
+
+  line-height: 0.84;
+
+  letter-spacing: -0.055em;
+}
+
+.founders-statement__content h3 span {
+  color: #d48676;
+
+  font-style: italic;
+}
+
+.founders-statement__text {
+  max-width: 280px;
+
+  margin: 7px 0 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 16px;
+
+  line-height: 1.7;
+
+  color: rgba(17, 17, 17, 0.62);
+}
+
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 1050px) {
+
+  .founders-section {
+    padding: 120px 0 110px;
+  }
+
+  .founders-section__container {
+    width: min(92%, 900px);
+  }
+
+  .founders-header__main {
+    grid-template-columns: 1fr 0.7fr;
+  }
+
+  .founders-stage {
+    aspect-ratio: 1 / 0.72;
+  }
+
+  .founder-profile {
+    width: min(360px, 45%);
+  }
+
+  .founders-statement__content {
+    grid-template-columns: 0.3fr 1fr 0.55fr;
+  }
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .founders-section {
+    padding: 95px 0 85px;
+  }
+
+  .founders-section__container {
+    width: calc(100% - 40px);
+  }
+
+  .founders-section__background-word {
+    top: 130px;
+
+    font-size: 48vw;
+  }
+
+
+  /* HEADER */
+
+  .founders-header {
+    margin-bottom: 50px;
+  }
+
+  .founders-header__top {
+    gap: 15px;
+
+    margin-bottom: 30px;
+  }
+
+  .founders-header__eyebrow {
+    font-size: 8px;
+
+    letter-spacing: 0.22em;
+  }
+
+  .founders-header__main {
+    grid-template-columns: 1fr;
+
+    gap: 30px;
+  }
+
+  .founders-header__title {
+    font-size: clamp(4rem, 18vw, 6rem);
+  }
+
+  .founders-header__description {
+    max-width: 280px;
+
+    justify-self: end;
+  }
+
+
+  /* STAGE */
+
+  .founders-stage {
+    aspect-ratio: 0.78;
+
+    min-height: 560px;
+  }
+
+  .founders-image {
+    object-position: center;
+  }
+
+
+  /* MOBILE INTERACTION */
+
+  .founder-zone {
+    width: 50%;
+  }
+
+  .founder-zone__indicator {
+    bottom: 25px;
+
+    width: 38px;
+    height: 38px;
+  }
+
+  .founder-zone__label {
+    display: none;
+  }
+
+
+  /* PROFILE */
+
+  .founder-profile {
+    top: auto;
+    bottom: 20px;
+
+    left: 20px !important;
+    right: 20px !important;
+
+    width: auto;
+
+    padding: 22px;
+
+    transform: none;
+
+    animation: founderMobileReveal 0.5s
+      cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes founderMobileReveal {
+    from {
+      opacity: 0;
+
+      transform: translateY(25px);
+    }
+
+    to {
+      opacity: 1;
+
+      transform: translateY(0);
+    }
+  }
+
+  .founder-profile__name {
+    margin: 22px 0 18px;
+
+    font-size: 3rem;
+  }
+
+  .founder-profile__bio {
+    font-size: 11px;
+  }
+
+
+  /* CENTER MESSAGE */
+
+  .founders-stage__center-message span {
+    font-size: 7px;
+  }
+
+
+  /* STATEMENT */
+
+  .founders-statement {
+    margin-top: 80px;
+  }
+
+  .founders-statement__content {
+    grid-template-columns: 1fr;
+
+    gap: 25px;
+  }
+
+  .founders-statement__content h3 {
+    font-size: clamp(3rem, 15vw, 5rem);
+  }
+
+  .founders-statement__text {
+    justify-self: end;
+  }
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .founders-image,
+  .founders-image__overlay,
+  .founder-zone__indicator,
+  .founder-zone__indicator span,
+  .founder-zone__label,
+  .founders-stage__center-message,
+  .founder-profile,
+  .founder-profile__close {
+    transition: none !important;
+
+    animation: none !important;
+  }
+
+}
+
+
+/* =========================================
+   MOBILE CLEANUP & TYPOGRAPHY
+   ========================================= */
+
+@media (max-width: 767px) {
+  .founders-statement {
+    margin-bottom: 30px;
+  }
+
+  .founders-header__description {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .founder-profile__bio {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .founders-statement__text {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+}

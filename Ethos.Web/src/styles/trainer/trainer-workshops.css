@@ -1,0 +1,68 @@
+.trainer-workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.trainer-workshop-card {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--trainer-border);
+  background:
+    linear-gradient(
+      180deg,
+      transparent,
+      rgba(0, 0, 0, 0.65)
+    ),
+    var(--trainer-panel);
+  padding: 26px;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease;
+}
+
+.trainer-workshop-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(223, 118, 95, 0.5);
+}
+
+.trainer-workshop-card > span {
+  color: var(--trainer-coral-soft);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.trainer-workshop-card h3 {
+  margin: 12px 0 8px;
+  font-family: Georgia, serif;
+  font-size: 31px;
+  font-weight: 400;
+}
+
+.trainer-workshop-card p {
+  margin: 0 0 15px;
+  color: var(--trainer-muted);
+  font-size: 12px;
+}
+
+.trainer-detail-hero {
+  margin: 25px 0;
+  padding: 35px;
+  border: 1px solid var(--trainer-border);
+  background: var(--trainer-panel);
+}
+
+.trainer-detail-hero h2 {
+  margin: 0 0 18px;
+  font-family: Georgia, serif;
+  font-size: 50px;
+  font-weight: 400;
+}
+
+@media (max-width: 900px) {
+  .trainer-workshop-grid {
+    grid-template-columns: 1fr;
+  }
+}

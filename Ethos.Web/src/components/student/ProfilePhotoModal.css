@@ -1,0 +1,147 @@
+/* ETHOS DANCE STUDIO — PROFILE PHOTO LIGHTBOX MODAL */
+
+.student-photo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(5, 5, 4, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 24px;
+  animation: photoModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes photoModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.student-photo-modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: min(90vw, 680px);
+  max-height: min(88vh, 760px);
+  background: #12100e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(233, 121, 99, 0.2);
+  overflow: hidden;
+  animation: photoModalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes photoModalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.student-photo-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.student-photo-modal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-photo-modal-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #e97963;
+}
+
+.student-photo-modal-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f5f1eb;
+  letter-spacing: 0.04em;
+}
+
+.student-photo-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(245, 241, 235, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-photo-modal-close:hover {
+  background: rgba(233, 121, 99, 0.15);
+  border-color: rgba(233, 121, 99, 0.4);
+  color: #e97963;
+  transform: scale(1.05);
+}
+
+.student-photo-modal-close:focus-visible {
+  outline: 2px solid #e97963;
+  outline-offset: 2px;
+}
+
+.student-photo-modal-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0d0c0b;
+  overflow: hidden;
+}
+
+.student-photo-modal-img {
+  max-width: 100%;
+  max-height: min(70vh, 620px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: block;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .student-photo-modal-backdrop {
+    padding: 12px;
+  }
+
+  .student-photo-modal-card {
+    max-width: 96vw;
+    border-radius: 12px;
+  }
+
+  .student-photo-modal-header {
+    padding: 12px 14px;
+  }
+
+  .student-photo-modal-body {
+    padding: 12px;
+  }
+
+  .student-photo-modal-img {
+    max-height: 65vh;
+  }
+}

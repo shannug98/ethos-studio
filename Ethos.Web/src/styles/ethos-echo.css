@@ -1,0 +1,436 @@
+/* =========================================================
+   ETHOS ECHO LAUNCHER & PANEL
+========================================================= */
+
+.ethos-echo-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9600;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 8px 14px 8px 8px;
+  height: 56px;
+
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  border-radius: 100px;
+
+  background: rgba(16, 14, 14, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  color: #f7eee9;
+  cursor: pointer;
+
+  box-shadow:
+    0 16px 45px rgba(0, 0, 0, 0.4),
+    0 0 25px rgba(223, 128, 108, 0.12);
+
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+.ethos-echo-launcher:hover {
+  transform: translateY(-4px);
+  border-color: rgba(223, 128, 108, 0.7);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.5),
+    0 0 35px rgba(223, 128, 108, 0.22);
+}
+
+.ethos-echo-launcher--open {
+  border-color: rgba(223, 128, 108, 0.75);
+}
+
+/* Glow behind launcher */
+.ethos-echo-launcher__glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 100px;
+  background: radial-gradient(
+    circle,
+    rgba(223, 128, 108, 0.2),
+    transparent 70%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+  animation: launcherGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes launcherGlowPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+/* Emblem Container */
+.ethos-echo-launcher__emblem {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0d0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Rotating outer ring */
+.ethos-echo-launcher__ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  border-top-color: #df806c;
+  border-right-color: rgba(223, 128, 108, 0.4);
+  animation: emblemRingRotate 6s linear infinite;
+}
+
+@keyframes emblemRingRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ethos-echo-launcher__symbol {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-style: italic;
+  color: #df806c;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(223, 128, 108, 0.4);
+}
+
+/* Status dot */
+.ethos-echo-launcher__dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #45d98a;
+  box-shadow: 0 0 8px rgba(69, 217, 138, 0.9);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Text Container */
+.ethos-echo-launcher__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.ethos-echo-launcher__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.ethos-echo-launcher__title strong {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f7eee9;
+}
+
+.ethos-echo-launcher__badge {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #df806c;
+  background: rgba(223, 128, 108, 0.18);
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.ethos-echo-launcher__subtitle {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: rgba(247, 238, 233, 0.55);
+  margin-top: 3px;
+}
+
+/* Action button inside launcher */
+.ethos-echo-launcher__action {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #f7eee9;
+  margin-left: 2px;
+  transition: transform 0.35s ease, background 0.35s ease;
+}
+
+.ethos-echo-launcher:hover .ethos-echo-launcher__action {
+  transform: rotate(45deg);
+  background: rgba(223, 128, 108, 0.25);
+  color: #ffffff;
+}
+
+/* =========================================================
+   ETHOS ECHO PANEL (CHAT WINDOW)
+========================================================= */
+
+.ethos-echo-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 9599;
+
+  width: 350px;
+  border-radius: 20px;
+  background: rgba(16, 14, 14, 0.96);
+  border: 1px solid rgba(223, 128, 108, 0.3);
+
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+
+  color: #f7eee9;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 45px rgba(223, 128, 108, 0.1);
+
+  overflow: hidden;
+  animation: echoPanelSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes echoPanelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ethos-echo-panel__header {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ethos-echo-panel__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ethos-echo-panel__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0d0c0c;
+  border: 1px solid rgba(223, 128, 108, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 17px;
+  color: #df806c;
+}
+
+.ethos-echo-panel__identity strong {
+  display: block;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.ethos-echo-panel__identity span {
+  display: block;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #df806c;
+  margin-top: 2px;
+}
+
+.ethos-echo-panel__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7eee9;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ethos-echo-panel__close:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.05);
+}
+
+.ethos-echo-panel__body {
+  padding: 20px;
+}
+
+.ethos-echo-message {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 16px;
+  border-radius: 4px 18px 18px 18px;
+}
+
+.ethos-echo-message__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #df806c;
+  box-shadow: 0 0 10px #df806c;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.ethos-echo-message p {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(247, 238, 233, 0.88);
+}
+
+.ethos-echo-prompt {
+  margin: 20px 0 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(247, 238, 233, 0.5);
+}
+
+.ethos-echo-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ethos-echo-options button,
+.ethos-echo-options__whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  color: #f7eee9;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.ethos-echo-options button i,
+.ethos-echo-options__whatsapp i {
+  font-style: normal;
+  color: #df806c;
+  font-size: 14px;
+  transition: transform 0.25s ease;
+}
+
+.ethos-echo-options button:hover,
+.ethos-echo-options__whatsapp:hover {
+  background: rgba(223, 128, 108, 0.15);
+  border-color: rgba(223, 128, 108, 0.35);
+  transform: translateX(4px);
+}
+
+.ethos-echo-options button:hover i,
+.ethos-echo-options__whatsapp:hover i {
+  transform: translateX(3px);
+}
+
+.ethos-echo-options__whatsapp {
+  background: rgba(24, 200, 107, 0.12);
+  border-color: rgba(24, 200, 107, 0.3);
+}
+
+.ethos-echo-options__whatsapp i {
+  color: #20c66a;
+}
+
+.ethos-echo-options__whatsapp:hover {
+  background: rgba(24, 200, 107, 0.22);
+  border-color: rgba(24, 200, 107, 0.5);
+}
+
+.ethos-echo-panel__footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(247, 238, 233, 0.35);
+}
+
+@media (max-width: 600px) {
+  .ethos-echo-launcher {
+    right: 14px;
+    bottom: 16px;
+    height: 50px;
+    padding: 6px 12px 6px 6px;
+  }
+
+  .ethos-echo-panel {
+    right: 12px;
+    bottom: 76px;
+    width: calc(100vw - 24px);
+    max-width: 350px;
+  }
+}

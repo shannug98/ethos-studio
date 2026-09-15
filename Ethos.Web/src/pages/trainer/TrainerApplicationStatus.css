@@ -1,0 +1,486 @@
+.trainer-status-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(233, 138, 104, 0.08),
+      transparent 35%
+    ),
+    #090909;
+  color: #f5f1eb;
+  padding: 80px 24px;
+}
+
+.trainer-status-shell {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.trainer-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  margin-bottom: 50px;
+}
+
+.trainer-status-kicker {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+  display: block;
+}
+
+.trainer-status-header h1 {
+  margin: 18px 0 0;
+  font-size: clamp(50px, 7vw, 90px);
+  line-height: 0.9;
+  font-weight: 400;
+}
+
+.trainer-status-header h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.trainer-status-pill-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.trainer-status-pill-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  opacity: 0.4;
+}
+
+.trainer-status-pill {
+  padding: 8px 18px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f5f1eb;
+}
+
+.trainer-status-pill.status-underreview,
+.trainer-status-pill.status-submitted {
+  background: rgba(233, 138, 104, 0.15);
+  border-color: rgba(233, 138, 104, 0.4);
+  color: #e98a68;
+}
+
+.trainer-status-pill.status-approved {
+  background: rgba(80, 200, 120, 0.15);
+  border-color: rgba(80, 200, 120, 0.4);
+  color: #60d080;
+}
+
+.trainer-status-pill.status-changesrequested {
+  background: rgba(255, 180, 80, 0.15);
+  border-color: rgba(255, 180, 80, 0.4);
+  color: #ffb450;
+}
+
+.trainer-status-pill.status-rejected {
+  background: rgba(255, 100, 100, 0.15);
+  border-color: rgba(255, 100, 100, 0.4);
+  color: #ff6464;
+}
+
+.trainer-status-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+}
+
+.trainer-status-card {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.01)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: clamp(28px, 4vw, 45px);
+}
+
+.trainer-status-card-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #e98a68;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.trainer-status-card h2 {
+  margin: 0 0 16px;
+  font-size: clamp(24px, 3.5vw, 36px);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.trainer-status-desc {
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.7;
+  font-size: 14px;
+  margin: 0 0 35px;
+}
+
+.trainer-status-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trainer-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trainer-meta-item label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  opacity: 0.45;
+}
+
+.trainer-meta-item strong {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.trainer-meta-item code {
+  font-family: monospace;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  word-break: break-all;
+}
+
+.status-verified-text {
+  color: #60d080;
+}
+
+.timeline-card h3 {
+  margin: 0 0 24px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.trainer-timeline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.timeline-item.done {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.timeline-item.done .timeline-icon {
+  color: #60d080;
+}
+
+.timeline-item.active {
+  color: #e98a68;
+  font-weight: 600;
+}
+
+.timeline-item.active .timeline-icon {
+  color: #e98a68;
+}
+
+.timeline-item.pending {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.timeline-item.pending .timeline-icon {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.action-card {
+  max-width: 700px;
+}
+
+.trainer-status-btn {
+  margin-top: 25px;
+  padding: 16px 28px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border: 1px solid #e98a68;
+  background: #e98a68;
+  color: #111;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.trainer-status-btn:hover {
+  background: #f09575;
+  border-color: #f09575;
+}
+
+.trainer-status-actions-footer {
+  margin-top: 35px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.trainer-status-login-btn {
+  padding: 16px 28px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #e98a68;
+  background: #e98a68;
+  color: #111;
+  transition: all 0.3s ease;
+}
+
+.trainer-status-login-btn:hover {
+  background: #f09575;
+  border-color: #f09575;
+}
+
+.trainer-status-back-home {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  padding: 16px 0;
+  transition: color 0.3s ease;
+}
+
+.trainer-status-back-home:hover {
+  color: #f5f1eb;
+}
+
+.trainer-notes-box {
+  margin: 20px 0;
+  padding: 18px 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.trainer-notes-box label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #ffb450;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.trainer-notes-box p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.trainer-status-loading {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  letter-spacing: 0.2em;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.error-card h1 {
+  margin: 18px 0;
+  font-size: clamp(36px, 5vw, 60px);
+  font-weight: 400;
+}
+
+@media (max-width: 850px) {
+  .trainer-status-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-status-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .trainer-status-pill-box {
+    align-items: flex-start;
+  }
+
+  .trainer-status-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   TRAINER APPLICATION STATUS
+   ========================================================= */
+
+.trainer-status-page {
+  background: #0d0f13;
+  color: #f5f7fb;
+}
+
+.trainer-status-header {
+  border-color: #343d4b;
+}
+
+.trainer-status-kicker {
+  color: #ff806b;
+}
+
+.trainer-status-header h1 {
+  color: #ffffff;
+}
+
+.trainer-status-header p {
+  color: #d6d6d6;
+}
+
+.trainer-status-pill-box {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-status-pill-label {
+  color: #d6d6d6;
+}
+
+.trainer-status-pill {
+  color: #ffffff;
+}
+
+.trainer-status-pill.status-underreview,
+.trainer-status-pill.status-submitted {
+  background: #302b1d;
+  color: #ffd875;
+  border-color: #9b7a32;
+}
+
+.trainer-status-pill.status-approved {
+  background: #182d25;
+  color: #bdf4d2;
+  border-color: #3e9b6d;
+}
+
+.trainer-status-pill.status-changesrequested {
+  background: #30231f;
+  color: #ffb09f;
+  border-color: #8e594c;
+}
+
+.trainer-status-pill.status-rejected {
+  background: #351e24;
+  color: #ffc2ca;
+  border-color: #a65363;
+}
+
+/* Status cards */
+.trainer-status-card,
+.timeline-card,
+.action-card {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-status-card-eyebrow {
+  color: #ed7965;
+}
+
+.trainer-status-card h2,
+.timeline-card h3 {
+  color: #ffffff;
+}
+
+.trainer-status-desc {
+  color: #d6d6d6;
+}
+
+.trainer-meta-item {
+  border-color: #333333;
+}
+
+.trainer-meta-item label {
+  color: #ffffff;
+}
+
+.trainer-meta-item strong,
+.trainer-meta-item code {
+  color: #ffffff;
+}
+
+.status-verified-text {
+  color: #bdf4d2;
+}
+
+/* Timeline */
+.timeline-item {
+  border-color: #333333;
+}
+
+.timeline-item.done .timeline-icon {
+  background: #3e9b6d;
+  color: #ffffff;
+}
+
+.timeline-item.active .timeline-icon {
+  background: #ed7965;
+  color: #111318;
+}
+
+.timeline-item.pending .timeline-icon {
+  background: #333333;
+  color: #d6d6d6;
+}
+
+.trainer-notes-box {
+  background: #191919;
+  border: 1px solid #444444;
+}
+
+.trainer-notes-box label {
+  color: #ffffff;
+}
+
+.trainer-notes-box p {
+  color: #d6d6d6;
+}
+
+.trainer-status-actions-footer {
+  border-color: #333333;
+}
+
+.trainer-status-btn,
+.trainer-status-login-btn {
+  background: #ff806b;
+  color: #111318;
+}
+
+.trainer-status-back-home {
+  color: #ffb09f;
+}
+

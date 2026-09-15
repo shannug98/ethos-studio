@@ -1,0 +1,512 @@
+.student-classes-page {
+  width: 100%;
+  color: #f5f1eb;
+}
+
+.student-classes-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0;
+}
+
+/* HEADER */
+.student-classes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 24px;
+  margin-bottom: 48px;
+}
+
+.student-classes-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.student-eyebrow {
+  color: #e97963;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.student-portal-tag {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.student-classes-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-nav-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f5f1eb;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.student-nav-btn:hover {
+  background: rgba(233, 121, 99, 0.15);
+  border-color: #e97963;
+  color: #fff;
+}
+
+.student-logout-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.student-logout-btn:hover {
+  border-color: #e97963;
+  color: #e97963;
+}
+
+/* TITLE AREA */
+.student-classes-title-area {
+  margin-bottom: 40px;
+}
+
+.student-classes-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.student-classes-title-area h1 {
+  font-size: clamp(32px, 4.5vw, 54px);
+  line-height: 1.1;
+  font-weight: 400;
+  margin: 0 0 16px;
+}
+
+.student-classes-title-area h1 em {
+  font-style: italic;
+  font-family: serif;
+  color: #e97963;
+}
+
+.student-classes-intro {
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 680px;
+  margin: 0 0 32px;
+}
+
+/* PASS BANNER */
+.student-classes-pass-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(233, 121, 99, 0.12) 0%, rgba(20, 20, 20, 0.8) 100%);
+  border: 1px solid rgba(233, 121, 99, 0.35);
+  padding: 24px 32px;
+  border-radius: 4px;
+}
+
+.pass-banner-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.pass-banner-left h3 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: #fff;
+}
+
+.pass-banner-dates {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.pass-credits-box {
+  text-align: right;
+}
+
+.credits-number {
+  display: block;
+  font-size: 36px;
+  font-weight: 800;
+  color: #e97963;
+  line-height: 1;
+}
+
+.credits-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pass-buy-link {
+  background: #e97963;
+  color: #0d0c0b;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 10px 20px;
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity 0.3s;
+}
+
+.pass-buy-link:hover {
+  opacity: 0.9;
+}
+
+/* ALERTS */
+.student-classes-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 30px;
+}
+
+.student-classes-alert--error {
+  background: rgba(244, 67, 54, 0.12);
+  border: 1px solid rgba(244, 67, 54, 0.35);
+  color: #ff8a80;
+}
+
+.student-classes-alert--success {
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.35);
+  color: #b9f6ca;
+}
+
+/* SECTIONS */
+.student-classes-section {
+  margin-bottom: 56px;
+}
+
+.section-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.section-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.section-head h2 {
+  font-size: 24px;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* ENROLLMENTS GRID */
+.enrollments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.enrollment-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.enrollment-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.enrollment-tag {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid #4caf50;
+  color: #b9f6ca;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+}
+
+.enrollment-style {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.enrollment-card h3 {
+  font-size: 19px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.enrollment-date {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 20px;
+}
+
+.cancel-enrollment-btn {
+  background: transparent;
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  color: #ff8a80;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.cancel-enrollment-btn:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.15);
+  border-color: #f44336;
+  color: #fff;
+}
+
+.cancel-enrollment-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* AVAILABLE CLASSES GRID */
+.available-classes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.class-catalog-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.3s ease;
+}
+
+.class-catalog-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.class-catalog-card--enrolled {
+  border-color: rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.02);
+}
+
+.catalog-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.catalog-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.style-pill {
+  background: rgba(233, 121, 99, 0.12);
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  color: #e97963;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  letter-spacing: 0.1em;
+}
+
+.level-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  padding: 3px 8px;
+}
+
+.duration-tag {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+}
+
+.class-catalog-card h3 {
+  font-size: 20px;
+  margin: 0 0 10px;
+  color: #fff;
+}
+
+.catalog-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 18px;
+}
+
+.catalog-schedules {
+  margin-bottom: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 14px;
+}
+
+.sched-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.sched-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sched-chip {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 2px;
+}
+
+.room-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.no-sched {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.enroll-btn {
+  background: #e97963;
+  border: none;
+  color: #0d0c0b;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  padding: 12px 18px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.3s;
+}
+
+.enroll-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.enroll-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.enrolled-indicator {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #81c784;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+}
+
+.classes-empty-box {
+  text-align: center;
+  padding: 48px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.empty-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.classes-empty-box h4 {
+  font-size: 17px;
+  margin: 0 0 6px;
+}
+
+.classes-empty-box p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.student-classes-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .student-classes-pass-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .pass-credits-box {
+    text-align: left;
+  }
+}

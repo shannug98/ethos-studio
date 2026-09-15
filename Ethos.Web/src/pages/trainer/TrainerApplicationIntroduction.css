@@ -1,0 +1,983 @@
+/* =========================================================
+   ETHOS TRAINER APPLICATION — INTRODUCTION
+   ========================================================= */
+
+.trainer-introduction-page {
+  min-height: 100vh;
+  background: #0c0b0a;
+  color: #f4eee8;
+  font-family: inherit;
+}
+
+.trainer-introduction-shell {
+  width: 100%;
+  margin: 30px 0 0;
+  display: grid;
+  grid-template-columns: minmax(360px, 0.72fr) minmax(560px, 1.28fr);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0c0b0a;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------
+   LEFT VISUAL
+   --------------------------------------------------------- */
+
+.trainer-introduction-visual {
+  position: relative;
+  min-height: 820px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(12, 11, 10, 0.08) 0%,
+      rgba(12, 11, 10, 0.18) 45%,
+      rgba(12, 11, 10, 0.92) 100%
+    ),
+    radial-gradient(
+      circle at 58% 36%,
+      rgba(223, 118, 95, 0.16),
+      transparent 38%
+    ),
+    #171311;
+}
+
+.trainer-introduction-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.035),
+      transparent 40%
+    );
+  pointer-events: none;
+}
+
+.trainer-introduction-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.05) 0%,
+      rgba(0, 0, 0, 0.12) 45%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
+}
+
+.trainer-introduction-visual-content {
+  position: absolute;
+  left: 56px;
+  right: 48px;
+  bottom: 54px;
+  z-index: 2;
+}
+
+.trainer-introduction-visual-content .trainer-eyebrow {
+  display: block;
+  margin-bottom: 22px;
+  color: #f07a63;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.trainer-introduction-visual-content h1 {
+  margin: 0;
+  color: #f5efe9;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(54px, 5vw, 82px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.88;
+}
+
+.trainer-introduction-visual-content h1 em {
+  color: #f07a63;
+  font-style: italic;
+}
+
+.trainer-introduction-visual-content p {
+  max-width: 420px;
+  margin: 28px 0 0;
+  color: rgba(244, 238, 232, 0.68);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.trainer-introduction-mantra {
+  display: flex;
+  gap: 28px;
+  margin-top: 32px;
+}
+
+.trainer-introduction-mantra span {
+  color: #f07a63;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+/* ---------------------------------------------------------
+   RIGHT FORM AREA
+   --------------------------------------------------------- */
+
+.trainer-introduction-form-area {
+  min-width: 0;
+  padding: 56px 64px 60px;
+  display: flex;
+  align-items: flex-start;
+  background: #0d0c0b;
+}
+
+.trainer-introduction-form {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Back link */
+
+.trainer-introduction-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 58px;
+  color: rgba(244, 238, 232, 0.56);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 180ms ease, transform 180ms ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.trainer-introduction-back:hover {
+  color: #f07a63;
+  transform: translateX(-2px);
+}
+
+/* Heading */
+
+.trainer-introduction-heading {
+  margin-bottom: 46px;
+}
+
+.trainer-introduction-heading .trainer-eyebrow {
+  display: block;
+  margin-bottom: 18px;
+  color: #f07a63;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.trainer-introduction-heading h2 {
+  margin: 0;
+  color: #f4eee8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(48px, 5vw, 72px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.trainer-introduction-heading p {
+  max-width: 580px;
+  margin: 18px 0 0;
+  color: rgba(244, 238, 232, 0.55);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ---------------------------------------------------------
+   FORM SECTIONS
+   --------------------------------------------------------- */
+
+.trainer-introduction-section {
+  padding: 28px 0 34px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.trainer-introduction-section-header {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.trainer-introduction-section-number {
+  color: #f07a63;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding-top: 4px;
+}
+
+.trainer-introduction-section-header h3 {
+  margin: 0;
+  color: #f4eee8;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.trainer-introduction-section-header p {
+  margin: 6px 0 0;
+  color: rgba(244, 238, 232, 0.42);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------
+   FIELDS
+   --------------------------------------------------------- */
+
+.trainer-introduction-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trainer-introduction-field + .trainer-introduction-field {
+  margin-top: 24px;
+}
+
+.trainer-introduction-field label {
+  color: rgba(244, 238, 232, 0.62);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.trainer-introduction-field label span {
+  color: #f07a63;
+}
+
+.trainer-introduction-field label .optional {
+  color: rgba(244, 238, 232, 0.35);
+  font-size: 8px;
+  margin-left: 6px;
+}
+
+/* Inputs / textareas */
+
+.trainer-introduction-field textarea,
+.trainer-introduction-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  outline: none;
+  background: rgba(255, 255, 255, 0.025);
+  color: #f4eee8;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trainer-introduction-field textarea {
+  min-height: 180px;
+  padding: 18px 20px;
+  resize: vertical;
+}
+
+.trainer-introduction-field input {
+  height: 58px;
+  padding: 0 18px;
+}
+
+.trainer-introduction-field textarea::placeholder,
+.trainer-introduction-field input::placeholder {
+  color: rgba(244, 238, 232, 0.24);
+}
+
+.trainer-introduction-field textarea:focus,
+.trainer-introduction-field input:focus {
+  border-color: rgba(240, 122, 99, 0.8);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: 0 0 0 3px rgba(240, 122, 99, 0.06);
+}
+
+/* Character guidance */
+
+.trainer-introduction-field-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  color: rgba(244, 238, 232, 0.4);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.trainer-introduction-field-error {
+  color: #ffaaa0;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ---------------------------------------------------------
+   ERROR
+   --------------------------------------------------------- */
+
+.trainer-introduction-error {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  padding: 16px 18px;
+  border: 1px solid rgba(240, 122, 99, 0.35);
+  background: rgba(240, 122, 99, 0.045);
+  color: rgba(244, 238, 232, 0.78);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.trainer-introduction-error-mark {
+  flex: 0 0 auto;
+  color: #f07a63;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   ACTIONS
+   --------------------------------------------------------- */
+
+.trainer-introduction-actions {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.trainer-introduction-button {
+  min-height: 56px;
+  border-radius: 0;
+  padding: 0 24px;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.trainer-introduction-button--back {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: rgba(244, 238, 232, 0.65);
+}
+
+.trainer-introduction-button--back:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #f4eee8;
+}
+
+.trainer-introduction-button--primary {
+  flex: 1;
+  border: 1px solid #f07a63;
+  background: #f07a63;
+  color: #17110f;
+}
+
+.trainer-introduction-button--primary:hover:not(:disabled) {
+  background: #f58a74;
+  transform: translateY(-1px);
+}
+
+.trainer-introduction-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ---------------------------------------------------------
+   LOADING
+   --------------------------------------------------------- */
+
+.trainer-introduction-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #0c0b0a;
+  color: #f4eee8;
+  text-align: center;
+}
+
+.trainer-introduction-loading-inner {
+  max-width: 420px;
+  padding: 40px;
+}
+
+.trainer-introduction-loading-inner .trainer-eyebrow {
+  display: block;
+  margin-bottom: 18px;
+  color: #f07a63;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.trainer-introduction-loading-inner h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 42px;
+  font-weight: 400;
+}
+
+/* =========================================================
+   VIDEO INTRODUCTION
+   ========================================================= */
+
+.trainer-introduction-video-requirement {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  border: 1px solid rgba(240, 122, 99, 0.22);
+  background: rgba(240, 122, 99, 0.035);
+}
+
+.trainer-introduction-video-requirement-mark {
+  color: #f07a63;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.trainer-introduction-video-requirement strong {
+  display: block;
+  color: #f4eee8;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.trainer-introduction-video-requirement p {
+  margin: 6px 0 0;
+  color: rgba(244, 238, 232, 0.48);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Video method selection */
+
+.trainer-video-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.trainer-video-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 84px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.018);
+  color: #f4eee8;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.trainer-video-option:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.trainer-video-option.is-selected {
+  border-color: #f07a63;
+  background: rgba(240, 122, 99, 0.055);
+}
+
+.trainer-video-option-radio {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 50%;
+  position: relative;
+}
+
+.trainer-video-option.is-selected
+.trainer-video-option-radio {
+  border-color: #f07a63;
+}
+
+.trainer-video-option.is-selected
+.trainer-video-option-radio::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #f07a63;
+}
+
+.trainer-video-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trainer-video-option-content strong {
+  color: #f4eee8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trainer-video-option-content small {
+  color: rgba(244, 238, 232, 0.4);
+  font-size: 10px;
+}
+
+/* Upload area */
+
+.trainer-video-upload {
+  width: 100%;
+}
+
+.trainer-video-dropzone {
+  min-height: 170px;
+  padding: 28px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.015);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.trainer-video-dropzone:hover {
+  border-color: #f07a63;
+  background: rgba(240, 122, 99, 0.035);
+}
+
+.trainer-video-upload-icon {
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(240, 122, 99, 0.55);
+  color: #f07a63;
+  font-size: 18px;
+}
+
+.trainer-video-upload-title {
+  color: #f4eee8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trainer-video-upload-subtitle {
+  margin-top: 8px;
+  color: rgba(244, 238, 232, 0.36);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* Selected video */
+
+.trainer-video-selected {
+  border: 1px solid rgba(240, 122, 99, 0.4);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.trainer-video-preview {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #050505;
+}
+
+.trainer-video-selected-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 18px;
+}
+
+.trainer-video-selected-info > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trainer-video-selected-info strong {
+  overflow: hidden;
+  color: #f4eee8;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trainer-video-selected-info span {
+  color: rgba(244, 238, 232, 0.4);
+  font-size: 10px;
+}
+
+.trainer-video-remove {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #f07a63;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.trainer-video-guidance {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.trainer-video-guidance span {
+  color: rgba(244, 238, 232, 0.34);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.trainer-video-guidance p {
+  max-width: 650px;
+  margin: 7px 0 0;
+  color: rgba(244, 238, 232, 0.38);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 1050px) {
+  .trainer-introduction-shell {
+    width: min(100% - 32px, 900px);
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-introduction-visual {
+    min-height: 420px;
+  }
+
+  .trainer-introduction-visual-content {
+    left: 40px;
+    bottom: 40px;
+  }
+
+  .trainer-introduction-form-area {
+    padding: 48px 40px 56px;
+  }
+}
+
+@media (max-width: 640px) {
+  .trainer-introduction-shell {
+    width: 100%;
+    margin: 0;
+    border: 0;
+  }
+
+  .trainer-introduction-visual {
+    min-height: 330px;
+  }
+
+  .trainer-introduction-visual-content {
+    left: 24px;
+    right: 24px;
+    bottom: 28px;
+  }
+
+  .trainer-introduction-visual-content h1 {
+    font-size: 52px;
+  }
+
+  .trainer-introduction-visual-content p {
+    margin-top: 18px;
+    font-size: 12px;
+  }
+
+  .trainer-introduction-mantra {
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .trainer-introduction-form-area {
+    padding: 36px 22px 44px;
+  }
+
+  .trainer-introduction-back {
+    margin-bottom: 42px;
+  }
+
+  .trainer-introduction-heading {
+    margin-bottom: 34px;
+  }
+
+  .trainer-introduction-heading h2 {
+    font-size: 48px;
+  }
+
+  .trainer-introduction-section {
+    padding: 24px 0 30px;
+  }
+
+  .trainer-introduction-field textarea {
+    min-height: 190px;
+  }
+
+  .trainer-introduction-actions {
+    flex-direction: column-reverse;
+  }
+
+  .trainer-introduction-button {
+    width: 100%;
+  }
+
+  .trainer-video-options {
+    grid-template-columns: 1fr;
+  }
+
+  .trainer-video-selected-info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainer-video-remove {
+    padding: 0;
+  }
+}
+
+/* =========================================================
+   TRAINER INTRODUCTION / PERSONAL DETAILS
+   ========================================================= */
+
+.trainer-introduction-page {
+  background: #0d0f13;
+  color: #f5f7fb;
+}
+
+.trainer-introduction-shell {
+  background: #0d0f13;
+  border-color: #343d4b;
+}
+
+.trainer-introduction-form-area,
+.trainer-introduction-form {
+  background: #11161e;
+}
+
+.trainer-introduction-heading h2 {
+  color: #ffffff;
+}
+
+.trainer-introduction-heading p {
+  color: #b7c0ce;
+}
+
+.trainer-introduction-heading .trainer-eyebrow {
+  color: #ff806b;
+  opacity: 1;
+}
+
+/* Section headings */
+.trainer-introduction-section {
+  border-color: #343d4b;
+}
+
+.trainer-introduction-section-header h3 {
+  color: #ffffff;
+}
+
+.trainer-introduction-section-header p {
+  color: #aeb8c7;
+}
+
+.trainer-introduction-section-number {
+  color: #ff806b;
+  opacity: 1;
+}
+
+/* Field labels */
+.trainer-introduction-field label {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.trainer-introduction-field label span {
+  color: #ff907c;
+}
+
+.trainer-introduction-field label .optional {
+  color: #d6d6d6;
+}
+
+/* Text fields */
+.trainer-introduction-field input,
+.trainer-introduction-field textarea {
+  background: #171717;
+  color: #ffffff;
+  border: 1px solid #444444;
+  border-radius: 4px;
+}
+
+.trainer-introduction-field input::placeholder,
+.trainer-introduction-field textarea::placeholder {
+  color: #d6d6d6;
+  opacity: 1;
+}
+
+.trainer-introduction-field input:focus,
+.trainer-introduction-field textarea:focus {
+  background: #171717;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.trainer-introduction-field-meta {
+  color: #d6d6d6;
+}
+
+.trainer-introduction-field-error {
+  color: #ffc2ca;
+}
+
+/* Video upload */
+.trainer-video-options {
+  background: transparent;
+}
+
+.trainer-video-option {
+  background: #141414;
+  color: #ffffff;
+  border: 1px solid #444444;
+}
+
+.trainer-video-option:hover,
+.trainer-video-option.is-selected {
+  background: #1e1e1e;
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.trainer-video-option-radio {
+  border-color: #666666;
+}
+
+.trainer-video-option.is-selected .trainer-video-option-radio {
+  border-color: #ffffff;
+}
+
+.trainer-video-option-content strong {
+  color: #ffffff;
+}
+
+.trainer-video-option-content small {
+  color: #d6d6d6;
+}
+
+.trainer-video-dropzone {
+  background: #141414;
+  border: 1px dashed #555555;
+  color: #d6d6d6;
+}
+
+.trainer-video-dropzone:hover {
+  background: #1e1e1e;
+  border-color: #ffffff;
+}
+
+.trainer-video-upload-title {
+  color: #ffffff;
+}
+
+.trainer-video-upload-subtitle,
+.trainer-video-guidance p {
+  color: #aeb8c7;
+}
+
+.trainer-video-selected {
+  background: #182d25;
+  border-color: #3e9b6d;
+}
+
+.trainer-video-selected-info strong {
+  color: #ffffff;
+}
+
+.trainer-video-selected-info span {
+  color: #bdf4d2;
+}
+
+.trainer-video-remove {
+  color: #ffb4bd;
+  border-color: #a65363;
+}
+
+.trainer-video-requirement {
+  background: #202733;
+  border-color: #465264;
+}
+
+.trainer-video-requirement strong {
+  color: #ffffff;
+}
+
+.trainer-video-requirement p {
+  color: #aeb8c7;
+}
+
+/* Bottom actions */
+.trainer-introduction-actions {
+  border-color: #343d4b;
+}
+
+.trainer-introduction-button--back {
+  background: transparent;
+  color: #dbe3ee;
+  border-color: #566273;
+}
+
+.trainer-introduction-button--primary {
+  background: #ff806b;
+  color: #111318;
+}
+

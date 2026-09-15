@@ -1,0 +1,213 @@
+/* =========================================================
+   Ethos Admin Portal — Command Palette
+   ========================================================= */
+
+.admin-command-palette-backdrop,
+.admin-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 20px 30px;
+  background: rgba(3, 6, 12, 0.72);
+  backdrop-filter: blur(7px);
+}
+
+.admin-command-palette,
+.admin-palette-container {
+  width: min(100%, 620px);
+  overflow: hidden;
+  border: 1px solid var(--admin-border-strong, #42536f);
+  border-radius: 16px;
+  background: var(--admin-surface, #151c29);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+}
+
+.admin-command-palette-search,
+.admin-palette-search {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--admin-border, #273043);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.admin-command-palette-search svg,
+.palette-search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--admin-muted, #9ba8bc);
+  flex: 0 0 auto;
+}
+
+.admin-command-palette-search input,
+.palette-search-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  color: var(--admin-text, #e8edf7);
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.admin-command-palette-search input::placeholder,
+.palette-search-input::placeholder {
+  color: var(--admin-placeholder, #6f7d92);
+}
+
+.palette-kbd {
+  font-family: monospace;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--admin-border, #273043);
+  border-radius: 4px;
+  color: var(--admin-muted, #71819a);
+}
+
+.admin-command-palette-results,
+.admin-palette-results {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.admin-command-palette-group-label {
+  padding: 10px 10px 6px;
+  color: var(--admin-muted, #71819a);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-command-palette-item,
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 11px;
+  color: var(--admin-text, #cbd5e6);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.admin-command-palette-item:hover,
+.admin-command-palette-item[aria-selected="true"],
+.palette-item:hover,
+.palette-item.selected {
+  color: var(--admin-heading, #f5f7fb);
+  background: rgba(117, 145, 208, 0.1);
+  border-color: rgba(117, 145, 208, 0.2);
+}
+
+.admin-command-palette-item svg,
+.palette-item-icon {
+  width: 17px;
+  height: 17px;
+  color: #91abdf;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.admin-command-palette-item-text,
+.palette-item-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-command-palette-item-title,
+.palette-item-title {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.admin-command-palette-item-description,
+.palette-item-category {
+  margin-top: 2px;
+  color: var(--admin-muted, #71819a);
+  font-size: 0.7rem;
+}
+
+.palette-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.palette-item-category-pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.palette-search-spinner {
+  font-size: 13px;
+  animation: pulse 1s infinite;
+}
+
+.palette-active-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.admin-command-palette-shortcut {
+  color: var(--admin-muted, #71819a);
+  font-size: 0.68rem;
+}
+
+.admin-command-palette-empty,
+.palette-empty {
+  padding: 30px 18px;
+  color: var(--admin-muted, #9ba8bc);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.admin-command-palette-footer,
+.admin-palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 11px 16px;
+  color: var(--admin-muted, #71819a);
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--admin-border, #273043);
+  font-size: 0.68rem;
+}
+
+@media (max-width: 520px) {
+  .admin-command-palette-backdrop,
+  .admin-palette-backdrop {
+    padding: 5vh 12px 20px;
+  }
+
+  .admin-command-palette,
+  .admin-palette-container {
+    border-radius: 13px;
+  }
+}

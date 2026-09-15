@@ -1,0 +1,325 @@
+.brand-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: #050505;
+
+  animation: brandIntroExit 1s ease 2.15s forwards;
+
+  pointer-events: none;
+}
+
+.brand-intro__background {
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(225, 158, 143, 0.16),
+      transparent 35%
+    ),
+    #050505;
+
+  animation: brandBackgroundReveal 2.4s ease forwards;
+}
+
+.brand-intro__content {
+  position: relative;
+  z-index: 2;
+
+  width: min(90%, 900px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  text-align: center;
+
+  color: #f8eee9;
+}
+
+.brand-intro__logo {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 4vw, 40px);
+  overflow: hidden;
+}
+
+.brand-intro__logo-img {
+  width: clamp(90px, 16vw, 160px);
+  height: clamp(90px, 16vw, 160px);
+  object-fit: contain;
+
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+
+  animation: brandLogoImgReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+}
+
+.brand-intro__logo-text {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 8px;
+}
+
+.brand-intro__title {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(5.5rem, 14vw, 12rem);
+
+  font-weight: 400;
+
+  line-height: 0.85;
+
+  letter-spacing: -0.04em;
+
+  opacity: 0;
+
+  transform: translateY(80px);
+
+  animation: brandTitleReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1)
+    0.35s forwards;
+}
+
+.brand-intro__subtitle {
+  margin: 12px 0 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: clamp(12px, 1.4vw, 16px);
+
+  letter-spacing: 0.55em;
+
+  padding-left: 0.55em;
+
+  opacity: 0;
+
+  transform: translateY(20px);
+
+  animation: brandSubtitleReveal 0.8s ease 1s forwards;
+}
+
+.brand-intro__tagline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  width: 360px;
+
+  margin-top: 35px;
+  margin-left: 210px;
+
+  text-align: center;
+
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 4px;
+  font-weight: 500;
+
+  white-space: nowrap;
+
+  opacity: 0;
+  transform: translateY(15px);
+
+  animation: brandTaglineReveal 0.8s ease 1.65s forwards;
+}
+.brand-intro__loading {
+  position: absolute;
+
+  top: 165px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 10px;
+
+  opacity: 0;
+
+  animation: introSmallReveal 0.8s ease 1.55s forwards;
+}
+
+.brand-intro__loading-text {
+  font-family: Arial, sans-serif;
+
+  font-size: 8px;
+
+  letter-spacing: 0.35em;
+
+  color: rgba(248, 238, 233, 0.55);
+}
+
+.brand-intro__loading-bar {
+  width: 110px;
+  height: 1px;
+
+  overflow: hidden;
+
+  background: rgba(248, 238, 233, 0.15);
+}
+
+.brand-intro__loading-bar span {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  background: #df9b8d;
+
+  transform: translateX(-100%);
+
+  animation: loadingProgress 1.45s ease 1.25s forwards;
+}
+
+
+/* ========================================
+   ANIMATIONS
+======================================== */
+
+@keyframes brandBackgroundReveal {
+  0% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes brandTitleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(80px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brandSubtitleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brandTaglineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brandLogoImgReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes introSmallReveal {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes introLineReveal {
+  0% {
+    transform: scaleX(0);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes loadingProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes brandIntroExit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+    visibility: hidden;
+  }
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+  .brand-intro__loading {
+    top: 130px;
+  }
+
+  .brand-intro__tagline {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+
+    justify-content: center;
+    text-align: center;
+
+    gap: 7px;
+    font-size: 8px;
+    letter-spacing: 2.5px;
+
+    /* IMPORTANT: don't redefine animation here */
+  }
+}

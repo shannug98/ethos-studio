@@ -1,0 +1,284 @@
+/* =========================================================
+   ETHOS FLOATING SOCIALS
+   ========================================================= */
+
+.ethos-floating-socials {
+  position: fixed;
+
+  left: 16px;
+  bottom: 28px;
+
+  z-index: 9500;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 9px;
+
+  padding: 9px;
+
+  border: 1px solid rgba(255,255,255,.16);
+
+  border-radius: 999px;
+
+  background: rgba(13,12,12,.82);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.3);
+
+  animation:
+    socialDockReveal .9s cubic-bezier(.16,1,.3,1) .5s both;
+}
+
+
+.ethos-social {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  text-decoration: none;
+
+  isolation: isolate;
+
+  transition:
+    transform .4s cubic-bezier(.16,1,.3,1),
+    box-shadow .4s ease;
+}
+
+
+.ethos-social::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  border-radius: inherit;
+
+  opacity: .95;
+
+  z-index: -2;
+}
+
+
+.ethos-social--instagram::before {
+  background:
+    linear-gradient(
+      145deg,
+      #7c2cff,
+      #ed176f 48%,
+      #ff914d
+    );
+}
+
+
+.ethos-social--youtube::before {
+  background: #ff1730;
+}
+
+
+.ethos-social--whatsapp::before {
+  background: #18c86b;
+}
+
+
+.ethos-social svg {
+  width: 21px;
+  height: 21px;
+
+  fill: none;
+  stroke: #fff;
+
+  stroke-width: 1.8;
+
+  position: relative;
+
+  z-index: 2;
+}
+
+
+.ethos-social--youtube svg {
+  fill: #fff;
+  stroke: none;
+}
+
+
+.ethos-social__play {
+  fill: #ff1730;
+}
+
+
+.ethos-social__phone {
+  fill: #18c86b;
+  stroke: #fff;
+  stroke-width: .8;
+}
+
+
+.ethos-social__dot {
+  fill: #fff;
+  stroke: none;
+}
+
+
+/* =========================================================
+   SHINING LIGHT
+   ========================================================= */
+
+.ethos-social__shine {
+  position: absolute;
+
+  top: -70%;
+  left: -120%;
+
+  width: 55%;
+  height: 240%;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.8),
+      transparent
+    );
+
+  transform: rotate(25deg);
+
+  opacity: 0;
+
+  z-index: 3;
+}
+
+
+.ethos-social:hover {
+  transform: translateX(5px) scale(1.08);
+
+  box-shadow:
+    0 0 24px rgba(255,255,255,.14);
+}
+
+
+.ethos-social:hover .ethos-social__shine {
+  opacity: 1;
+
+  animation:
+    socialShine .75s ease forwards;
+}
+
+
+/* =========================================================
+   SOFT PULSE
+   ========================================================= */
+
+.ethos-social::after {
+  content: "";
+
+  position: absolute;
+
+  inset: -3px;
+
+  border-radius: inherit;
+
+  border: 1px solid rgba(255,255,255,.25);
+
+  opacity: 0;
+
+  animation:
+    socialPulse 3.5s ease-out infinite;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
+@keyframes socialDockReveal {
+
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+@keyframes socialShine {
+
+  0% {
+    left: -120%;
+  }
+
+  100% {
+    left: 160%;
+  }
+}
+
+
+@keyframes socialPulse {
+
+  0%,
+  65%,
+  100% {
+    transform: scale(.92);
+    opacity: 0;
+  }
+
+  12% {
+    transform: scale(1);
+    opacity: .35;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .ethos-floating-socials {
+    left: 10px;
+    bottom: 16px;
+
+    gap: 7px;
+
+    padding: 7px;
+  }
+
+  .ethos-social {
+    width: 38px;
+    height: 38px;
+  }
+
+  .ethos-social svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ethos-floating-socials,
+  .ethos-social,
+  .ethos-social::after {
+    animation: none;
+    transition: none;
+  }
+}

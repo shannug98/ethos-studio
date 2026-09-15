@@ -1,0 +1,554 @@
+.trainer-login-page {
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #0d0c0b;
+  color: #f4eee8;
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   LEFT VISUAL
+   ========================================================= */
+
+.trainer-login-visual {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #171210;
+}
+
+.trainer-login-visual-image {
+  position: absolute;
+  inset: 0;
+
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+
+  transform: scale(1.01);
+}
+
+.trainer-login-visual-overlay {
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.04) 0%,
+      rgba(0, 0, 0, 0.08) 45%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
+}
+
+.trainer-login-visual-content {
+  position: absolute;
+  left: clamp(36px, 6vw, 90px);
+  bottom: clamp(45px, 9vh, 100px);
+  z-index: 2;
+  max-width: 460px;
+}
+
+.trainer-login-eyebrow {
+  display: block;
+  margin-bottom: 22px;
+
+  color: #e97963;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.trainer-login-visual-content h1 {
+  margin: 0;
+
+  color: #f7f0e9;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(58px, 5.4vw, 92px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.91;
+}
+
+.trainer-login-visual-content p {
+  margin: 28px 0 0;
+
+  color: rgba(247, 240, 233, 0.68);
+
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.trainer-login-visual-line {
+  width: 42px;
+  height: 2px;
+  margin-top: 32px;
+
+  background: #e97963;
+}
+
+.trainer-login-visual-meta {
+  display: block;
+  margin-top: 18px;
+
+  color: rgba(247, 240, 233, 0.58);
+
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+}
+
+
+/* =========================================================
+   RIGHT LOGIN PANEL
+   ========================================================= */
+
+.trainer-login-panel {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 60px 8vw;
+
+  background:
+    radial-gradient(
+      circle at 75% 20%,
+      rgba(233, 121, 99, 0.035),
+      transparent 32%
+    ),
+    #0d0c0b;
+
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.trainer-login-form-wrap {
+  width: 100%;
+  max-width: 350px;
+}
+
+/* =========================================================
+   TRAINER LOGIN — HOME NAVIGATION
+   ========================================================= */
+
+.trainer-login-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-bottom: 46px;
+
+  color: #77716b;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.18em;
+
+  text-decoration: none;
+
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.trainer-login-home span {
+  font-size: 15px;
+  line-height: 1;
+
+  transition: transform 180ms ease;
+}
+
+.trainer-login-home:hover {
+  color: #ed7962;
+}
+
+.trainer-login-home:hover span {
+  transform: translateX(-4px);
+}
+
+.trainer-login-home:focus-visible {
+  outline: 2px solid #ed7962;
+  outline-offset: 5px;
+}
+
+/* ---------------------------------------------------------
+   ETHOS EMBLEM
+   --------------------------------------------------------- */
+
+.trainer-login-logo {
+  width: 34px;
+  height: 34px;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+.trainer-login-mark {
+  width: 50px;
+  height: 50px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 28px;
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.015);
+
+  overflow: hidden;
+}
+
+.trainer-login-form-wrap h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 3vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+
+.trainer-login-subtitle {
+  margin: 12px 0 36px;
+
+  color: #d6d6d6;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.trainer-login-form-wrap form {
+  width: 100%;
+}
+
+.trainer-login-form-wrap label {
+  display: block;
+
+  margin: 0 0 10px;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.trainer-login-form-wrap input {
+  width: 100%;
+  height: 48px;
+
+  box-sizing: border-box;
+
+  padding: 0 14px;
+  margin-bottom: 22px;
+
+  border: 1px solid #444444;
+  border-radius: 4px;
+
+  outline: none;
+
+  background: #171717;
+
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trainer-login-form-wrap input::placeholder {
+  color: #d6d6d6;
+  opacity: 1;
+}
+
+.trainer-login-form-wrap input:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+  background: #171717;
+}
+
+.trainer-password-field {
+  position: relative;
+  margin-bottom: 26px;
+}
+
+.trainer-password-field input {
+  margin-bottom: 0;
+  padding-right: 65px;
+}
+
+/* =========================================================
+   TRAINER OTP FIELD (HIGH CONTRAST & VISIBILITY)
+   ========================================================= */
+
+.trainer-otp-field {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.trainer-otp-field input {
+  width: 100% !important;
+  height: 56px !important;
+  box-sizing: border-box !important;
+  padding: 0 16px !important;
+  margin-bottom: 0 !important;
+  background: #171717 !important;
+  border: 1px solid #444444 !important;
+  border-radius: 4px !important;
+  outline: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-family: "Courier New", Courier, monospace, inherit !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.35em !important;
+  text-align: center !important;
+  caret-color: #ffffff !important;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease !important;
+}
+
+.trainer-otp-field input:focus {
+  border-color: #ffffff !important;
+  background: #171717 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.trainer-otp-field input::placeholder {
+  color: #d6d6d6 !important;
+  -webkit-text-fill-color: #d6d6d6 !important;
+  letter-spacing: 0.35em !important;
+  opacity: 1 !important;
+}
+
+.trainer-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+
+  transform: translateY(-50%);
+
+  border: 0;
+  padding: 0;
+
+  background: transparent;
+
+  color: rgba(247, 240, 233, 0.48);
+
+  cursor: pointer;
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.trainer-password-toggle:hover {
+  color: #e97963;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.trainer-login-error {
+  margin: -8px 0 18px;
+  padding: 11px 13px;
+
+  border: 1px solid rgba(233, 121, 99, 0.25);
+
+  background: rgba(233, 121, 99, 0.06);
+
+  color: #f09a88;
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   CONTINUE
+   ========================================================= */
+
+.trainer-login-submit {
+  width: 100%;
+  height: 50px;
+
+  border: 0;
+  border-radius: 0;
+
+  background: #e97963;
+
+  color: #160d0b;
+
+  cursor: pointer;
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
+}
+
+.trainer-login-submit:hover:not(:disabled) {
+  background: #ef8873;
+  transform: translateY(-1px);
+}
+
+.trainer-login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   REGISTER
+   ========================================================= */
+
+.trainer-login-divider {
+  width: 100%;
+  height: 1px;
+
+  margin: 34px 0 20px;
+
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.trainer-login-register {
+  margin: 0;
+
+  color: rgba(247, 240, 233, 0.55);
+
+  text-align: center;
+
+  font-size: 11px;
+}
+
+.trainer-login-register a {
+  color: #e97963;
+
+  font-weight: 700;
+
+  text-decoration: none;
+}
+
+.trainer-login-register a:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.trainer-login-form-wrap button:focus-visible,
+.trainer-login-form-wrap input:focus-visible,
+.trainer-login-register a:focus-visible {
+  outline: 2px solid #e97963;
+  outline-offset: 3px;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .trainer-login-page {
+    grid-template-columns: 42% 58%;
+  }
+
+  .trainer-login-visual-content {
+    left: 34px;
+    bottom: 50px;
+  }
+
+  .trainer-login-visual-content h1 {
+    font-size: clamp(46px, 6vw, 68px);
+  }
+
+  .trainer-login-panel {
+    padding: 50px 45px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+  .trainer-login-page {
+    min-height: 100svh;
+    display: block;
+  }
+
+  .trainer-login-visual {
+    min-height: 330px;
+    height: 42svh;
+  }
+
+  .trainer-login-visual-image {
+    background-size: cover;
+  }
+
+  .trainer-login-visual-content {
+    left: 28px;
+    right: 28px;
+    bottom: 30px;
+  }
+
+  .trainer-login-visual-content h1 {
+    font-size: clamp(44px, 13vw, 62px);
+  }
+
+  .trainer-login-visual-content p {
+    margin-top: 16px;
+    font-size: 11px;
+  }
+
+  .trainer-login-visual-line,
+  .trainer-login-visual-meta {
+    display: none;
+  }
+
+  .trainer-login-panel {
+    min-height: auto;
+    padding: 52px 28px 60px;
+
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .trainer-login-form-wrap {
+    max-width: none;
+  }
+}

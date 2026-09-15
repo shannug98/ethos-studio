@@ -1,0 +1,847 @@
+/* ============================================================
+   ETHOS — TRAINERS
+   ============================================================ */
+
+.trainers-section {
+  position: relative;
+
+  width: 100%;
+
+  padding: 70px 0 140px;
+
+  background: #f4ebe6;
+
+  color: #111;
+
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   BACKGROUND WORD
+   ============================================================ */
+
+.trainers-section__background-word {
+  position: absolute;
+
+  top: 190px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(13rem, 27vw, 30rem);
+
+  line-height: 0.75;
+
+  letter-spacing: -0.08em;
+
+  white-space: nowrap;
+
+  color: rgba(20, 15, 14, 0.035);
+
+  pointer-events: none;
+
+  user-select: none;
+}
+
+
+/* ============================================================
+   CONTAINER
+   ============================================================ */
+
+.trainers-section__container {
+  position: relative;
+
+  z-index: 2;
+
+  width: min(1440px, calc(100% - 100px));
+
+  margin: 0 auto;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.trainers-header {
+  margin-bottom: 75px;
+}
+
+.trainers-header__eyebrow {
+  font-family: Arial, sans-serif;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.28em;
+
+  text-transform: uppercase;
+
+  color: #111;
+
+  margin-bottom: 20px;
+}
+
+.trainers-header__line {
+  width: 100%;
+
+  height: 1px;
+
+  background: rgba(17, 17, 17, 0.18);
+
+  margin-bottom: 42px;
+}
+
+.trainers-header__content {
+  display: grid;
+
+  grid-template-columns: 1.2fr 0.8fr;
+
+  align-items: end;
+
+  gap: 60px;
+}
+
+.trainers-header__title {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(4.5rem, 8vw, 8.5rem);
+
+  font-weight: 400;
+
+  line-height: 0.78;
+
+  letter-spacing: -0.065em;
+}
+
+.trainers-header__title span {
+  display: block;
+
+  color: #d48676;
+
+  font-style: italic;
+}
+
+.trainers-header__description {
+  max-width: 330px;
+
+  padding-bottom: 5px;
+}
+
+.trainers-header__description p {
+  margin: 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 16px;
+
+  line-height: 1.7;
+
+  letter-spacing: 0.01em;
+
+  color: rgba(17, 17, 17, 0.68);
+}
+
+
+/* ============================================================
+   TRAINER GRID
+   ============================================================ */
+
+.trainers-grid {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 18px;
+
+  align-items: start;
+}
+
+
+/* ============================================================
+   TRAINER CARD
+   ============================================================ */
+
+.trainer-card {
+  position: relative;
+
+  min-width: 0;
+
+  background: transparent;
+
+  transition:
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trainer-card:hover {
+  transform: translateY(-8px);
+}
+
+
+/* ============================================================
+   VISUAL
+   ============================================================ */
+
+.trainer-card__visual {
+  position: relative;
+
+  width: 100%;
+
+  aspect-ratio: 0.78;
+
+  overflow: hidden;
+
+  background: #ddd4cf;
+
+  isolation: isolate;
+
+  cursor: pointer;
+
+  outline: none;
+}
+
+.trainer-card__visual:focus-visible {
+  outline: 2px solid currentColor;
+
+  outline-offset: 5px;
+}
+
+.trainer-card__image-wrapper {
+  position: absolute;
+
+  inset: 0;
+
+  overflow: hidden;
+}
+
+.trainer-card__image {
+  width: 100%;
+
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  transform: scale(1.02);
+
+  transition:
+    transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.8s ease;
+}
+
+.trainer-card:hover .trainer-card__image {
+  transform: scale(1.08);
+
+  filter: saturate(0.9);
+}
+
+
+/* ============================================================
+   IMAGE OVERLAY
+   ============================================================ */
+
+.trainer-card__image-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.03) 0%,
+      transparent 45%,
+      rgba(0, 0, 0, 0.35) 100%
+    );
+
+  opacity: 0.8;
+
+  transition: opacity 0.5s ease;
+}
+
+.trainer-card:hover .trainer-card__image-overlay {
+  opacity: 1;
+}
+
+
+/* ============================================================
+   ETHOS MARK
+   ============================================================ */
+
+.trainer-card__mark {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 5;
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 50%;
+
+  backdrop-filter: blur(4px);
+
+  overflow: hidden;
+}
+
+.trainer-card__mark-image {
+  width: 25px;
+  height: 25px;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+.trainer-card:hover .trainer-card__mark {
+  transform: rotate(15deg);
+
+  background: rgba(0, 0, 0, 0.25);
+}
+
+
+/* ============================================================
+   VERTICAL ROLE
+   ============================================================ */
+
+.trainer-card__vertical-role {
+  position: absolute;
+
+  top: 22px;
+  right: 14px;
+
+  z-index: 3;
+
+  writing-mode: vertical-rl;
+
+  transform: rotate(180deg);
+
+  font-family: Arial, sans-serif;
+
+  font-size: 7px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.22em;
+
+  text-transform: uppercase;
+
+  color: rgba(255, 255, 255, 0.9);
+
+  max-height: 170px;
+}
+
+
+/* ============================================================
+   VISUAL BUTTON
+   ============================================================ */
+
+.trainer-card__visual-button {
+  pointer-events: none;
+  position: absolute;
+
+  right: 16px;
+  bottom: 16px;
+
+  z-index: 4;
+
+  width: 42px;
+  height: 42px;
+
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.75);
+
+  border-radius: 50%;
+
+  background: rgba(0, 0, 0, 0.08);
+
+  backdrop-filter: blur(6px);
+
+  color: white;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  transition:
+    background 0.4s ease,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trainer-card__visual-button:hover {
+  background: #d48676;
+
+  border-color: #d48676;
+
+  transform: rotate(45deg);
+}
+
+.trainer-card__visual-arrow {
+  font-family: Arial, sans-serif;
+
+  font-size: 15px;
+
+  line-height: 1;
+}
+
+
+/* ============================================================
+   CARD INFO
+   ============================================================ */
+
+.trainer-card__info {
+  position: relative;
+
+  padding: 21px 4px 0;
+}
+
+.trainer-card__role {
+  min-height: 28px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  font-weight: 600;
+
+  letter-spacing: 0.18em;
+
+  text-transform: uppercase;
+
+  color: #d48676;
+
+  margin-bottom: 8px;
+}
+
+.trainer-card__name {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(24px, 1.8vw, 31px);
+
+  font-weight: 400;
+
+  line-height: 1.05;
+
+  letter-spacing: -0.04em;
+}
+
+
+/* ============================================================
+   READ MORE
+   ============================================================ */
+
+.trainer-card__read-more {
+  width: 100%;
+
+  margin-top: 20px;
+
+  padding: 12px 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  border: 0;
+
+  border-top: 1px solid rgba(17, 17, 17, 0.18);
+
+  background: transparent;
+
+  cursor: pointer;
+
+  pointer-events: auto;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.2em;
+
+  color: #111;
+
+  transition: color 0.3s ease;
+}
+
+.trainer-card__read-more:hover {
+  color: #d48676;
+}
+
+.trainer-card__read-arrow {
+  font-size: 14px;
+
+  letter-spacing: 0;
+
+  transition:
+    transform 0.4s ease,
+    color 0.3s ease;
+}
+
+.trainer-card__read-more:hover .trainer-card__read-arrow {
+  transform: translate(3px, -3px);
+}
+
+
+/* ============================================================
+   EXPANDED DETAILS
+   ============================================================ */
+
+.trainer-card__details {
+  display: grid;
+
+  grid-template-rows: 0fr;
+
+  transition:
+    grid-template-rows 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trainer-card--open .trainer-card__details {
+  grid-template-rows: 1fr;
+}
+
+.trainer-card__details-inner {
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+.trainer-card__bio {
+  margin: 0;
+
+  padding: 18px 4px 20px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 15px;
+
+  line-height: 1.7;
+
+  color: rgba(17, 17, 17, 0.68);
+}
+
+
+/* ============================================================
+   SOCIAL LINKS
+   ============================================================ */
+
+.trainer-card__socials {
+  display: flex;
+
+  flex-direction: column;
+
+  border-top: 1px solid rgba(17, 17, 17, 0.13);
+}
+
+.trainer-card__social {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 11px 4px;
+
+  border-bottom: 1px solid rgba(17, 17, 17, 0.13);
+
+  text-decoration: none;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  color: #111;
+
+  transition:
+    padding-left 0.35s ease,
+    color 0.35s ease;
+}
+
+.trainer-card__social:hover {
+  padding-left: 10px;
+
+  color: #d48676;
+}
+
+.trainer-card__social span {
+  font-size: 12px;
+}
+
+
+/* ============================================================
+   FOOTER STATEMENT
+   ============================================================ */
+
+.trainers-footer {
+  margin-top: 120px;
+}
+
+.trainers-footer__line {
+  width: 100%;
+
+  height: 1px;
+
+  background: rgba(17, 17, 17, 0.18);
+
+  margin-bottom: 35px;
+}
+
+.trainers-footer__content {
+  display: grid;
+
+  grid-template-columns: 1fr 0.55fr;
+
+  gap: 50px;
+
+  align-items: start;
+}
+
+.trainers-footer__content h3 {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(2.8rem, 5vw, 5.5rem);
+
+  font-weight: 400;
+
+  line-height: 0.86;
+
+  letter-spacing: -0.055em;
+}
+
+.trainers-footer__content h3 span {
+  color: #d48676;
+
+  font-style: italic;
+}
+
+.trainers-footer__content p {
+  max-width: 280px;
+
+  margin: 8px 0 0;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 15px;
+
+  line-height: 1.7;
+
+  color: rgba(17, 17, 17, 0.62);
+}
+
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 1050px) {
+
+  .trainers-section {
+    padding: 120px 0 110px;
+  }
+
+  .trainers-section__container {
+    width: min(92%, 900px);
+  }
+
+  .trainers-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 50px 20px;
+  }
+
+  .trainer-card__visual {
+    aspect-ratio: 0.82;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .trainers-section {
+    padding: 95px 0 85px;
+  }
+
+  .trainers-section__container {
+    width: calc(100% - 40px);
+  }
+
+  .trainers-section__background-word {
+    top: 160px;
+
+    font-size: 45vw;
+  }
+
+
+  /* HEADER */
+
+  .trainers-header {
+    margin-bottom: 55px;
+  }
+
+  .trainers-header__line {
+    margin-bottom: 30px;
+  }
+
+  .trainers-header__content {
+    grid-template-columns: 1fr;
+
+    gap: 30px;
+  }
+
+  .trainers-header__title {
+    font-size: clamp(4rem, 19vw, 6rem);
+  }
+
+  .trainers-header__description {
+    max-width: 280px;
+
+    justify-self: end;
+  }
+
+
+  /* GRID */
+
+  .trainers-grid {
+    grid-template-columns: 1fr;
+
+    gap: 65px;
+  }
+
+
+  /* CARD */
+
+  .trainer-card:hover {
+    transform: none;
+  }
+
+  .trainer-card__visual {
+    aspect-ratio: 0.82;
+  }
+
+  .trainer-card__image {
+    transform: none;
+  }
+
+  .trainer-card:hover .trainer-card__image {
+    transform: none;
+  }
+
+  .trainer-card__vertical-role {
+    font-size: 7px;
+  }
+
+  .trainer-card__role {
+    min-height: auto;
+
+    max-width: 250px;
+  }
+
+
+  /* FOOTER */
+
+  .trainers-footer {
+    margin-top: 90px;
+  }
+
+  .trainers-footer__content {
+    grid-template-columns: 1fr;
+
+    gap: 30px;
+  }
+
+  .trainers-footer__content p {
+    justify-self: end;
+  }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .trainer-card,
+  .trainer-card__image,
+  .trainer-card__image-overlay,
+  .trainer-card__details,
+  .trainer-card__visual-button,
+  .trainer-card__read-arrow,
+  .trainer-card__social {
+    transition: none !important;
+  }
+
+}
+
+
+/* =========================================
+   MOBILE CLEANUP & TYPOGRAPHY
+   ========================================= */
+
+@media (max-width: 767px) {
+  .trainer-card__vertical-role {
+    display: none;
+  }
+
+  .trainers-section {
+    padding-top: 55px;
+  }
+
+  .trainers-header__description p {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .trainer-card__role {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  .trainer-card__name {
+    font-size: 27px;
+  }
+
+  .trainer-card__bio {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .trainers-footer__content p {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+}

@@ -1,0 +1,6 @@
+@Ethos.Api_HostAddress = http://localhost:5252
+
+GET {{Ethos.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

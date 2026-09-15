@@ -1,0 +1,51 @@
+.trainer-tier-card {
+  position: relative;
+  min-height: 330px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(239, 170, 150, 0.25);
+  background:
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(223, 118, 95, 0.17),
+      transparent 40%
+    ),
+    var(--trainer-panel);
+  padding: 42px;
+}
+
+.trainer-tier-card > span {
+  color: var(--trainer-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.trainer-tier-card h3 {
+  margin: 20px 0;
+  font-family: Georgia, serif;
+  font-size: clamp(55px, 7vw, 90px);
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+.trainer-tier-meta {
+  display: flex;
+  gap: 70px;
+  margin-top: 55px;
+}
+
+.trainer-tier-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-tier-meta span {
+  color: var(--trainer-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.trainer-tier-meta strong {
+  font-size: 12px;
+}

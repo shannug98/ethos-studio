@@ -1,0 +1,491 @@
+/* =========================================================
+   ETHOS ADMIN PORTAL - STUDENT DIRECTORY (LIGHT THEME)
+   High readability, dark navy typography (#0f172a), white surfaces,
+   KPI summary banner, high contrast tables, and polished badges.
+   ========================================================= */
+
+.admin-students-view {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  color: #0f172a;
+}
+
+/* Header */
+.admin-students-view .admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.admin-students-view .admin-page-title {
+  margin: 0 0 6px !important;
+  color: #101828 !important;
+  font-size: 28px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.6px !important;
+  line-height: 1.2 !important;
+}
+
+.admin-students-view .admin-page-subtitle {
+  margin: 0 !important;
+  color: #667085 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  max-width: 780px;
+}
+
+/* KPI Summary Cards Grid */
+.admin-students-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.student-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.student-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.stat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.stat-icon-wrap.total {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.stat-icon-wrap.complete {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.stat-icon-wrap.incomplete {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.stat-icon-wrap.active {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-info .stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.stat-info .stat-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+/* Filter Card */
+.admin-students-filters {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  flex-wrap: wrap;
+}
+
+.admin-students-filters .search-form {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-width: 320px;
+}
+
+.admin-students-filters .input-field {
+  flex: 1;
+  min-height: 42px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-students-filters .input-field:focus {
+  outline: none;
+  border-color: #ef233c;
+  box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.12);
+}
+
+.admin-students-filters .input-field::placeholder {
+  color: #94a3b8;
+}
+
+.admin-students-filters .btn-secondary {
+  min-height: 42px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.admin-students-filters .btn-secondary:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.filter-selects {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-students-filters .select-field {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.admin-students-filters .select-field:focus {
+  outline: none;
+  border-color: #ef233c;
+}
+
+/* Table Card Container */
+.admin-students-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* Table */
+.admin-students-table-card .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-students-table-card .admin-table thead th {
+  height: 44px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+  border-bottom: 1px solid #e4e7ec;
+  white-space: nowrap;
+}
+
+.admin-students-table-card .admin-table tbody td {
+  height: 58px;
+  padding: 12px 16px;
+  color: #344054;
+  background: #ffffff;
+  border-bottom: 1px solid #eaecf0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.admin-students-table-card .admin-table tbody tr:hover td {
+  background: #f9fafb;
+}
+
+.admin-students-table-card .admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Cell Elements */
+.cell-student-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-primary-name {
+  font-weight: 750;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.student-customer-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.cell-contact-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contact-phone {
+  font-weight: 650;
+  color: #0f172a;
+  font-size: 13.5px;
+}
+
+.contact-email {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.cell-city {
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Profile Status & Missing Explanations */
+.profile-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.badge-profile-completed {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.badge-profile-incomplete {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.missing-summary {
+  font-size: 11px;
+  color: #b45309;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Package Badge */
+.pkg-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.pkg-active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.pkg-none {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* Attendance Cell */
+.attendance-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attendance-classes {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.attendance-total {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* Account Status Pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.status-active {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.status-inactive {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Action button: High-contrast View Dossier */
+.btn-view-dossier {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 750;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.btn-view-dossier:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+}
+
+/* Pagination */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.table-pagination .page-indicator {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.table-pagination .btn-secondary {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.table-pagination .btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table-pagination .btn-secondary:not(:disabled):hover {
+  background: #f1f5f9;
+}
+
+/* Loading & Empty States */
+.loading-state,
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .admin-students-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-students-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

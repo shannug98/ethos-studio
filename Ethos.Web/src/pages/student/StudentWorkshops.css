@@ -1,0 +1,656 @@
+/* ETHOS DANCE STUDIO — STUDENT WORKSHOPS & MASTERCLASSES CSS */
+
+.student-workshops-subnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.student-workshops-subnav-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-workshops-subnav-title {
+  font-family: var(--student-font-display, 'Cinzel', serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.student-workshops-subnav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-subnav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.student-subnav-pill:hover {
+  color: #ffffff;
+  border-color: rgba(233, 121, 99, 0.4);
+  background: rgba(233, 121, 99, 0.08);
+}
+
+.student-subnav-pill--active {
+  background: rgba(233, 121, 99, 0.15);
+  border-color: rgba(233, 121, 99, 0.35);
+  color: #ffffff;
+}
+
+/* PASS BANNER */
+.student-pass-banner {
+  background: linear-gradient(135deg, rgba(233, 121, 99, 0.08) 0%, rgba(18, 16, 14, 0.95) 100%);
+  border: 1px solid rgba(233, 121, 99, 0.25);
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.student-pass-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #e97963;
+}
+
+.student-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e97963;
+  box-shadow: 0 0 6px rgba(233, 121, 99, 0.8);
+}
+
+.student-pass-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.student-pass-title-group h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 6px;
+}
+
+.student-pass-title-group p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.student-pass-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.student-pass-stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #73c880;
+}
+
+.student-pass-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* SECTION HEADERS */
+.student-section-block {
+  margin-bottom: 48px;
+}
+
+.student-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.student-card-eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #e97963;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.student-section-header h3 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0;
+}
+
+.student-counter-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* WORKSHOPS GRID */
+.student-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+/* WORKSHOP CARD */
+.student-class-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.student-class-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(233, 121, 99, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.student-class-card--enrolled {
+  border-color: rgba(115, 200, 128, 0.35);
+  background: rgba(115, 200, 128, 0.025);
+}
+
+/* CARD HEADER */
+.student-class-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.student-style-badge {
+  background: rgba(233, 121, 99, 0.12);
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  color: #e97963;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.student-level-badge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.student-class-title {
+  font-size: 19px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.student-class-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin: 0 0 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* META ROWS */
+.student-workshop-meta-rows {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 0;
+}
+
+.student-schedule-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-schedule-meta-item .meta-icon {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.student-schedule-meta-item strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* SEATS INDICATOR */
+.student-seats-row {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.seats-indicator {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* PRICING BREAKDOWN */
+.student-pricing-box {
+  margin: 12px 0 18px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+}
+
+.pricing-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.public-price {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.student-benefit-line {
+  margin-bottom: 0;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.student-price {
+  color: #73c880;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* ENROLL BUTTON & BOOKED BANNER */
+.student-class-card-footer {
+  margin-top: auto;
+}
+
+.student-enroll-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #e97963 0%, #d86650 100%);
+  border: none;
+  border-radius: 6px;
+  color: #0d0c0b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 13px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(233, 121, 99, 0.25);
+}
+
+.student-enroll-btn:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(233, 121, 99, 0.35);
+}
+
+.student-enroll-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.student-booked-banner {
+  width: 100%;
+  text-align: center;
+  padding: 11px 16px;
+  background: rgba(115, 200, 128, 0.12);
+  border: 1px solid rgba(115, 200, 128, 0.3);
+  color: #73c880;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  border-radius: 6px;
+}
+
+/* EMPTY STATES & LOADERS */
+.student-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.student-empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.student-empty-state h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 6px;
+}
+
+.student-empty-state p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.student-loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.student-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(233, 121, 99, 0.2);
+  border-top-color: #e97963;
+  border-radius: 50%;
+  animation: student-spin 0.8s linear infinite;
+}
+
+@keyframes student-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ALERTS */
+.student-alert {
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.student-alert--error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #ff8a80;
+}
+
+.student-alert--success {
+  background: rgba(115, 200, 128, 0.1);
+  border: 1px solid rgba(115, 200, 128, 0.3);
+  color: #92e09c;
+}
+
+/* BOOKING PASS CARD STYLES */
+.booking-pass-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(18, 16, 14, 0.95) 100%);
+  border: 1px solid rgba(115, 200, 128, 0.3);
+  padding: 24px;
+}
+
+.booking-pass-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pass-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #e97963;
+  background: rgba(233, 121, 99, 0.12);
+  border: 1px solid rgba(233, 121, 99, 0.25);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.booking-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #73c880;
+  background: rgba(115, 200, 128, 0.12);
+  border: 1px solid rgba(115, 200, 128, 0.3);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.status-dot-green {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #73c880;
+  box-shadow: 0 0 6px rgba(115, 200, 128, 0.8);
+}
+
+.booking-pass-title {
+  font-family: var(--student-font-display, 'Cinzel', serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px;
+  line-height: 1.35;
+}
+
+/* DATE BLOCK */
+.booking-pass-date-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.pass-calendar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(233, 121, 99, 0.15);
+  border: 1px solid rgba(233, 121, 99, 0.35);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.cal-day {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.cal-month {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #e97963;
+  margin-top: 2px;
+}
+
+.pass-date-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pass-full-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.pass-time-range {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* META ROWS */
+.booking-pass-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 12px;
+}
+
+.booking-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.booking-meta-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.booking-meta-value {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.booking-meta-value.price-tag {
+  color: #73c880;
+  font-size: 14px;
+}
+
+/* SECONDARY REF */
+.booking-pass-ref {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 18px;
+  font-family: monospace;
+}
+
+.booking-pass-ref strong {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ACTION BUTTON */
+.booking-pass-action {
+  margin-top: auto;
+}
+
+.view-pass-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #e97963 0%, #d86650 100%);
+  border: none;
+  border-radius: 6px;
+  color: #0d0c0b;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(233, 121, 99, 0.25);
+}
+
+.view-pass-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(233, 121, 99, 0.35);
+}

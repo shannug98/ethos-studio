@@ -1,0 +1,412 @@
+/* ETHOS DANCE STUDIO — STUDENT PORTAL APPLICATION SHELL LAYOUT */
+
+:root {
+  --student-bg: #0d0c0b;
+  --student-sidebar: #12100e;
+  --student-card-bg: #171513;
+  --student-border: rgba(255, 255, 255, 0.08);
+  --student-border-subtle: rgba(255, 255, 255, 0.04);
+  --student-coral: #e97963;
+  --student-coral-soft: #f29a88;
+  --student-coral-glow: rgba(233, 121, 99, 0.15);
+  --student-text: #f5f1eb;
+  --student-muted: rgba(245, 241, 235, 0.55);
+  --student-dim: rgba(245, 241, 235, 0.35);
+  --student-font-display: 'Cinzel', 'Playfair Display', Georgia, serif;
+  --student-font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.student-shell {
+  min-height: 100vh;
+  display: flex;
+  background: var(--student-bg);
+  color: var(--student-text);
+  font-family: var(--student-font-body);
+}
+
+/* SIDEBAR */
+.student-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 100;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--student-border);
+  background: var(--student-sidebar);
+  padding: 24px 16px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.student-main {
+  width: calc(100% - 260px);
+  min-height: 100vh;
+  margin-left: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--student-bg);
+}
+
+/* BRAND HEADER */
+.student-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 0 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.student-brand-emblem {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(233, 121, 99, 0.3);
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(233, 121, 99, 0.2) 0%, transparent 70%);
+}
+
+.student-brand-emblem img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.student-brand-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+}
+
+.student-brand-text small {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--student-coral);
+  margin-top: 2px;
+}
+
+/* SIDEBAR PROFILE CHIP */
+.student-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 22px;
+  border: 1px solid var(--student-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.student-sidebar-profile:hover {
+  border-color: rgba(233, 121, 99, 0.3);
+  background: rgba(233, 121, 99, 0.04);
+}
+
+.student-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e97963, #c55a45);
+  color: #12100e;
+  font-weight: 800;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.student-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-sidebar-meta {
+  overflow: hidden;
+}
+
+.student-sidebar-meta strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.student-sidebar-meta span {
+  display: block;
+  font-size: 10px;
+  color: var(--student-coral);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+/* NAVIGATION LINKS */
+.student-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.student-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--student-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.student-nav-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.student-nav-item.active {
+  color: #ffffff;
+  background: rgba(233, 121, 99, 0.12);
+  border: 1px solid rgba(233, 121, 99, 0.25);
+  font-weight: 600;
+}
+
+.student-nav-item.active svg {
+  color: var(--student-coral);
+}
+
+.student-nav-badge {
+  margin-left: auto;
+  background: var(--student-coral);
+  color: #12100e;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+/* SIDEBAR FOOTER (SIGN OUT) */
+.student-sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--student-border);
+}
+
+.student-signout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--student-border);
+  color: var(--student-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-signout-btn:hover {
+  color: #ffffff;
+  border-color: rgba(233, 121, 99, 0.4);
+  background: rgba(233, 121, 99, 0.08);
+}
+
+/* TOPBAR */
+.student-topbar {
+  height: 72px;
+  border-bottom: 1px solid var(--student-border);
+  padding: 0 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(18, 16, 14, 0.85);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.student-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.student-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--student-border);
+  color: var(--student-text);
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.student-topbar-eyebrow {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--student-coral);
+}
+
+.student-topbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 2px 0 0;
+  font-family: var(--student-font-display);
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}
+
+.student-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.student-membership-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(115, 200, 128, 0.1);
+  border: 1px solid rgba(115, 200, 128, 0.25);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #92e09c;
+  letter-spacing: 0.04em;
+}
+
+.student-membership-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #73c880;
+  box-shadow: 0 0 6px rgba(115, 200, 128, 0.6);
+}
+
+.student-topbar-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--student-border);
+  color: var(--student-muted);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.student-topbar-bell:hover {
+  color: #ffffff;
+  border-color: rgba(233, 121, 99, 0.4);
+  background: rgba(233, 121, 99, 0.06);
+}
+
+.student-topbar-bell-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--student-coral);
+  box-shadow: 0 0 8px rgba(233, 121, 99, 0.8);
+}
+
+.student-topbar-greeting {
+  font-size: 13px;
+  color: var(--student-muted);
+}
+
+.student-topbar-greeting strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* MAIN CONTENT VIEWPORT */
+.student-content {
+  flex: 1;
+  padding: 36px 40px 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* OVERLAY FOR MOBILE SIDEBAR */
+.student-sidebar-overlay {
+  display: none;
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 1024px) {
+  .student-sidebar {
+    width: 220px;
+  }
+  .student-main {
+    width: calc(100% - 220px);
+    margin-left: 220px;
+  }
+  .student-content {
+    padding: 28px 24px 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-sidebar {
+    transform: translateX(-100%);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  }
+  .student-sidebar.open {
+    transform: translateX(0);
+  }
+  .student-sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 95;
+  }
+  .student-main {
+    width: 100%;
+    margin-left: 0;
+  }
+  .student-mobile-toggle {
+    display: grid;
+    place-items: center;
+  }
+  .student-topbar {
+    padding: 0 18px;
+  }
+  .student-content {
+    padding: 20px 16px 40px;
+  }
+  .student-topbar-greeting,
+  .student-membership-chip {
+    display: none;
+  }
+}

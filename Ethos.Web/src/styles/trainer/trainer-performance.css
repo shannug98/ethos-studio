@@ -1,0 +1,12 @@
+.trainer-performance-message {
+  min-height: 280px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.trainer-performance-message h3 {
+  max-width: 650px;
+  font-size: 48px;
+}

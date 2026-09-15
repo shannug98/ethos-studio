@@ -1,0 +1,683 @@
+/* =========================================================
+   ETHOS TRAINER TIER SELECTION
+   ========================================================= */
+
+.trainer-tier-page {
+  min-height: 100vh;
+  width: 100%;
+  background: #0c0b0a;
+  color: #f4eee7;
+}
+
+.trainer-tier-shell {
+  width: min(1080px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 48px 0 30px;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.trainer-tier-header {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  column-gap: 16px;
+
+  padding-bottom: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.trainer-tier-header-number {
+  padding-top: 5px;
+
+  color: #ee7865;
+
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.trainer-tier-eyebrow {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #ee7865;
+
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.trainer-tier-header h1 {
+  margin: 0;
+
+  color: #f4eee7;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.trainer-tier-header p {
+  margin: 10px 0 0;
+
+  color: rgba(255, 255, 255, 0.48);
+
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.trainer-tier-error {
+  margin-top: 20px;
+  padding: 13px 16px;
+
+  border: 1px solid rgba(238, 120, 101, 0.28);
+  background: rgba(238, 120, 101, 0.06);
+
+  color: #ee7865;
+
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+/* =========================================================
+   HORIZONTAL TIER SELECTOR NAV
+   ========================================================= */
+
+.trainer-tier-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+
+  margin-top: 32px;
+}
+
+.trainer-tier-nav-item {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  padding: 20px 22px 18px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+
+  background: rgba(255, 255, 255, 0.015);
+  color: #f4eee7;
+
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    border-color 200ms ease,
+    background 200ms ease,
+    transform 200ms ease;
+}
+
+.trainer-tier-nav-item:hover {
+  border-color: rgba(238, 120, 101, 0.4);
+
+  background: rgba(255, 255, 255, 0.03);
+
+  transform: translateY(-2px);
+}
+
+.trainer-tier-nav-item.is-active {
+  border-color: #ee7865;
+
+  background: rgba(238, 120, 101, 0.06);
+}
+
+.trainer-tier-nav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+}
+
+.trainer-tier-nav-number {
+  color: rgba(255, 255, 255, 0.36);
+
+  font-family: Arial, sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.trainer-tier-nav-item.is-active
+.trainer-tier-nav-number {
+  color: #ee7865;
+}
+
+.trainer-tier-nav-name {
+  margin-top: 10px;
+
+  color: rgba(255, 255, 255, 0.62);
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+
+  transition: color 200ms ease;
+}
+
+.trainer-tier-nav-item.is-active
+.trainer-tier-nav-name {
+  color: #f4eee7;
+}
+
+.trainer-tier-nav-bar {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+
+  height: 2px;
+
+  background: transparent;
+
+  transition: background 200ms ease;
+}
+
+.trainer-tier-nav-item.is-active
+.trainer-tier-nav-bar {
+  background: #ee7865;
+}
+
+
+/* =========================================================
+   HERO SHOWCASE CANVAS
+   ========================================================= */
+
+.trainer-tier-showcase {
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 28px;
+  padding: 36px 40px 32px;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+
+  background: #11100f;
+}
+
+.trainer-tier-showcase-top {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 40px;
+
+  align-items: start;
+}
+
+
+/* =========================================================
+   HERO ARTWORK EMBLEM
+   ========================================================= */
+
+.trainer-tier-showcase-art {
+  position: relative;
+
+  width: 240px;
+  height: 240px;
+
+  overflow: hidden;
+
+  background: #050505;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  flex-shrink: 0;
+}
+
+.trainer-tier-art-image {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 400%;
+  max-width: none;
+
+  height: 100%;
+
+  object-fit: fill;
+
+  display: block;
+
+  transition: transform 300ms ease;
+}
+
+/* Four sprite positions */
+.trainer-tier-art-silver {
+  transform: translateX(0);
+}
+
+.trainer-tier-art-gold {
+  transform: translateX(-25%);
+}
+
+.trainer-tier-art-diamond {
+  transform: translateX(-50%);
+}
+
+.trainer-tier-art-platinum {
+  transform: translateX(-75%);
+}
+
+.trainer-tier-showcase-art::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 55%,
+      rgba(17, 16, 15, 0.4) 78%,
+      rgba(17, 16, 15, 0.9) 100%
+    );
+}
+
+
+/* =========================================================
+   SHOWCASE CONTENT
+   ========================================================= */
+
+.trainer-tier-showcase-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-tier-showcase-header h2 {
+  margin: 0;
+
+  color: #f4eee7;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(30px, 2.8vw, 38px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.trainer-tier-showcase-eyebrow {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #ee7865;
+
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.trainer-tier-showcase-description {
+  margin: 12px 0 0;
+
+  max-width: 580px;
+
+  color: rgba(255, 255, 255, 0.52);
+
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.trainer-tier-showcase-section {
+  margin-top: 24px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-tier-showcase-label {
+  display: block;
+
+  margin-bottom: 12px;
+
+  color: rgba(255, 255, 255, 0.35);
+
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.trainer-tier-showcase-benefits {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.trainer-tier-showcase-benefit {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+
+  align-items: start;
+
+  color: rgba(255, 255, 255, 0.72);
+
+  font-family: Arial, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.trainer-tier-showcase-mark {
+  display: flex;
+  align-items: center;
+
+  color: #ee7865;
+
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   APPLICATION FEE DISPLAY ROW
+   ========================================================= */
+
+.trainer-tier-showcase-divider {
+  margin: 28px 0 20px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trainer-tier-showcase-fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trainer-tier-showcase-fee-left {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.trainer-tier-showcase-fee-label {
+  color: rgba(255, 255, 255, 0.42);
+
+  font-family: Arial, sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.trainer-tier-showcase-fee-note {
+  color: rgba(255, 255, 255, 0.36);
+
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+}
+
+.trainer-tier-showcase-price {
+  color: #ee7865;
+
+  font-family: Georgia, serif;
+  font-size: clamp(32px, 3.2vw, 40px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+
+/* =========================================================
+   CONTINUE & ACTIONS
+   ========================================================= */
+
+.trainer-tier-actions {
+  margin-top: 40px;
+  padding-top: 24px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.trainer-tier-continue {
+  width: 100%;
+  min-height: 56px;
+
+  border: 0;
+
+  background: #ee7865;
+  color: #080706;
+
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.20em;
+
+  cursor: pointer;
+
+  transition:
+    background 180ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.trainer-tier-continue:hover:not(:disabled) {
+  background: #f18471;
+  transform: translateY(-1px);
+}
+
+.trainer-tier-continue:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FOOTER & LOADING
+   ========================================================= */
+
+.trainer-tier-footer {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 18px;
+  padding-top: 18px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  color: rgba(255, 255, 255, 0.27);
+
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+}
+
+.trainer-tier-loading {
+  min-height: 70vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: rgba(255, 255, 255, 0.5);
+
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE (TABLET & MOBILE)
+   ========================================================= */
+
+@media (max-width: 1020px) {
+  .trainer-tier-showcase {
+    grid-template-columns: 1fr;
+    gap: 32px;
+
+    padding: 28px;
+  }
+
+  .trainer-tier-showcase-art {
+    height: 240px;
+  }
+}
+
+@media (max-width: 720px) {
+  .trainer-tier-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .trainer-tier-showcase {
+    padding: 20px;
+  }
+
+  .trainer-tier-showcase-art {
+    height: 200px;
+  }
+}
+
+/* =========================================================
+   TRAINER TIER SELECTION
+   ========================================================= */
+
+.trainer-tier-page {
+  background: #0d0f13;
+  color: #f5f7fb;
+}
+
+.trainer-tier-shell {
+  background: transparent;
+}
+
+.trainer-tier-header {
+  border-color: #343d4b;
+}
+
+.trainer-tier-header-number,
+.trainer-tier-eyebrow {
+  color: #ff806b;
+}
+
+.trainer-tier-header h1 {
+  color: #ffffff;
+}
+
+.trainer-tier-header p {
+  color: #d6d6d6;
+}
+
+/* Tier selector */
+.trainer-tier-nav-item {
+  background: #141414;
+  color: #ffffff;
+  border: 1px solid #444444;
+}
+
+.trainer-tier-nav-item:hover {
+  background: #1e1e1e;
+  border-color: #ffffff;
+}
+
+.trainer-tier-nav-item.is-active {
+  background: #251c19;
+  border-color: #ed7965;
+}
+
+.trainer-tier-nav-number {
+  color: #d6d6d6;
+}
+
+.trainer-tier-nav-item.is-active .trainer-tier-nav-number {
+  color: #ed7965;
+}
+
+.trainer-tier-nav-name {
+  color: #ffffff;
+}
+
+.trainer-tier-nav-item.is-active .trainer-tier-nav-name {
+  color: #ffffff;
+}
+
+/* Selected tier showcase */
+.trainer-tier-showcase {
+  background: #141414;
+  border: 1px solid #444444;
+}
+
+.trainer-tier-showcase-header h2 {
+  color: #ffffff;
+}
+
+.trainer-tier-showcase-eyebrow {
+  color: #ff806b;
+}
+
+.trainer-tier-showcase-description {
+  color: #b7c0ce;
+}
+
+.trainer-tier-showcase-label,
+.trainer-tier-showcase-fee-label {
+  color: #c5cfdd;
+}
+
+.trainer-tier-showcase-benefit {
+  color: #dbe3ee;
+}
+
+.trainer-tier-showcase-mark {
+  color: #ff806b;
+}
+
+.trainer-tier-showcase-divider {
+  border-color: #343d4b;
+}
+
+.trainer-tier-showcase-fee-note {
+  color: #aeb8c7;
+}
+
+.trainer-tier-showcase-price {
+  color: #ff907c;
+}
+
+.trainer-tier-actions {
+  border-color: #343d4b;
+}
+
+.trainer-tier-footer {
+  color: #9da8b8;
+  border-color: #343d4b;
+}
+

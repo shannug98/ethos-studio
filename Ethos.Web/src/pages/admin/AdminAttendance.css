@@ -1,0 +1,448 @@
+.admin-attendance-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #101828;
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.attendance-header h1 {
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  color: #101828;
+  margin: 0 0 6px 0;
+}
+
+.attendance-header .subtitle {
+  color: #667085;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.attendance-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #eaecf0;
+  margin-bottom: 20px;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.session-sidebar {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.session-sidebar h3 {
+  color: #101828;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.session-card {
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-card:hover {
+  border-color: #d0d5dd;
+  background: #f1f5f9;
+}
+
+.session-card.selected {
+  border-color: #175cd3;
+  background: #eff8ff;
+}
+
+.session-title {
+  color: #101828;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.session-meta {
+  color: #667085;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.session-room {
+  color: #175cd3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.roster-main {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  min-height: 500px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.roster-card {
+  padding: 20px;
+}
+
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eaecf0;
+  padding-bottom: 16px;
+}
+
+.roster-header h2 {
+  color: #101828;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.roster-sub {
+  color: #667085;
+  font-size: 13px;
+  margin: 0;
+}
+
+.roster-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.roster-table-wrapper {
+  overflow-x: auto;
+}
+
+.status-button-group {
+  display: flex;
+  gap: 4px;
+}
+
+.status-chip {
+  background: #ffffff;
+  color: #475467;
+  border: 1px solid #d0d5dd;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-chip:hover {
+  background: #f9fafb;
+  color: #101828;
+}
+
+.status-chip.active.present {
+  background: #ecfdf3;
+  color: #027a48;
+  border-color: #a6f4c5;
+}
+
+.status-chip.active.absent {
+  background: #fef3f2;
+  color: #b42318;
+  border-color: #fecdca;
+}
+
+.status-chip.active.late {
+  background: #fffaeb;
+  color: #b54708;
+  border-color: #fedf89;
+}
+
+.status-chip.active.excused {
+  background: #f9f5ff;
+  color: #6941c6;
+  border-color: #e9d7fe;
+}
+
+.table-input {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #101828;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #175cd3;
+  box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
+}
+
+.action-buttons-cell {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-btn.small {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  border-radius: 6px;
+}
+
+.no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #667085;
+  font-size: 14px;
+}
+
+/* Alert Notification Banner */
+.attendance-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.attendance-alert.success {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.attendance-alert.error {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.attendance-alert-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.attendance-alert-close:hover {
+  opacity: 1;
+}
+
+/* Status Tags */
+.status-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+}
+
+.status-tag.attended,
+.status-tag.present {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.status-tag.noshow,
+.status-tag.no_show,
+.status-tag.absent {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.status-tag.confirmed {
+  background: #eff8ff;
+  color: #175cd3;
+  border: 1px solid #b2ddff;
+}
+
+.status-tag.cancelled {
+  background: #f8fafc;
+  color: #667085;
+  border: 1px solid #eaecf0;
+}
+
+.status-tag.pending,
+.status-tag.pendingpayment {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+/* Lifecycle State Buttons & Badges */
+.checked-in-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.no-show-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.undo-action-btn {
+  background: #ffffff;
+  color: #667085;
+  border: 1px solid #d0d5dd;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.undo-action-btn:hover {
+  background: #f9fafb;
+  color: #101828;
+  border-color: #98a2b3;
+}
+
+.undo-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.correct-action-btn {
+  background: #175cd3;
+  color: #ffffff;
+  border: 1px solid #175cd3;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.correct-action-btn:hover {
+  background: #154295;
+}
+
+.correct-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Layout */
+@media (max-width: 900px) {
+  .admin-attendance-container {
+    padding: 16px;
+  }
+
+  .attendance-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .attendance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-sidebar {
+    max-height: 300px;
+  }
+
+  .roster-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.15);
+  }
+
+  .roster-table-wrapper::after {
+    content: "Scroll horizontally for actions →";
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: #667085;
+    padding: 6px 12px;
+    background: #f9fafb;
+    border-top: 1px dashed #eaecf0;
+  }
+
+  .roster-table th:first-child,
+  .roster-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .roster-table th:first-child {
+    background: #f9fafb;
+  }
+}

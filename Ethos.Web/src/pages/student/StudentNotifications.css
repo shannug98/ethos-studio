@@ -1,0 +1,338 @@
+.student-notifs-page {
+  width: 100%;
+  color: #f4f4f6;
+}
+
+.student-notifs-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0;
+}
+
+/* TOPBAR */
+.student-notifs-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.student-notifs-back {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #c9c9d1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-notifs-back:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.student-notifs-topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-unread-badge {
+  background: rgba(233, 121, 99, 0.15);
+  border: 1px solid rgba(233, 121, 99, 0.4);
+  color: #e97963;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+/* HEADER */
+.student-notifs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 36px;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.student-notifs-header-text h1 {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  color: #ffffff;
+}
+
+.student-notifs-header-text h1 em {
+  font-style: italic;
+  font-family: Georgia, serif;
+  color: #e97963;
+}
+
+.student-notifs-header-text p {
+  font-size: 14px;
+  color: #8e8e99;
+  max-width: 580px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.student-mark-all-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-mark-all-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.student-mark-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* TABS */
+.student-notifs-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+  overflow-x: auto;
+}
+
+.student-notif-tab {
+  background: transparent;
+  border: none;
+  color: #8e8e99;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.student-notif-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.student-notif-tab--active {
+  color: #ffffff;
+  background: rgba(233, 121, 99, 0.12);
+  border-bottom: 2px solid #e97963;
+}
+
+/* LIST */
+.student-notifs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-notif-card {
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 22px 24px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.student-notif-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.student-notif-card--unread {
+  border-left: 3px solid #e97963;
+  background: linear-gradient(90deg, rgba(233, 121, 99, 0.04) 0%, #141417 100%);
+}
+
+.student-notif-card--read {
+  opacity: 0.85;
+}
+
+.student-notif-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.student-notif-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-notif-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge-package {
+  background: rgba(115, 200, 128, 0.15);
+  color: #73c880;
+}
+
+.badge-payment {
+  background: rgba(79, 140, 255, 0.15);
+  color: #4f8cff;
+}
+
+.badge-class {
+  background: rgba(233, 121, 99, 0.15);
+  color: #e97963;
+}
+
+.badge-workshop {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.badge-feedback {
+  background: rgba(186, 104, 200, 0.15);
+  color: #ba68c8;
+}
+
+.badge-account {
+  background: rgba(0, 200, 255, 0.15);
+  color: #00c8ff;
+}
+
+.badge-system {
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0b0;
+}
+
+.student-notif-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #e97963;
+  box-shadow: 0 0 6px rgba(233, 121, 99, 0.8);
+}
+
+.student-notif-time {
+  font-size: 11px;
+  color: #6a6a75;
+}
+
+.student-notif-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.student-notif-message {
+  font-size: 13px;
+  color: #b0b0bb;
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+.student-notif-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.student-notif-cta-btn {
+  background: transparent;
+  border: 1px solid rgba(233, 121, 99, 0.4);
+  color: #e97963;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-notif-cta-btn:hover {
+  background: rgba(233, 121, 99, 0.15);
+  border-color: #e97963;
+}
+
+.student-notif-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.student-notif-action-btn {
+  background: transparent;
+  border: none;
+  color: #8e8e99;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color 0.2s ease;
+}
+
+.student-notif-action-btn:hover {
+  color: #ffffff;
+}
+
+.student-notif-action-btn--delete:hover {
+  color: #e76c6c;
+}
+
+/* EMPTY STATE */
+.student-notifs-empty {
+  text-align: center;
+  padding: 80px 24px;
+  background: #141417;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+.student-notifs-empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.student-notifs-empty h3 {
+  font-size: 18px;
+  color: #ffffff;
+  margin: 0 0 8px;
+}
+
+.student-notifs-empty p {
+  font-size: 13px;
+  color: #8e8e99;
+  margin: 0;
+  max-width: 400px;
+  margin: 0 auto;
+}

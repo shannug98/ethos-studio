@@ -1,0 +1,77 @@
+.admin-export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--admin-bg-surface-elevated, #1a2234);
+  border: 1px solid var(--admin-border, #1f2937);
+  color: var(--admin-text-primary, #f3f4f6);
+  border-radius: var(--admin-radius-md, 8px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-export-trigger:hover:not(:disabled) {
+  background: var(--admin-bg-hover, #1f293d);
+  border-color: var(--admin-border-focus, #f59e0b);
+}
+
+.admin-export-trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dropdown-chevron {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.admin-export-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.admin-export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--admin-bg-surface-elevated, #1a2234);
+  border: 1px solid var(--admin-border, #1f2937);
+  border-radius: var(--admin-radius-md, 8px);
+  padding: 0.25rem;
+  min-width: 160px;
+  box-shadow: var(--admin-shadow-md, 0 4px 6px rgba(0, 0, 0, 0.5));
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-export-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--admin-text-primary, #f3f4f6);
+  font-size: 0.8125rem;
+  text-align: left;
+  border-radius: var(--admin-radius-sm, 4px);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.admin-export-item:hover {
+  background: var(--admin-bg-hover, #1f293d);
+  color: var(--admin-accent, #f59e0b);
+}

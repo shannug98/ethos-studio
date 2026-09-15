@@ -1,0 +1,24 @@
+# Build & Output
+bin/
+obj/
+dist/
+node_modules/
+
+# IDE & OS
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Storage & Uploads
+App_Data/uploads/
+*.log
+
+# Secrets & Local Env
+secrets.json
+.env
+.env.local
+.env.*.local

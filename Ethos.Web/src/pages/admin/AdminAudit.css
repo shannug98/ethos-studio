@@ -1,0 +1,364 @@
+.admin-audit-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #101828;
+}
+
+.audit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.audit-title {
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  color: #101828;
+  margin: 0 0 4px 0;
+}
+
+.audit-subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #667085;
+  margin: 0;
+}
+
+.audit-refresh-btn {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.audit-refresh-btn:hover {
+  background: #f9fafb;
+}
+
+.audit-filter-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  flex: 1;
+}
+
+.filter-group.trace-filter-group {
+  min-width: 220px;
+  flex: 1.5;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #344054;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+}
+
+.filter-group input,
+.filter-group select {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #101828;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #175cd3;
+  box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-filter-apply {
+  background: #175cd3;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 650;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-filter-apply:hover {
+  background: #154295;
+}
+
+.btn-filter-reset {
+  background: #ffffff;
+  color: #344054;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-filter-reset:hover {
+  background: #f9fafb;
+}
+
+.audit-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  color: #b42318;
+  font-size: 13px;
+}
+
+.audit-table-card {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.audit-table th {
+  height: 44px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e4e7ec;
+  white-space: nowrap;
+}
+
+.audit-table td {
+  height: 58px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eaecf0;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.audit-table tbody tr:hover td {
+  background: #f9fafb;
+}
+
+.actor-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-code {
+  font-size: 12px;
+  color: #667085;
+  margin-top: 3px;
+}
+
+.device-name-sub {
+  font-size: 12px;
+  color: #175cd3;
+  margin-top: 2px;
+}
+
+.category-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #eff8ff;
+  color: #175cd3;
+  border: 1px solid #b2ddff;
+}
+
+.entity-tag {
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #475467;
+  border: 1px solid #eaecf0;
+}
+
+.outcome-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.outcome-pill.pill-green {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.outcome-pill.pill-red {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.trace-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #d0d5dd;
+  color: #175cd3;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.trace-copy-btn:hover {
+  border-color: #175cd3;
+  background: #eff8ff;
+}
+
+.btn-toggle-details {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-toggle-details:hover {
+  background: #f9fafb;
+}
+
+.expanded-row td {
+  background: #f8fafc;
+  padding: 16px 20px;
+}
+
+.audit-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  font-size: 12px;
+  color: #667085;
+}
+
+.detail-meta-grid strong {
+  color: #101828;
+}
+
+.metadata-container {
+  font-size: 12px;
+}
+
+.metadata-container strong {
+  color: #101828;
+}
+
+.metadata-pre {
+  margin-top: 6px;
+  padding: 12px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  color: #38bdf8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 200px;
+}
+
+.audit-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #667085;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-btn:not(:disabled):hover {
+  background: #f9fafb;
+}

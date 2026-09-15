@@ -1,0 +1,96 @@
+.admin-kpi-card {
+  background: var(--admin-bg-surface, #111827);
+  border: 1px solid var(--admin-border, #1f2937);
+  border-radius: var(--admin-radius-md, 8px);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--admin-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.admin-kpi-card.clickable {
+  cursor: pointer;
+}
+
+.admin-kpi-card.clickable:hover {
+  border-color: var(--admin-border-focus, #f59e0b);
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-md, 0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.admin-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-kpi-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-text-secondary, #9ca3af);
+}
+
+.admin-kpi-icon {
+  font-size: 1.25rem;
+}
+
+.admin-kpi-body {
+  margin: 0.25rem 0;
+}
+
+.admin-kpi-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--admin-text-primary, #f3f4f6);
+  font-family: var(--admin-font-mono, monospace);
+  line-height: 1.2;
+}
+
+.admin-kpi-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--admin-text-tertiary, #6b7280);
+}
+
+.admin-kpi-trend {
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--admin-radius-sm, 4px);
+}
+
+.admin-kpi-trend.trend-up {
+  color: var(--admin-success, #10b981);
+  background: var(--admin-success-bg, rgba(16, 185, 129, 0.12));
+}
+
+.admin-kpi-trend.trend-down {
+  color: var(--admin-danger, #ef4444);
+  background: var(--admin-danger-bg, rgba(239, 68, 68, 0.12));
+}
+
+/* Tone Variants */
+.admin-kpi-card.tone-success {
+  border-left: 4px solid var(--admin-success, #10b981);
+}
+
+.admin-kpi-card.tone-warning {
+  border-left: 4px solid var(--admin-warning, #f59e0b);
+}
+
+.admin-kpi-card.tone-danger {
+  border-left: 4px solid var(--admin-danger, #ef4444);
+}
+
+.admin-kpi-card.tone-info {
+  border-left: 4px solid var(--admin-info, #06b6d4);
+}
+
+.admin-kpi-card.tone-neutral {
+  border-left: 4px solid var(--admin-border, #1f2937);
+}

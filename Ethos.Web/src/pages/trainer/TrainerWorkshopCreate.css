@@ -1,0 +1,476 @@
+.trainer-workshop-create-page {
+  min-height: 100vh;
+  padding: 40px 32px 100px;
+}
+
+.workshop-form-shell {
+  width: min(1000px, 100%);
+  margin: 0 auto;
+}
+
+.workshop-back-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffffff !important;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  opacity: 0.85;
+  transition: opacity 180ms ease, color 180ms ease;
+}
+
+.workshop-back-button:hover {
+  opacity: 1;
+  color: #e98a68 !important;
+}
+
+.workshop-form-heading {
+  margin: 60px 0 55px;
+}
+
+.trainer-workshop-create-page .trainer-section-eyebrow {
+  display: block;
+  margin-bottom: 12px;
+  color: #efaa96 !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  opacity: 1 !important;
+}
+
+.workshop-form-heading h1 {
+  margin: 0;
+  font-size: clamp(46px, 7vw, 82px);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  font-weight: 500;
+  color: #ffffff !important;
+}
+
+.workshop-form-heading h1 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  color: #ffffff !important;
+}
+
+.workshop-form-heading p {
+  max-width: 600px;
+  margin-top: 25px;
+  line-height: 1.7;
+  color: #d8d3cd !important;
+  opacity: 1 !important;
+  font-size: 15px;
+}
+
+.workshop-form-error {
+  margin-bottom: 30px;
+  padding: 15px 18px;
+  border-left: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5 !important;
+  font-size: 13px;
+}
+
+.workshop-form-section {
+  padding: 42px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.workshop-form-section-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 35px;
+}
+
+.workshop-form-section-title h2 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: #ffffff !important;
+}
+
+.workshop-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px 22px;
+}
+
+.workshop-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workshop-form-grid label.wide {
+  grid-column: 1 / -1;
+}
+
+/* Form field titles/labels in bright crisp white */
+.workshop-form-grid label > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   WORKSHOP FORM — CRISP WHITE INPUTS & HIGH CONTRAST
+   ========================================================= */
+
+.trainer-workshop-create-page input,
+.trainer-workshop-create-page textarea,
+.trainer-workshop-create-page select {
+  width: 100%;
+  box-sizing: border-box;
+
+  background-color: #1a1715 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-radius: 4px !important;
+
+  padding: 14px 16px !important;
+
+  font-family: inherit;
+  font-size: 15px !important;
+  line-height: 1.5;
+
+  outline: none;
+
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trainer-workshop-create-page input:focus,
+.trainer-workshop-create-page textarea:focus,
+.trainer-workshop-create-page select:focus {
+  background-color: #221e1a !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.trainer-workshop-create-page input::placeholder,
+.trainer-workshop-create-page textarea::placeholder {
+  color: rgba(255, 255, 255, 0.65) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.65) !important;
+  opacity: 1 !important;
+}
+
+/* Chrome autofill text-color safeguard */
+.trainer-workshop-create-page input:-webkit-autofill,
+.trainer-workshop-create-page input:-webkit-autofill:hover,
+.trainer-workshop-create-page input:-webkit-autofill:focus,
+.trainer-workshop-create-page textarea:-webkit-autofill,
+.trainer-workshop-create-page select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0 1000px #1a1715 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Textarea */
+.trainer-workshop-create-page textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* Select dropdown */
+.trainer-workshop-create-page select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  padding-right: 40px !important;
+}
+
+.trainer-workshop-create-page select option {
+  background-color: #1a1715 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  padding: 10px;
+}
+
+/* Native date/time picker icons & text — visible on Ethos dark UI */
+.trainer-workshop-create-page input[type="date"],
+.trainer-workshop-create-page input[type="time"],
+.workshop-form-grid input[type="date"],
+.workshop-form-grid input[type="time"],
+.trainer-workshop-form input[type="date"],
+.trainer-workshop-form input[type="time"],
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit,
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit-text,
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit-month-field,
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit-day-field,
+.trainer-workshop-create-page input[type="date"]::-webkit-datetime-edit-year-field,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit-text,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit-hour-field,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit-minute-field,
+.trainer-workshop-create-page input[type="time"]::-webkit-datetime-edit-ampm-field {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Native calendar / clock icons */
+.trainer-workshop-create-page input[type="date"]::-webkit-calendar-picker-indicator,
+.trainer-workshop-create-page input[type="time"]::-webkit-calendar-picker-indicator,
+.workshop-form-grid input[type="date"]::-webkit-calendar-picker-indicator,
+.workshop-form-grid input[type="time"]::-webkit-calendar-picker-indicator,
+.trainer-workshop-form input[type="date"]::-webkit-calendar-picker-indicator,
+.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2) !important;
+  opacity: 0.9 !important;
+  cursor: pointer;
+}
+
+.trainer-workshop-create-page input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.trainer-workshop-create-page input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.workshop-form-grid input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.workshop-form-grid input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.trainer-workshop-form input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1 !important;
+}
+
+.trainer-field-hint {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.75) !important;
+  opacity: 1 !important;
+  margin-top: 6px;
+}
+
+/* =========================================================
+   WORKSHOP IMAGE UPLOAD & PREVIEW UI
+   ========================================================= */
+
+.trainer-workshop-image-upload {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.015);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+  box-sizing: border-box;
+}
+
+.trainer-workshop-image-upload:hover {
+  border-color: rgba(233, 138, 104, 0.7);
+  background: rgba(233, 138, 104, 0.04);
+}
+
+.trainer-workshop-image-upload > input[type="file"] {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.trainer-workshop-image-placeholder {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #ffffff !important;
+}
+
+.trainer-workshop-image-placeholder .trainer-upload-icon {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  font-size: 20px;
+}
+
+.trainer-workshop-image-placeholder strong {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ffffff !important;
+}
+
+.trainer-workshop-image-placeholder span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.trainer-workshop-image-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.trainer-workshop-image-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.trainer-workshop-image-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75),
+    transparent 45%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.trainer-workshop-image-upload:hover .trainer-workshop-image-overlay {
+  opacity: 1;
+}
+
+.trainer-workshop-image-overlay span {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  color: #fff;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.trainer-workshop-image-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.trainer-workshop-image-actions button {
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #ffffff !important;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.trainer-workshop-image-actions button:hover {
+  border-color: #e98a68;
+  color: #e98a68 !important;
+}
+
+.trainer-form-actions,
+.workshop-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding-top: 35px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.trainer-secondary-button,
+.workshop-secondary-button {
+  min-height: 48px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #ffffff !important;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.trainer-secondary-button:hover,
+.workshop-secondary-button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(233, 138, 104, 0.45);
+  color: #e98a68;
+}
+
+.trainer-primary-button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+@media (max-width: 650px) {
+  .trainer-workshop-create-page {
+    padding: 30px 18px 80px;
+  }
+
+  .workshop-form-heading {
+    margin: 45px 0 40px;
+  }
+
+  .workshop-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workshop-form-grid label.wide {
+    grid-column: auto;
+  }
+
+  .trainer-form-actions,
+  .workshop-form-footer {
+    flex-direction: column-reverse;
+  }
+
+  .trainer-form-actions button,
+  .workshop-form-footer button {
+    width: 100%;
+  }
+}

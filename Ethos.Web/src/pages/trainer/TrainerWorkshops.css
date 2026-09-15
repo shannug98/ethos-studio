@@ -1,0 +1,483 @@
+.trainer-workshops-page {
+  min-height: 100vh;
+  padding: 48px 32px 100px;
+}
+
+.workshops-shell {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+}
+
+.workshops-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  margin-bottom: 56px;
+}
+
+.trainer-section-eyebrow {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  opacity: 0.58;
+}
+
+.workshops-heading h1 {
+  margin: 0;
+  font-size: clamp(44px, 6vw, 82px);
+  line-height: 0.95;
+  font-weight: 500;
+  letter-spacing: -0.055em;
+}
+
+.workshops-heading h1 em,
+.workshops-empty h2 em {
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.workshops-heading p {
+  max-width: 520px;
+  margin: 22px 0 0;
+  line-height: 1.7;
+  opacity: 0.62;
+}
+
+.trainer-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid currentColor;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    color 0.25s ease;
+}
+
+.trainer-primary-button:hover {
+  transform: translateY(-2px);
+  background: currentColor;
+  color: var(--trainer-page-bg, #111);
+}
+
+.trainer-workshop-list {
+  display: grid;
+  gap: 18px;
+}
+
+.trainer-workshop-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 250px 1fr;
+  min-height: 310px;
+  overflow: hidden;
+  border: 1px solid rgba(127, 127, 127, 0.2);
+  background: rgba(127, 127, 127, 0.035);
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.trainer-workshop-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(127, 127, 127, 0.42);
+}
+
+.workshop-card-index {
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  opacity: 0.42;
+}
+
+.workshop-card-image {
+  min-height: 310px;
+  overflow: hidden;
+}
+
+.workshop-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.trainer-workshop-card:hover .workshop-card-image img {
+  transform: scale(1.04);
+}
+
+.workshop-image-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background: linear-gradient(145deg, #292929, #111);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+}
+
+.workshop-card-content {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 34px;
+}
+
+.workshop-card-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  opacity: 0.58;
+}
+
+.workshop-status {
+  padding: 5px 9px;
+  border: 1px solid currentColor;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.workshop-status.draft {
+  opacity: 0.65;
+}
+
+.workshop-status.pending {
+  opacity: 0.9;
+}
+
+.workshop-status.approved {
+  opacity: 1;
+}
+
+.workshop-status.rejected {
+  opacity: 0.8;
+}
+
+.workshop-status.cancelled {
+  opacity: 0.45;
+}
+
+.workshop-status.completed {
+  opacity: 0.8;
+}
+
+.workshop-card-content h2 {
+  margin: 24px 0 12px;
+  max-width: 760px;
+  font-size: clamp(27px, 3vw, 44px);
+  line-height: 1.02;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.workshop-card-description {
+  max-width: 680px;
+  margin: 0;
+  line-height: 1.65;
+  opacity: 0.6;
+}
+
+.workshop-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.workshop-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.workshop-meta small {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  opacity: 0.45;
+}
+
+.workshop-meta strong {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.workshop-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 25px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(127, 127, 127, 0.15);
+}
+
+.workshop-capacity {
+  width: min(260px, 45%);
+}
+
+.workshop-capacity > span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  opacity: 0.55;
+}
+
+.capacity-track {
+  height: 2px;
+  overflow: hidden;
+  background: rgba(127, 127, 127, 0.18);
+}
+
+.capacity-track div {
+  height: 100%;
+  background: currentColor;
+}
+
+.workshop-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.workshop-price {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.workshop-view-link {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+}
+
+.trainer-alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid rgba(127, 127, 127, 0.3);
+}
+
+.trainer-alert div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.trainer-alert strong {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+
+.trainer-alert span {
+  font-size: 13px;
+  opacity: 0.65;
+}
+
+.trainer-alert button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.workshops-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  text-align: center;
+  border: 1px solid rgba(127, 127, 127, 0.18);
+}
+
+.empty-mark {
+  margin-bottom: 25px;
+  font-size: 42px;
+  font-weight: 200;
+  opacity: 0.4;
+}
+
+.workshops-empty h2 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 58px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.workshops-empty p {
+  margin: 15px 0 28px;
+  opacity: 0.6;
+}
+
+.workshop-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.workshop-skeleton::after,
+.workshop-skeleton-card::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: workshopShimmer 1.5s infinite;
+}
+
+.workshops-heading .eyebrow {
+  width: 180px;
+  height: 12px;
+}
+
+.workshops-heading .title {
+  width: min(600px, 70%);
+  height: 75px;
+  margin-top: 15px;
+}
+
+.workshops-heading .description {
+  width: min(480px, 60%);
+  height: 15px;
+  margin-top: 20px;
+}
+
+.workshop-list-skeleton {
+  display: grid;
+  gap: 18px;
+}
+
+.workshop-skeleton-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  height: 310px;
+  overflow: hidden;
+  border: 1px solid rgba(127, 127, 127, 0.12);
+}
+
+.workshop-skeleton-card .image {
+  height: 100%;
+}
+
+.workshop-skeleton-card .lines {
+  width: 65%;
+  height: 20px;
+  margin: 45px 35px;
+}
+
+@keyframes workshopShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 900px) {
+  .trainer-workshops-page {
+    padding: 35px 20px 80px;
+  }
+
+  .workshops-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 35px;
+  }
+
+  .trainer-workshop-card {
+    grid-template-columns: 1fr;
+  }
+
+  .workshop-card-index {
+    display: none;
+  }
+
+  .workshop-card-image {
+    height: 230px;
+    min-height: 230px;
+  }
+
+  .workshop-meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .workshop-capacity {
+    width: 100%;
+  }
+
+  .workshop-card-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workshop-card-actions {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 560px) {
+  .trainer-workshops-page {
+    padding-inline: 14px;
+  }
+
+  .workshops-heading h1 {
+    font-size: 48px;
+  }
+
+  .trainer-primary-button {
+    width: 100%;
+  }
+
+  .workshop-card-content {
+    padding: 24px 20px;
+  }
+
+  .workshop-card-topline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workshop-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .workshop-card-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workshop-view-link {
+    margin-top: 4px;
+  }
+
+  .trainer-alert {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

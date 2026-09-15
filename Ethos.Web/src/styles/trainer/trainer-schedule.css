@@ -1,0 +1,99 @@
+.trainer-schedule-list {
+  margin-bottom: 25px;
+  border-top: 1px solid var(--trainer-border);
+}
+
+.trainer-schedule-row {
+  display: grid;
+  grid-template-columns: 1.4fr auto 130px auto 130px;
+  align-items: center;
+  gap: 16px;
+  min-height: 78px;
+  border-bottom: 1px solid var(--trainer-border);
+}
+
+.trainer-schedule-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trainer-schedule-row strong {
+  font-size: 13px;
+}
+
+.trainer-schedule-row span {
+  color: var(--trainer-muted);
+  font-size: 10px;
+}
+
+.trainer-schedule-row input[type="time"] {
+  border: 1px solid var(--trainer-border);
+  background: var(--trainer-panel);
+  color: var(--trainer-text);
+  padding: 10px;
+}
+
+.trainer-schedule-row input:disabled {
+  opacity: 0.35;
+}
+
+.trainer-time-divider {
+  text-align: center;
+}
+
+.trainer-toggle {
+  position: relative;
+  width: 42px;
+  height: 23px;
+}
+
+.trainer-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.trainer-toggle span {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: #292623;
+  transition: 180ms ease;
+}
+
+.trainer-toggle span::before {
+  position: absolute;
+  content: "";
+  width: 17px;
+  height: 17px;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: #aaa;
+  transition: 180ms ease;
+}
+
+.trainer-toggle input:checked + span {
+  background: var(--trainer-coral);
+}
+
+.trainer-toggle input:checked + span::before {
+  transform: translateX(19px);
+  background: #160f0d;
+}
+
+@media (max-width: 700px) {
+  .trainer-schedule-row {
+    grid-template-columns: 1fr auto;
+    padding: 15px 0;
+  }
+
+  .trainer-schedule-row input[type="time"] {
+    width: 100%;
+  }
+
+  .trainer-time-divider {
+    display: none;
+  }
+}

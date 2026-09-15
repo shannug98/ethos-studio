@@ -1,0 +1,139 @@
+.ethos-login-gateway {
+  min-height: 100vh;
+  background: #11100f;
+  color: #f5f1eb;
+  padding: 150px 7vw 100px;
+}
+
+.ethos-login-gateway-inner {
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.ethos-login-header {
+  max-width: 720px;
+  margin-bottom: 70px;
+}
+
+.ethos-login-eyebrow {
+  display: block;
+  margin-bottom: 18px;
+  color: #e97963;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.ethos-login-header h1 {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(58px, 7vw, 108px);
+  line-height: 0.9;
+  font-weight: 400;
+  letter-spacing: -0.05em;
+}
+
+.ethos-login-header h1 em {
+  font-style: italic;
+}
+
+.ethos-login-header p {
+  margin-top: 28px;
+  max-width: 500px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.ethos-login-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.ethos-login-card {
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: #151413;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.4s ease,
+    border-color 0.4s ease,
+    background 0.4s ease;
+}
+
+.ethos-login-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(233, 121, 99, 0.65);
+  background: #191817;
+}
+
+.ethos-login-card-image {
+  width: 100%;
+  height: 480px;
+  overflow: hidden;
+}
+
+.ethos-login-card-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.ethos-login-card:hover .ethos-login-card-image img {
+  transform: scale(1.04);
+}
+
+.ethos-login-card-content {
+  padding: 32px;
+}
+
+.ethos-login-card-label {
+  color: #e97963;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.ethos-login-card-content h2 {
+  margin: 12px 0 14px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 36px;
+  font-weight: 400;
+}
+
+.ethos-login-card-content p {
+  max-width: 360px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ethos-login-card-action {
+  display: inline-block;
+  margin-top: 30px;
+  color: #f5f1eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+@media (max-width: 768px) {
+  .ethos-login-gateway {
+    padding: 120px 24px 70px;
+  }
+
+  .ethos-login-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .ethos-login-card-image {
+    height: 380px;
+  }
+}
