@@ -1625,7 +1625,7 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TrainerProfileId", "DisplayOrder");
 
-                    b.ToTable("TrainerGalleryImages");
+                    b.ToTable("TrainerGalleryImages", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.TrainerPerformanceSnapshot", b =>

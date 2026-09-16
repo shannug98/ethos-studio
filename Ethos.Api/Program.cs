@@ -388,15 +388,14 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     // Automatically apply any pending EF Core migrations to Neon
     if (db.Database.IsRelational())
     {
         db.Database.Migrate();
     }
-
-    var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
-    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     Phase2SeedService
         .SeedAsync(db, passwordService, configuration, app.Environment.IsDevelopment())
