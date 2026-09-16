@@ -73,11 +73,6 @@ export function getLastTraceId() {
 }
 
 async function adminRequest(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
-  console.log("[Admin API Request]", {
-    method: options.method || "GET",
-    url,
-  });
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
@@ -93,10 +88,43 @@ async function adminRequest(endpoint, options = {}) {
     headers["X-Admin-Device-Credential"] = deviceCred;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  // Determine candidate URLs (primary relative/configured, fallback direct backend)
+  const candidateUrls = [];
+  if (API_BASE_URL) {
+    candidateUrls.push(`${API_BASE_URL}${endpoint}`);
+    if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      candidateUrls.push(endpoint);
+      candidateUrls.push(`http://127.0.0.1:5252${endpoint}`);
+    }
+  } else {
+    candidateUrls.push(endpoint);
+    candidateUrls.push(`http://127.0.0.1:5252${endpoint}`);
+    candidateUrls.push(`http://localhost:5252${endpoint}`);
+  }
+
+  let response = null;
+  let lastError = null;
+
+  for (const url of candidateUrls) {
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+      if (response) {
+        break; // Successfully connected to backend
+      }
+    } catch (err) {
+      console.warn(`[Admin API] Request to ${url} failed, trying next candidate:`, err);
+      lastError = err;
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      lastError?.message || "Failed to establish connection with the Ethos administration server. Please verify the backend is running."
+    );
+  }
 
   const traceHeader = response.headers.get("x-trace-id");
   if (traceHeader) {
