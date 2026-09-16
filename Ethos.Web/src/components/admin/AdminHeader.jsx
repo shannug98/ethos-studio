@@ -123,7 +123,7 @@ export default function AdminHeader({
       name: "Database",
       key: "database",
       state: getSubsystemState(healthData?.database),
-      technical: "Supabase PostgreSQL Pool · AWS ap-northeast-1",
+      technical: "Neon Serverless PostgreSQL · AWS ap-southeast-1",
     },
     {
       name: "Authentication",
@@ -138,10 +138,10 @@ export default function AdminHeader({
       technical: "Razorpay Webhook & Standard Payment Gateway",
     },
     {
-      name: "Brevo Email",
-      key: "storage",
-      state: getSubsystemState(healthData?.storage),
-      technical: "Transactional Email & Studio Notification Delivery",
+      name: "Transactional Email",
+      key: "email",
+      state: getSubsystemState(healthData?.email || healthData?.storage),
+      technical: "SMTP / Studio Notification Dispatcher",
     },
     {
       name: "WhatsApp Messaging",

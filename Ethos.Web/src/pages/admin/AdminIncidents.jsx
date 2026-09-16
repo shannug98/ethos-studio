@@ -550,7 +550,7 @@ export default function AdminIncidents() {
                     <option value="Bookings">Bookings & Attendance</option>
                     <option value="Classes">Classes & Workshops</option>
                     <option value="Authentication">Authentication & JWT</option>
-                    <option value="Storage">Supabase Cloud Storage</option>
+                    <option value="Storage">Cloudflare R2 Storage</option>
                   </select>
                 </div>
               </div>

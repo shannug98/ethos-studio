@@ -155,7 +155,7 @@ export default function AdminDashboard() {
     {
       key: "database",
       name: "PostgreSQL Database",
-      description: "EF Core pooled Supabase connection",
+      description: "EF Core pooled Neon connection",
       status: getHealthStatus(health.database).status,
       statusLabel: getHealthStatus(health.database).label,
       detail: health.database === "Healthy" || !health.database ? "Connected" : (health.databaseDetail || "Degraded pool"),

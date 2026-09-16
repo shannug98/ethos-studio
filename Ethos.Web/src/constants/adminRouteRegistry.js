@@ -201,7 +201,21 @@ export const ADMIN_MODULE_REGISTRY = [
     componentName: "AdminFeedback",
   },
 
-  // 13. System Monitoring
+  // 13. Connected Platforms & Services
+  {
+    id: "platforms",
+    path: "/admin_portal/platforms",
+    relativeRoute: "platforms",
+    label: "Connected Platforms",
+    description: "Architectural breakdown of external platforms, databases, payment rails, and cloud services",
+    section: "SYSTEM HEALTH & MONITORING",
+    icon: "🌐",
+    requiredPermission: null, // Core administrative infrastructure view
+    isNavigable: true,
+    componentName: "AdminPlatforms",
+  },
+
+  // 14. System Monitoring
   {
     id: "observability",
     path: "/admin_portal/observability",
