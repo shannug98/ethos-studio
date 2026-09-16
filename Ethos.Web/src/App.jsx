@@ -20,6 +20,9 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const GuestWorkshopFeedback = lazy(() => import("./pages/GuestWorkshopFeedback"));
 
+// Member Services (Student & Trainer Portals) launch gating flag
+const ENABLE_MEMBER_PORTALS = false;
+
 // Student Portal Layout & Shell (Eager layout/guard, lazy pages)
 import StudentLayout from "./components/student/StudentLayout";
 import StudentProtectedRoute from "./components/auth/StudentProtectedRoute";
@@ -142,207 +145,221 @@ function App() {
           <Route path="/gallery" element={<Gallery />} />
 
           <Route path="/login" element={<Login />} />
-          <Route path="/student/login" element={<StudentLogin />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/student/login" element={<Navigate to="/login" replace />} />
+          <Route path="/trainer/login" element={<Navigate to="/login" replace />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/feedback/workshop/:token" element={<GuestWorkshopFeedback />} />
         </Route>
 
-        {/* TRAINER AUTH / PRE-LOGIN ROUTES */}
-        <Route path="/trainer/login" element={<TrainerLogin />} />
-        <Route
-          path="/trainer/application"
-          element={<TrainerApplication />}
-        />
-        <Route
-          path="/trainer/application/details"
-          element={<TrainerApplicationDetails />}
-        />
-        <Route
-          path="/trainer/application/documents"
-          element={<Navigate to="/trainer/application/tier" replace />}
-        />
-        <Route
-          path="/trainer/application/introduction"
-          element={<TrainerApplicationIntroduction />}
-        />
-        <Route
-          path="/trainer/application/tier"
-          element={<TrainerApplicationTier />}
-        />
-        <Route
-          path="/trainer/application/payment"
-          element={<TrainerApplicationPayment />}
-        />
-        <Route
-          path="/trainer/application/review"
-          element={<TrainerApplicationReview />}
-        />
-        <Route
-          path="/trainer/application/status"
-          element={<TrainerApplicationStatus />}
-        />
+        {/* MEMBER SERVICES (STUDENT & TRAINER PORTALS) - CONTROLLED VIA GATING FLAG */}
+        {ENABLE_MEMBER_PORTALS ? (
+          <>
+            {/* TRAINER AUTH / PRE-LOGIN ROUTES */}
+            <Route path="/trainer/login" element={<TrainerLogin />} />
+            <Route
+              path="/trainer/application"
+              element={<TrainerApplication />}
+            />
+            <Route
+              path="/trainer/application/details"
+              element={<TrainerApplicationDetails />}
+            />
+            <Route
+              path="/trainer/application/documents"
+              element={<Navigate to="/trainer/application/tier" replace />}
+            />
+            <Route
+              path="/trainer/application/introduction"
+              element={<TrainerApplicationIntroduction />}
+            />
+            <Route
+              path="/trainer/application/tier"
+              element={<TrainerApplicationTier />}
+            />
+            <Route
+              path="/trainer/application/payment"
+              element={<TrainerApplicationPayment />}
+            />
+            <Route
+              path="/trainer/application/review"
+              element={<TrainerApplicationReview />}
+            />
+            <Route
+              path="/trainer/application/status"
+              element={<TrainerApplicationStatus />}
+            />
 
-        {/* AUTHENTICATED TRAINER PORTAL */}
-        <Route element={<TrainerProtectedRoute />}>
-          <Route path="/trainer" element={<TrainerLayout />}>
-            <Route index element={<Navigate to="/trainer/dashboard" replace />} />
-            <Route
-              path="dashboard"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_DASHBOARD}>
-                  <TrainerDashboard />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="profile"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_PROFILE}>
-                  <TrainerProfile />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route path="application" element={<TrainerApplicationDossier />} />
-            <Route
-              path="workshops"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
-                  <TrainerWorkshops />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="students"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
-                  <TrainerWorkshops />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="attendance"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
-                  <TrainerWorkshops />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/create"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.CREATE_WORKSHOP}>
-                  <TrainerWorkshopCreate />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/:id/edit"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.UPDATE_WORKSHOP}>
-                  <TrainerWorkshopEdit />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/:id"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
-                  <TrainerWorkshopDetails />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/:id/students"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOP_STUDENTS}>
-                  <TrainerWorkshopDetails />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/:id/feedback"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOP_FEEDBACK}>
-                  <TrainerWorkshopDetails />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="workshops/:id/attendance"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
-                  <TrainerWorkshopDetails />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route path="schedule" element={<TrainerSchedule />} />
-            <Route
-              path="performance"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_PERFORMANCE}>
-                  <TrainerPerformance />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="tier"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
-                  <TrainerTier />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="tier/history"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
-                  <TrainerTier />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="tier/upgrade"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
-                  <TrainerTier />
-                </TrainerPermissionRoute>
-              }
-            />
-            <Route
-              path="notifications"
-              element={
-                <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_NOTIFICATIONS}>
-                  <TrainerNotifications />
-                </TrainerPermissionRoute>
-              }
-            />
-          </Route>
-        </Route>
+            {/* AUTHENTICATED TRAINER PORTAL */}
+            <Route element={<TrainerProtectedRoute />}>
+              <Route path="/trainer" element={<TrainerLayout />}>
+                <Route index element={<Navigate to="/trainer/dashboard" replace />} />
+                <Route
+                  path="dashboard"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_DASHBOARD}>
+                      <TrainerDashboard />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="profile"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_PROFILE}>
+                      <TrainerProfile />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route path="application" element={<TrainerApplicationDossier />} />
+                <Route
+                  path="workshops"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
+                      <TrainerWorkshops />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="students"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
+                      <TrainerWorkshops />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="attendance"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
+                      <TrainerWorkshops />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/create"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.CREATE_WORKSHOP}>
+                      <TrainerWorkshopCreate />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/:id/edit"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.UPDATE_WORKSHOP}>
+                      <TrainerWorkshopEdit />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/:id"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
+                      <TrainerWorkshopDetails />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/:id/students"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOP_STUDENTS}>
+                      <TrainerWorkshopDetails />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/:id/feedback"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOP_FEEDBACK}>
+                      <TrainerWorkshopDetails />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="workshops/:id/attendance"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_WORKSHOPS}>
+                      <TrainerWorkshopDetails />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route path="schedule" element={<TrainerSchedule />} />
+                <Route
+                  path="performance"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_PERFORMANCE}>
+                      <TrainerPerformance />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="tier"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
+                      <TrainerTier />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="tier/history"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
+                      <TrainerTier />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="tier/upgrade"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_TIER}>
+                      <TrainerTier />
+                    </TrainerPermissionRoute>
+                  }
+                />
+                <Route
+                  path="notifications"
+                  element={
+                    <TrainerPermissionRoute permission={TRAINER_PERMISSIONS.VIEW_NOTIFICATIONS}>
+                      <TrainerNotifications />
+                    </TrainerPermissionRoute>
+                  }
+                />
+              </Route>
+            </Route>
 
-        {/* AUTHENTICATED STUDENT PORTAL */}
-        <Route element={<StudentProtectedRoute />}>
-          <Route path="/student" element={<StudentLayout />}>
-            <Route index element={<Navigate to="/student/dashboard" replace />} />
-            <Route path="dashboard" element={<StudentDashboard />} />
-            <Route path="classes" element={<StudentClasses />} />
-            <Route path="workshops" element={<StudentWorkshops />} />
-            <Route path="my-workshops" element={<StudentMyWorkshops />} />
-            <Route path="packages" element={<StudentPackages />} />
-            <Route path="feedback" element={<StudentFeedback />} />
-            <Route path="profile" element={<StudentProfile />} />
-            <Route path="notifications" element={<StudentNotifications />} />
-            {/* Absolute route definitions for full compatibility and verification */}
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/classes" element={<StudentClasses />} />
-            <Route path="/student/workshops" element={<StudentWorkshops />} />
-            <Route path="/student/my-workshops" element={<StudentMyWorkshops />} />
-            <Route path="/student/packages" element={<StudentPackages />} />
-            <Route path="/student/feedback" element={<StudentFeedback />} />
-            <Route path="/student/profile" element={<StudentProfile />} />
-            <Route path="/student/notifications" element={<StudentNotifications />} />
-          </Route>
-          <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-        </Route>
+            {/* AUTHENTICATED STUDENT PORTAL */}
+            <Route element={<StudentProtectedRoute />}>
+              <Route path="/student" element={<StudentLayout />}>
+                <Route index element={<Navigate to="/student/dashboard" replace />} />
+                <Route path="dashboard" element={<StudentDashboard />} />
+                <Route path="classes" element={<StudentClasses />} />
+                <Route path="workshops" element={<StudentWorkshops />} />
+                <Route path="my-workshops" element={<StudentMyWorkshops />} />
+                <Route path="packages" element={<StudentPackages />} />
+                <Route path="feedback" element={<StudentFeedback />} />
+                <Route path="profile" element={<StudentProfile />} />
+                <Route path="notifications" element={<StudentNotifications />} />
+                {/* Absolute route definitions for full compatibility and verification */}
+                <Route path="/student/dashboard" element={<StudentDashboard />} />
+                <Route path="/student/classes" element={<StudentClasses />} />
+                <Route path="/student/workshops" element={<StudentWorkshops />} />
+                <Route path="/student/my-workshops" element={<StudentMyWorkshops />} />
+                <Route path="/student/packages" element={<StudentPackages />} />
+                <Route path="/student/feedback" element={<StudentFeedback />} />
+                <Route path="/student/profile" element={<StudentProfile />} />
+                <Route path="/student/notifications" element={<StudentNotifications />} />
+              </Route>
+              <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+            </Route>
+          </>
+        ) : (
+          <>
+            {/* LOCKED MEMBER PORTALS - ALL DIRECT TRAINER & STUDENT URLS REDIRECT TO COMING SOON */}
+            <Route path="/trainer" element={<Navigate to="/login" replace />} />
+            <Route path="/trainer/*" element={<Navigate to="/login" replace />} />
+            <Route path="/student" element={<Navigate to="/login" replace />} />
+            <Route path="/student/*" element={<Navigate to="/login" replace />} />
+          </>
+        )}
 
         {/* ADMIN PORTAL AUTH & SHELL ROUTES */}
         <Route path="/admin_portal" element={<AdminEntryRedirect />} />

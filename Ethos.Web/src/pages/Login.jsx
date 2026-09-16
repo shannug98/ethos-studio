@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoginComingSoonModal from "../components/common/LoginComingSoonModal";
 import "./Login.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(true);
 
   const handleContact = () => {
     navigate("/", { state: { scrollTo: "contact" } });
@@ -15,6 +17,10 @@ export default function Login() {
 
   return (
     <main className="ethos-login-gateway">
+      <LoginComingSoonModal
+        isOpen={modalOpen}
+        onClose={handleBackHome}
+      />
       <div className="ethos-login-gateway-inner">
 
         <div className="ethos-login-header">
