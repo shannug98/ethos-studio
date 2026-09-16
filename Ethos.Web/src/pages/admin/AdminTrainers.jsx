@@ -7,6 +7,21 @@ import "./AdminTrainers.css";
 
 export default function AdminTrainers() {
   const [activeTab, setActiveTab] = useState("directory");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addTrainerForm, setAddTrainerForm] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    city: "Hyderabad",
+    primaryDanceStyle: "Urban Choreography",
+    secondaryDanceStyles: "",
+    experienceYears: 2,
+    bio: "",
+    tierId: "",
+  });
+  const [addTrainerLoading, setAddTrainerLoading] = useState(false);
+  const [addTrainerError, setAddTrainerError] = useState("");
+  const [addTrainerSuccess, setAddTrainerSuccess] = useState("");
 
   // Tab 1: Directory State
   const [trainers, setTrainers] = useState([]);
@@ -135,6 +150,58 @@ export default function AdminTrainers() {
   }, [activeTab, directoryPage, tierFilter, statusFilter]);
 
   // Review Application Action
+  const handleCreateTrainer = async (e) => {
+    e.preventDefault();
+    if (!addTrainerForm.fullName.trim()) {
+      setAddTrainerError("Full name is required.");
+      return;
+    }
+    if (!addTrainerForm.phone.trim()) {
+      setAddTrainerError("Phone number is required.");
+      return;
+    }
+
+    setAddTrainerLoading(true);
+    setAddTrainerError("");
+    setAddTrainerSuccess("");
+    try {
+      await adminApi.createTrainer({
+        fullName: addTrainerForm.fullName.trim(),
+        phone: addTrainerForm.phone.trim(),
+        email: addTrainerForm.email.trim() || null,
+        city: addTrainerForm.city.trim() || "Hyderabad",
+        primaryDanceStyle: addTrainerForm.primaryDanceStyle.trim(),
+        secondaryDanceStyles: addTrainerForm.secondaryDanceStyles.trim() || null,
+        experienceYears: Number(addTrainerForm.experienceYears) || 0,
+        bio: addTrainerForm.bio.trim() || null,
+        tierId: addTrainerForm.tierId || null,
+      });
+
+      setAddTrainerSuccess("Trainer added successfully!");
+      fetchTrainers();
+      fetchStats();
+      setTimeout(() => {
+        setShowAddModal(false);
+        setAddTrainerSuccess("");
+        setAddTrainerForm({
+          fullName: "",
+          phone: "",
+          email: "",
+          city: "Hyderabad",
+          primaryDanceStyle: "Urban Choreography",
+          secondaryDanceStyles: "",
+          experienceYears: 2,
+          bio: "",
+          tierId: "",
+        });
+      }, 1200);
+    } catch (err) {
+      setAddTrainerError(err?.message || "Failed to create trainer.");
+    } finally {
+      setAddTrainerLoading(false);
+    }
+  };
+
   const handleConfirmReview = async () => {
     if (reviewModalType === "reject" && !reviewReason.trim()) {
       setReviewError("A rejection reason is strictly mandatory.");
@@ -193,12 +260,22 @@ export default function AdminTrainers() {
 
   return (
     <div className="admin-trainers-view">
-      <div className="admin-page-header">
+      <div className="admin-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 className="admin-page-title">Trainer Command & Governance</h1>
+          <h1 className="admin-page-title">Manage Trainers & Faculty</h1>
           <p className="admin-page-subtitle">
-            Manage studio instructor rosters, review onboarding applications, govern tier promotions, and monitor compliance.
+            Manage studio instructor rosters, manually add trainers, review onboarding applications, and govern tier promotions.
           </p>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="admin-btn primary"
+            onClick={() => setShowAddModal(true)}
+            style={{ background: "#ff5500", borderColor: "#ff5500", color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <span>+ Add Trainer Manually</span>
+          </button>
         </div>
       </div>
 
@@ -730,6 +807,171 @@ export default function AdminTrainers() {
             fetchStats();
           }}
         />
+      )}
+    
+      {/* Add Trainer Manually Modal */}
+      {showAddModal && (
+        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "560px", background: "#fff", color: "#172033", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div className="modal-header" style={{ borderBottom: "1px solid #e2e8f0", padding: "18px 24px" }}>
+              <h3 style={{ margin: 0, color: "#172033", fontSize: "18px", fontWeight: 700 }}>Add Trainer Manually</h3>
+              <button className="close-btn" onClick={() => setShowAddModal(false)} style={{ color: "#64748b" }}>✕</button>
+            </div>
+            <form onSubmit={handleCreateTrainer}>
+              <div className="modal-body" style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                {addTrainerError && (
+                  <div style={{ padding: "10px", background: "#FDEAEA", color: "#B42318", borderRadius: "6px", fontSize: "12px", border: "1px solid #FECACA" }}>
+                    {addTrainerError}
+                  </div>
+                )}
+                {addTrainerSuccess && (
+                  <div style={{ padding: "10px", background: "#E7F8EF", color: "#147A45", borderRadius: "6px", fontSize: "12px", border: "1px solid #BBF7D0" }}>
+                    {addTrainerSuccess}
+                  </div>
+                )}
+
+                <div className="modal-field">
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Full Name *</label>
+                  <input
+                    type="text"
+                    className="modal-input"
+                    placeholder="e.g. Rahul Sharma"
+                    required
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                    value={addTrainerForm.fullName}
+                    onChange={(e) => setAddTrainerForm({ ...addTrainerForm, fullName: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Phone Number (10 digits) *</label>
+                    <input
+                      type="tel"
+                      className="modal-input"
+                      placeholder="e.g. 9876543210"
+                      required
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.phone}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, phone: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Email Address</label>
+                    <input
+                      type="email"
+                      className="modal-input"
+                      placeholder="e.g. rahul@example.com"
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.email}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>City</label>
+                    <input
+                      type="text"
+                      className="modal-input"
+                      placeholder="e.g. Hyderabad"
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.city}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, city: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Experience (Years)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="modal-input"
+                      placeholder="e.g. 5"
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.experienceYears}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, experienceYears: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Primary Dance Style</label>
+                    <input
+                      type="text"
+                      className="modal-input"
+                      placeholder="e.g. Urban Choreography"
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.primaryDanceStyle}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, primaryDanceStyle: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="modal-field">
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Trainer Tier</label>
+                    <select
+                      className="modal-select"
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                      value={addTrainerForm.tierId}
+                      onChange={(e) => setAddTrainerForm({ ...addTrainerForm, tierId: e.target.value })}
+                    >
+                      <option value="">Default Studio Tier</option>
+                      {tiers.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="modal-field">
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Secondary Dance Styles</label>
+                  <input
+                    type="text"
+                    className="modal-input"
+                    placeholder="e.g. Hip Hop, Popping, House"
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                    value={addTrainerForm.secondaryDanceStyles}
+                    onChange={(e) => setAddTrainerForm({ ...addTrainerForm, secondaryDanceStyles: e.target.value })}
+                  />
+                </div>
+
+                <div className="modal-field">
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 650, color: "#172033", marginBottom: "4px" }}>Short Bio</label>
+                  <textarea
+                    className="modal-textarea"
+                    rows={3}
+                    placeholder="Brief background on choreographer experience..."
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#172033", background: "#fff" }}
+                    value={addTrainerForm.bio}
+                    onChange={(e) => setAddTrainerForm({ ...addTrainerForm, bio: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions" style={{ borderTop: "1px solid #e2e8f0", padding: "14px 24px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="admin-btn secondary"
+                  onClick={() => setShowAddModal(false)}
+                  style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="admin-btn primary"
+                  disabled={addTrainerLoading}
+                  style={{ background: "#ff5500", color: "#fff", border: "none" }}
+                >
+                  {addTrainerLoading ? "Creating..." : "Create Trainer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -328,6 +328,12 @@ export const adminApi = {
   getTrainers: (params = "") =>
     adminRequest(`/api/admin/trainers${params ? `?${params}` : ""}`),
 
+  createTrainer: (payload) =>
+    adminRequest("/api/admin/trainers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   getTrainerStats: () => adminRequest("/api/admin/trainers/stats"),
 
   getTrainerById: (id) => adminRequest(`/api/admin/trainers/${id}`),

@@ -40,6 +40,11 @@ public interface IAdminTrainerService
         string? reason,
         CancellationToken cancellationToken);
 
+    Task<AdminTrainerListResponse> CreateTrainerAsync(
+        AdminCreateTrainerRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
     Task<TrainerDiagnosticReport?> GetTrainerDiagnosticsAsync(
         Guid trainerId,
         string? traceId,

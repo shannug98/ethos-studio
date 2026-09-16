@@ -3,10 +3,11 @@ import { NavLink } from "react-router-dom";
 import ethosLogo from "../../assets/logo.png";
 import "./AdminSidebar.css";
 
-// 11 Primary Core items matching the Visual Design Reference exactly
+// 12 Primary Core items matching the Visual Design Reference exactly
 const PRIMARY_NAV_ITEMS = [
   { to: "/admin_portal/dashboard", label: "Dashboard", icon: "📊" },
   { to: "/admin_portal/workshops", label: "Workshops", icon: "🎪" },
+  { to: "/admin_portal/trainers", label: "Manage Trainers", icon: "🎓" },
   { to: "/admin_portal/bookings", label: "Bookings", icon: "📑" },
   { to: "/admin_portal/payments", label: "Payments", icon: "💳" },
   { to: "/admin_portal/videos", label: "Media Gallery", icon: "🎬" },
@@ -21,7 +22,6 @@ const PRIMARY_NAV_ITEMS = [
 // Preserved Operational items so NO existing route is lost (Correction 2)
 const SECONDARY_NAV_ITEMS = [
   { to: "/admin_portal/students", label: "Students Directory", icon: "👤" },
-  { to: "/admin_portal/trainers", label: "Trainers Queue", icon: "🎓" },
   { to: "/admin_portal/classes", label: "Studio Classes", icon: "🩰" },
   { to: "/admin_portal/attendance", label: "Attendance Rosters", icon: "📋" },
   { to: "/admin_portal/packages", label: "Dance Packages", icon: "📦" },

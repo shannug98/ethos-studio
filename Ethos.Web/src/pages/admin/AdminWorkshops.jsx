@@ -635,7 +635,8 @@ export default function AdminWorkshops() {
                         <img src={w.imageUrl} alt={w.title} className="card-cover-img" />
                       ) : (
                         <div className="card-placeholder-img">
-                          <span>Ethos Studio</span>
+                          <div className="card-placeholder-emblem">ETHOS</div>
+                          <span className="card-placeholder-label">{w.danceStyle || "Workshop Masterclass"}</span>
                         </div>
                       )}
 
@@ -730,7 +731,7 @@ export default function AdminWorkshops() {
                           type="button"
                           className="btn-card-scanner"
                           onClick={() => navigate(`/admin_portal/workshops/${w.id}/scanner`)}
-                          title="Open Workshop QR Scanner"
+                          title="Open Workshop QR Check-in Scanner (Ticket Validation)"
                         >
                           <QrCode size={15} />
                         </button>

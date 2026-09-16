@@ -1,5 +1,17 @@
-import React from "react";
-import { Info, User, Tag, MapPin, Phone, ShieldCheck, FileText } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import {
+  User,
+  MapPin,
+  Phone,
+  FileText,
+  Search,
+  ExternalLink,
+  Check,
+  AlertCircle,
+  ChevronDown,
+  X,
+} from "lucide-react";
 
 export const DANCE_STYLE_PRESETS = [
   "Hip Hop",
@@ -32,6 +44,55 @@ const STANDARD_POLICY_TEMPLATE =
 export default function Step1Details({ form, onChange, trainers, loadingTrainers, errors }) {
   const isCustomStyle = form.danceStyle === "Other";
 
+  // Searchable Trainer Dropdown State
+  const [trainerDropdownOpen, setTrainerDropdownOpen] = useState(false);
+  const [trainerSearch, setTrainerSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setTrainerDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter trainers based on search query
+  const filteredTrainers = trainers.filter((t) => {
+    const name = (t.fullName || t.name || "").toLowerCase();
+    const phone = (t.phone || "").toLowerCase();
+    const style = (t.primaryDanceStyle || t.danceStyle || t.specialty || "").toLowerCase();
+    const q = trainerSearch.toLowerCase();
+    return name.includes(q) || phone.includes(q) || style.includes(q);
+  });
+
+  // Check if a trainer is eligible (Active and Approved)
+  const isTrainerEligible = (t) => {
+    const status = (t.status || "").toLowerCase();
+    return status === "active" || status === "approved" || !t.status;
+  };
+
+  // Selected trainer object
+  const selectedTrainer = trainers.find(
+    (t) => (t.trainerId || t.id || t.trainerProfileId) === form.trainerProfileId
+  );
+
+  const handleSelectTrainer = (t) => {
+    if (!isTrainerEligible(t)) return;
+    const id = t.trainerId || t.id || t.trainerProfileId;
+    onChange("trainerProfileId", id);
+    setTrainerDropdownOpen(false);
+    setTrainerSearch("");
+  };
+
+  const handleClearTrainer = (e) => {
+    e.stopPropagation();
+    onChange("trainerProfileId", "");
+  };
+
   const handleStyleSelect = (style) => {
     onChange("danceStyle", style);
     if (style !== "Other") {
@@ -55,7 +116,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
       {/* Workshop Title */}
       <div className="wizard-form-group">
         <label className="wizard-label">
-          Workshop Title <span className="req">*</span>
+          Workshop Title <span className="req" aria-hidden="true">*</span>
         </label>
         <input
           type="text"
@@ -65,41 +126,181 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
           onChange={(e) => onChange("title", e.target.value)}
           maxLength={120}
         />
-        {errors.title && <span className="wizard-error-text">{errors.title}</span>}
+        {errors.title && (
+          <div className="wizard-error-text">
+            <AlertCircle size={14} />
+            <span>{errors.title}</span>
+          </div>
+        )}
       </div>
 
       {/* Trainer & Level Row */}
       <div className="wizard-form-grid-2">
-        <div className="wizard-form-group">
-          <label className="wizard-label">
-            Lead Trainer / Choreographer <span className="req">*</span>
-          </label>
-          <div className="wizard-select-wrap">
-            <User size={16} className="wizard-input-icon" />
-            <select
-              className={`wizard-select ${errors.trainerProfileId ? "has-error" : ""}`}
-              value={form.trainerProfileId}
-              onChange={(e) => onChange("trainerProfileId", e.target.value)}
-              disabled={loadingTrainers}
+        {/* Searchable Lead Trainer Selector */}
+        <div className="wizard-form-group" ref={dropdownRef}>
+          <div className="wizard-label-row">
+            <label className="wizard-label">
+              Lead Trainer / Choreographer <span className="req" aria-hidden="true">*</span>
+            </label>
+            <Link
+              to="/admin_portal/trainers"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wizard-manage-link"
+              title="Open trainer management in a new tab"
             >
-              <option value="">
-                {loadingTrainers ? "Loading trainers..." : "Select a Trainer"}
-              </option>
-              {trainers.map((t) => (
-                <option key={t.id || t.trainerProfileId} value={t.id || t.trainerProfileId}>
-                  {t.name || t.fullName} {t.specialty ? `(${t.specialty})` : ""}
-                </option>
-              ))}
-            </select>
+              <span>Manage Trainers</span>
+              <ExternalLink size={12} />
+            </Link>
           </div>
+
+          <div className="trainer-selector-container">
+            {/* Display box (Click to toggle dropdown) */}
+            <div
+              className={`trainer-select-display ${trainerDropdownOpen ? "open" : ""} ${errors.trainerProfileId ? "has-error" : ""}`}
+              onClick={() => setTrainerDropdownOpen(!trainerDropdownOpen)}
+            >
+              {selectedTrainer ? (
+                <div className="selected-trainer-info">
+                  {selectedTrainer.profilePhotoUrl ? (
+                    <img
+                      src={selectedTrainer.profilePhotoUrl}
+                      alt={selectedTrainer.fullName}
+                      className="trainer-avatar-img"
+                    />
+                  ) : (
+                    <div className="trainer-avatar-placeholder">
+                      {(selectedTrainer.fullName || selectedTrainer.name || "T")[0]}
+                    </div>
+                  )}
+                  <div className="trainer-text-group">
+                    <span className="trainer-display-name">
+                      {selectedTrainer.fullName || selectedTrainer.name}
+                    </span>
+                    <span className="trainer-display-style">
+                      {selectedTrainer.primaryDanceStyle || selectedTrainer.specialty || "Faculty"}
+                      {selectedTrainer.tierName ? ` • ${selectedTrainer.tierName}` : ""}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="trainer-clear-btn"
+                    onClick={handleClearTrainer}
+                    title="Clear selection"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="trainer-placeholder-text">
+                  <User size={16} className="trainer-placeholder-icon" />
+                  <span>
+                    {loadingTrainers ? "Loading active trainers..." : "Search & Select an Active Trainer"}
+                  </span>
+                  <ChevronDown size={16} className="trainer-chevron" />
+                </div>
+              )}
+            </div>
+
+            {/* Dropdown Menu */}
+            {trainerDropdownOpen && (
+              <div className="trainer-search-dropdown">
+                {/* Search Input Box */}
+                <div className="trainer-search-box">
+                  <Search size={14} className="search-box-icon" />
+                  <input
+                    type="text"
+                    className="trainer-search-input"
+                    placeholder="Search by name, phone, or style..."
+                    value={trainerSearch}
+                    onChange={(e) => setTrainerSearch(e.target.value)}
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {trainerSearch && (
+                    <button
+                      type="button"
+                      className="clear-search-mini"
+                      onClick={() => setTrainerSearch("")}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Trainer Items List */}
+                <div className="trainer-items-list">
+                  {filteredTrainers.length === 0 ? (
+                    <div className="trainer-no-results">
+                      <p>No active trainers found.</p>
+                      <Link
+                        to="/admin_portal/trainers"
+                        target="_blank"
+                        className="trainer-add-btn-link"
+                      >
+                        + Add or approve a trainer first
+                      </Link>
+                    </div>
+                  ) : (
+                    filteredTrainers.map((t) => {
+                      const id = t.trainerId || t.id || t.trainerProfileId;
+                      const eligible = isTrainerEligible(t);
+                      const isSelected = form.trainerProfileId === id;
+
+                      return (
+                        <div
+                          key={id}
+                          className={`trainer-dropdown-item ${eligible ? "eligible" : "ineligible"} ${isSelected ? "selected" : ""}`}
+                          onClick={() => eligible && handleSelectTrainer(t)}
+                        >
+                          <div className="trainer-item-left">
+                            {t.profilePhotoUrl ? (
+                              <img src={t.profilePhotoUrl} alt="" className="trainer-item-img" />
+                            ) : (
+                              <div className="trainer-item-placeholder">
+                                {(t.fullName || t.name || "T")[0]}
+                              </div>
+                            )}
+                            <div className="trainer-item-details">
+                              <div className="trainer-item-name-row">
+                                <span className="trainer-item-name">{t.fullName || t.name}</span>
+                                {eligible ? (
+                                  <span className="trainer-badge-active">Active</span>
+                                ) : (
+                                  <span className="trainer-badge-inactive">
+                                    {t.status || "Unavailable"}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="trainer-item-meta">
+                                {t.primaryDanceStyle || t.specialty || "Instructor"}
+                                {t.phone ? ` • ${t.phone}` : ""}
+                              </span>
+                            </div>
+                          </div>
+
+                          {isSelected && <Check size={16} className="trainer-check-icon" />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {errors.trainerProfileId && (
-            <span className="wizard-error-text">{errors.trainerProfileId}</span>
+            <div className="wizard-error-text">
+              <AlertCircle size={14} />
+              <span>{errors.trainerProfileId}</span>
+            </div>
           )}
         </div>
 
+        {/* Skill Level */}
         <div className="wizard-form-group">
           <label className="wizard-label">
-            Skill Level <span className="req">*</span>
+            Skill Level <span className="req" aria-hidden="true">*</span>
           </label>
           <select
             className="wizard-select"
@@ -118,7 +319,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
       {/* Dance Style Pills */}
       <div className="wizard-form-group">
         <label className="wizard-label">
-          Dance Style <span className="req">*</span>
+          Dance Style <span className="req" aria-hidden="true">*</span>
         </label>
         <div className="wizard-style-pills">
           {DANCE_STYLE_PRESETS.map((style) => (
@@ -143,7 +344,10 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
               onChange={(e) => onChange("customStyle", e.target.value)}
             />
             {errors.customStyle && (
-              <span className="wizard-error-text">{errors.customStyle}</span>
+              <div className="wizard-error-text">
+                <AlertCircle size={14} />
+                <span>{errors.customStyle}</span>
+              </div>
             )}
           </div>
         )}
@@ -153,7 +357,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
       <div className="wizard-form-grid-2">
         <div className="wizard-form-group">
           <label className="wizard-label">
-            City <span className="req">*</span>
+            City <span className="req" aria-hidden="true">*</span>
           </label>
           <div className="wizard-input-wrap">
             <MapPin size={16} className="wizard-input-icon" />
@@ -165,7 +369,12 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
               onChange={(e) => onChange("city", e.target.value)}
             />
           </div>
-          {errors.city && <span className="wizard-error-text">{errors.city}</span>}
+          {errors.city && (
+            <div className="wizard-error-text">
+              <AlertCircle size={14} />
+              <span>{errors.city}</span>
+            </div>
+          )}
         </div>
 
         <div className="wizard-form-group">
@@ -184,7 +393,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
       <div className="wizard-form-group">
         <div className="wizard-label-row">
           <label className="wizard-label">
-            Short Tagline / Teaser <span className="req">*</span>
+            Short Tagline / Teaser <span className="req" aria-hidden="true">*</span>
           </label>
           <span className={`wizard-char-counter ${form.shortDescription?.length > 160 ? "counter-over" : ""}`}>
             {form.shortDescription?.length || 0} / 160
@@ -199,7 +408,10 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
           maxLength={160}
         />
         {errors.shortDescription && (
-          <span className="wizard-error-text">{errors.shortDescription}</span>
+          <div className="wizard-error-text">
+            <AlertCircle size={14} />
+            <span>{errors.shortDescription}</span>
+          </div>
         )}
       </div>
 
@@ -242,7 +454,10 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
             />
           </div>
           {errors.contactNumber && (
-            <span className="wizard-error-text">{errors.contactNumber}</span>
+            <div className="wizard-error-text">
+              <AlertCircle size={14} />
+              <span>{errors.contactNumber}</span>
+            </div>
           )}
         </div>
       </div>

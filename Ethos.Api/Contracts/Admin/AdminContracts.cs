@@ -235,8 +235,24 @@ public class AdminTrainerListResponse
     public string? City { get; set; }
     public string Status { get; set; } = null!;
     public string? TierName { get; set; }
+    public string? ProfilePhotoUrl { get; set; }
+    public string? PrimaryDanceStyle { get; set; }
+    public string? SecondaryDanceStyles { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+public class AdminCreateTrainerRequest
+{
+    public string FullName { get; set; } = null!;
+    public string Phone { get; set; } = null!;
+    public string? Email { get; set; }
+    public string? City { get; set; }
+    public string? PrimaryDanceStyle { get; set; }
+    public string? SecondaryDanceStyles { get; set; }
+    public int? ExperienceYears { get; set; }
+    public string? Bio { get; set; }
+    public Guid? TierId { get; set; }
 }
 
 public class AdminTrainerSummaryStatsResponse

@@ -46,6 +46,30 @@ public class AdminTrainersController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("trainers")]
+    public async Task<ActionResult<AdminTrainerListResponse>> CreateTrainer(
+        [FromBody] AdminCreateTrainerRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.TrainerApprove, "Trainer", null, HttpContext, cancellationToken);
+        if (!authCheck.Success)
+            return StatusCode(authCheck.StatusCode, new { error = authCheck.ErrorCode, message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _trainerService.CreateTrainerAsync(request, AdminUserId, cancellationToken);
+            return Created($"/api/admin/trainers/{result.TrainerId}", result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("trainers/stats")]
     public async Task<ActionResult<AdminTrainerSummaryStatsResponse>> GetTrainerStats(
         CancellationToken cancellationToken)

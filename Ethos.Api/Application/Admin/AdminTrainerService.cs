@@ -107,6 +107,9 @@ public class AdminTrainerService : IAdminTrainerService
             City = t.City,
             Status = t.Status.ToString(),
             TierName = t.CurrentTier?.Name,
+            ProfilePhotoUrl = t.ProfilePhotoUrl,
+            PrimaryDanceStyle = t.PrimaryDanceStyle,
+            SecondaryDanceStyles = t.SecondaryDanceStyles,
             ApprovedAt = t.ApprovedAt,
             CreatedAt = t.CreatedAt
         }).ToList();
@@ -585,6 +588,113 @@ public class AdminTrainerService : IAdminTrainerService
             Status = trainer.Status.ToString(),
             Tier = trainer.CurrentTier?.Name,
             ApprovedAt = trainer.ApprovedAt
+        };
+    }
+
+    public async Task<AdminTrainerListResponse> CreateTrainerAsync(
+        AdminCreateTrainerRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.FullName))
+            throw new ArgumentException("Trainer full name is required.");
+        if (string.IsNullOrWhiteSpace(request.Phone))
+            throw new ArgumentException("Trainer phone number is required.");
+
+        var phoneClean = request.Phone.Trim();
+        var existingUser = await _db.Users.Include(u => u.UserRoles).FirstOrDefaultAsync(u => u.Phone == phoneClean, cancellationToken);
+        Guid userId;
+
+        if (existingUser != null)
+        {
+            var alreadyTrainer = await _db.TrainerProfiles.AnyAsync(tp => tp.UserId == existingUser.Id, cancellationToken);
+            if (alreadyTrainer)
+                throw new InvalidOperationException("A trainer profile already exists for this phone number.");
+
+            userId = existingUser.Id;
+            var trainerRole = await _db.Roles.FirstOrDefaultAsync(r => r.Code == "TRAINER", cancellationToken);
+            if (trainerRole != null && !existingUser.UserRoles.Any(ur => ur.RoleId == trainerRole.Id))
+            {
+                existingUser.UserRoles.Add(new UserRole { UserId = existingUser.Id, RoleId = trainerRole.Id });
+            }
+        }
+        else
+        {
+            var trainerRole = await _db.Roles.FirstOrDefaultAsync(r => r.Code == "TRAINER", cancellationToken);
+            if (trainerRole == null)
+                throw new InvalidOperationException("Trainer role not configured in system.");
+
+            var customerCode = $"ETH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+            var newUser = new User
+            {
+                Id = Guid.NewGuid(),
+                CustomerCode = customerCode,
+                FullName = request.FullName.Trim(),
+                Phone = phoneClean,
+                Email = request.Email?.Trim(),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            newUser.UserRoles.Add(new UserRole { UserId = newUser.Id, RoleId = trainerRole.Id });
+            _db.Users.Add(newUser);
+            userId = newUser.Id;
+        }
+
+        var count = await _db.TrainerProfiles.CountAsync(cancellationToken) + 1;
+        var trainerCode = $"TRN-{DateTime.UtcNow.Year}-{count:D4}";
+
+        Guid? tierId = request.TierId;
+        if (!tierId.HasValue)
+        {
+            var defaultTier = await _db.TrainerTiers.OrderBy(t => t.DisplayOrder).FirstOrDefaultAsync(cancellationToken);
+            tierId = defaultTier?.Id;
+        }
+
+        var trainer = new TrainerProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TrainerCode = trainerCode,
+            FullName = request.FullName.Trim(),
+            City = request.City?.Trim() ?? "Hyderabad",
+            PrimaryDanceStyle = request.PrimaryDanceStyle?.Trim(),
+            SecondaryDanceStyles = request.SecondaryDanceStyles?.Trim(),
+            ExperienceYears = request.ExperienceYears,
+            Bio = request.Bio?.Trim(),
+            CurrentTierId = tierId,
+            Status = TrainerStatus.Active,
+            ApprovedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.TrainerProfiles.Add(trainer);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        string? tierName = null;
+        if (tierId.HasValue)
+        {
+            var tObj = await _db.TrainerTiers.FindAsync(new object[] { tierId.Value }, cancellationToken);
+            tierName = tObj?.Name;
+        }
+
+        return new AdminTrainerListResponse
+        {
+            TrainerId = trainer.Id,
+            UserId = trainer.UserId,
+            TrainerCode = trainer.TrainerCode,
+            FullName = trainer.FullName,
+            Phone = phoneClean,
+            Email = request.Email?.Trim(),
+            City = trainer.City,
+            Status = trainer.Status.ToString(),
+            TierName = tierName,
+            ProfilePhotoUrl = trainer.ProfilePhotoUrl,
+            PrimaryDanceStyle = trainer.PrimaryDanceStyle,
+            SecondaryDanceStyles = trainer.SecondaryDanceStyles,
+            ApprovedAt = trainer.ApprovedAt,
+            CreatedAt = trainer.CreatedAt
         };
     }
 }
