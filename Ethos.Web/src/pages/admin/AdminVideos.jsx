@@ -59,6 +59,19 @@ export default function AdminVideos() {
     loadVideos();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (!uploading) setUploadModalOpen(false);
+        if (!replacing) setReplaceModalOpen(false);
+        if (!editing) setEditModalOpen(false);
+        if (!deleting) setDeleteModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [uploading, replacing, editing, deleting]);
+
   const showNotification = (msg) => {
     setActionSuccess(msg);
     setTimeout(() => setActionSuccess(null), 5000);
