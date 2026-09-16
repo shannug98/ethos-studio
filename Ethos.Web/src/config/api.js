@@ -19,9 +19,7 @@ const isLocalhost =
 export const API_BASE_URL = (
   rawBaseUrl && typeof rawBaseUrl === "string" && rawBaseUrl.trim().length > 0
     ? rawBaseUrl.trim().replace(/\/+$/, "")
-    : isLocalhost
-      ? "http://localhost:5252"
-      : "" // In deployed static host without env set, fallback to relative or explicit env
+    : ""
 );
 
 export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";

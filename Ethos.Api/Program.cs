@@ -472,13 +472,10 @@ app.UseExceptionHandler(exceptionApp =>
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
 app.UseMiddleware<SecurityHeadersMiddleware>();
-
-app.UseCors();
 
 var trainerPhotoPath = Path.Combine(
     app.Environment.ContentRootPath,
@@ -507,6 +504,8 @@ var studentPhotoPath = Path.Combine(
 Directory.CreateDirectory(studentPhotoPath);
 
 app.UseRouting();
+
+app.UseCors();
 
 app.UseRateLimiter();
 
