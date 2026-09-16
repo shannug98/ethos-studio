@@ -18,7 +18,7 @@
 }
 
 .admin-trainer-dossier-view .back-link {
-  color: #175cd3;
+  color: #4f46e5;
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 700;
@@ -29,7 +29,7 @@
 }
 
 .admin-trainer-dossier-view .back-link:hover {
-  color: #1570ef;
+  color: #4f46e5;
   text-decoration: underline;
 }
 
@@ -61,7 +61,7 @@
   border-radius: 50%;
   background: #eff8ff !important;
   border: 2px solid #b2ddff;
-  color: #175cd3;
+  color: #4f46e5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -322,7 +322,7 @@
 }
 
 .admin-trainer-dossier-view .attention-card.sev-info {
-  border-left-color: #175cd3;
+  border-left-color: #4f46e5;
   background: #fbfdff;
 }
 
@@ -375,7 +375,7 @@
 
 .admin-trainer-dossier-view .attention-severity-badge.info {
   background: #eff8ff;
-  color: #175cd3;
+  color: #4f46e5;
   border: 1px solid #b2ddff;
 }
 
@@ -441,7 +441,7 @@
 }
 
 .admin-trainer-dossier-view .admin-action-btn.primary {
-  background: #175cd3;
+  background: #4f46e5;
   color: #ffffff;
 }
 
@@ -619,14 +619,14 @@
 }
 
 .admin-trainer-dossier-view .tab-btn:hover {
-  color: #175cd3 !important;
+  color: #4f46e5 !important;
   background: #f9fafb !important;
   border-radius: 6px 6px 0 0;
 }
 
 .admin-trainer-dossier-view .tab-btn.active {
-  color: #175cd3 !important;
-  border-bottom: 2px solid #175cd3 !important;
+  color: #4f46e5 !important;
+  border-bottom: 2px solid #4f46e5 !important;
   background: transparent !important;
   font-weight: 800 !important;
 }
@@ -680,7 +680,7 @@
 }
 
 .admin-trainer-dossier-view .external-link {
-  color: #175cd3 !important;
+  color: #4f46e5 !important;
   text-decoration: none;
   font-weight: 600;
 }
@@ -948,7 +948,7 @@
 
 .admin-trainer-dossier-view .badge-student {
   background: #eff8ff !important;
-  color: #175cd3 !important;
+  color: #4f46e5 !important;
   border: 1px solid #b2ddff !important;
 }
 
@@ -1105,7 +1105,7 @@
 .admin-trainer-dossier-view .select-field:focus,
 .admin-trainer-dossier-view .textarea-field:focus {
   outline: none;
-  border-color: #175cd3;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
 }
 
@@ -1132,7 +1132,7 @@
 }
 
 .admin-trainer-dossier-view .modal-actions .btn-primary {
-  background: #175cd3;
+  background: #4f46e5;
   color: #ffffff;
 }
 
@@ -1368,7 +1368,7 @@
   height: 18px;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: #1570ef;
+  accent-color: #4f46e5;
 }
 
 .admin-trainer-dossier-view .perm-choice-card:has(input[value="restrict"]) input[type="radio"] {
@@ -1376,7 +1376,7 @@
 }
 
 .admin-trainer-dossier-view .perm-choice-card:focus-within {
-  outline: 2px solid #1570ef;
+  outline: 2px solid #4f46e5;
   outline-offset: 2px;
 }
 
@@ -1488,11 +1488,11 @@
 .admin-trainer-dossier-view .advisory-role_default {
   background: #f5faff;
   border: 1px solid #d1e9ff;
-  color: #175cd3;
+  color: #4f46e5;
 }
 
 .admin-trainer-dossier-view .advisory-role_default .advisory-title {
-  color: #175cd3;
+  color: #4f46e5;
 }
 
 .admin-trainer-dossier-view .advisory-role_default .advisory-body {
@@ -1523,7 +1523,7 @@
 
 .admin-trainer-dossier-view .perm-access-modal .textarea-field:focus {
   outline: none;
-  border-color: #1570ef !important;
+  border-color: #4f46e5 !important;
   box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.12) !important;
 }
 
@@ -1560,15 +1560,15 @@
 }
 
 .admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-primary {
-  background: #1570ef;
-  border: 1px solid #1570ef;
+  background: #4f46e5;
+  border: 1px solid #4f46e5;
   color: #ffffff;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
 }
 
 .admin-trainer-dossier-view .perm-access-modal .modal-actions .btn-primary:hover {
-  background: #175cd3;
-  border-color: #175cd3;
+  background: #4f46e5;
+  border-color: #4f46e5;
 }
 
 .admin-trainer-dossier-view .perm-access-modal .modal-actions .btn:disabled {

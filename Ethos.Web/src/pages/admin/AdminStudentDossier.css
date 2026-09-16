@@ -17,7 +17,7 @@
 }
 
 .back-link {
-  color: #2563eb;
+  color: #4f46e5;
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 700;
@@ -319,7 +319,7 @@
 
 .kpi-complete {
   background: #eff6ff;
-  color: #2563eb;
+  color: #4f46e5;
   border: 1px solid #bfdbfe;
 }
 
@@ -505,7 +505,7 @@
 }
 
 .admin-action-btn.primary {
-  background: #2563eb;
+  background: #4f46e5;
   color: #ffffff;
 }
 
@@ -677,20 +677,20 @@ details[open] .summary-chevron {
 }
 
 .tab-btn:hover {
-  color: #ef233c;
+  color: #4f46e5;
   background: #fff1f2;
   border-radius: 8px 8px 0 0;
 }
 
 .tab-btn.active {
-  color: #ef233c;
-  border-bottom-color: #ef233c;
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
   font-weight: 800;
 }
 
 .tab-btn.active .tab-count {
   background: #fef2f2;
-  color: #ef233c;
+  color: #4f46e5;
 }
 
 .tab-pane {
@@ -993,7 +993,7 @@ details[open] .summary-chevron {
 
 .badge-attendance.scheduled {
   background: #eff6ff;
-  color: #2563eb;
+  color: #4f46e5;
   border: 1px solid #bfdbfe;
 }
 

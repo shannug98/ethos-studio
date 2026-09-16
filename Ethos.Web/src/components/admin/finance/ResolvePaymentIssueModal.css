@@ -136,7 +136,7 @@
 }
 
 .copy-msg-btn {
-  background: #1570ef;
+  background: #4f46e5;
   color: #ffffff;
   border: none;
   padding: 4px 10px;
@@ -147,7 +147,7 @@
 }
 
 .copy-msg-btn:hover {
-  background: #175cd3;
+  background: #4338ca;
 }
 
 .customer-msg-textarea {

@@ -279,7 +279,7 @@ export default function AdminAudit() {
                                   alignItems: "center",
                                   gap: "6px",
                                   padding: "6px 14px",
-                                  background: "#ef233c",
+                                  background: "#4f46e5",
                                   color: "#ffffff",
                                   borderRadius: "6px",
                                   fontSize: "0.75rem",

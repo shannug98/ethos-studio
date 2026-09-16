@@ -333,13 +333,13 @@ select {
 }
 
 .admin-breadcrumbs a {
-  color: #175cd3;
+  color: var(--admin-accent, #4f46e5);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .admin-breadcrumbs a:hover {
-  color: #1570ef;
+  color: var(--admin-accent-hover, #4338ca);
   text-decoration: underline;
 }
 

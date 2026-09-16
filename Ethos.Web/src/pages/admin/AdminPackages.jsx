@@ -1082,7 +1082,7 @@ export default function AdminPackages() {
                       </div>
                       <div className="drawer-param-item">
                         <span className="drawer-param-label">Total Classes Remaining</span>
-                        <span className="drawer-param-val" style={{ color: "#175cd3" }}>{drawerDetail?.totalClassesRemaining ?? 0}</span>
+                        <span className="drawer-param-val" style={{ color: "#4f46e5" }}>{drawerDetail?.totalClassesRemaining ?? 0}</span>
                       </div>
                       <div className="drawer-param-item">
                         <span className="drawer-param-label">Class Bookings</span>

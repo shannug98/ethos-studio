@@ -51,7 +51,7 @@
   padding: 40px;
   background: #ffffff;
   border: 1px solid #dfe5ee;
-  border-top: 3px solid #ef233c;
+  border-top: 3px solid #4f46e5;
   border-radius: 18px;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
   box-sizing: border-box;
@@ -112,7 +112,7 @@
 
 .admin-login-input:focus,
 .admin-login-password:focus {
-  border-color: #ef233c;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.12);
 }
 
@@ -173,7 +173,7 @@
 .admin-forgot-password-link {
   border: 0;
   background: transparent;
-  color: #ef233c;
+  color: #4f46e5;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -212,7 +212,7 @@
   margin: 20px 0;
   padding: 14px 16px;
   border: 1px solid #f3b4bd;
-  border-left: 4px solid #ef233c;
+  border-left: 4px solid #e11d48;
   border-radius: 10px;
   background: #fff1f2;
   color: #9f1239;
@@ -248,7 +248,7 @@
   margin-top: 28px;
   border: 0;
   border-radius: 10px;
-  background: #ef233c;
+  background: #4f46e5;
   color: #ffffff;
   font-size: 15px;
   font-weight: 800;

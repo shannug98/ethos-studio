@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    ETHOS ADMIN PORTAL - GLOBAL UI OVERHAUL
    Presentation-only styles.
    Does not change API behavior or business logic.
@@ -7,7 +7,7 @@
 /* ---------- Shared Admin Variables ---------- */
 
 :root {
-  --ethos-admin-bg: #f5f7fb;
+  --ethos-admin-bg: #f8fafc;
   --ethos-admin-surface: #ffffff;
   --ethos-admin-surface-soft: #f8fafc;
   --ethos-admin-border: #e2e8f0;
@@ -15,19 +15,19 @@
   --ethos-admin-text: #0f172a;
   --ethos-admin-muted: #64748b;
   --ethos-admin-subtle: #94a3b8;
-  --ethos-admin-primary: #ef233c;
-  --ethos-admin-primary-dark: #c91832;
-  --ethos-admin-primary-soft: #fff1f2;
+  --ethos-admin-primary: #4f46e5;
+  --ethos-admin-primary-dark: #4338ca;
+  --ethos-admin-primary-soft: #ede9fe;
   --ethos-admin-blue: #2563eb;
   --ethos-admin-blue-soft: #eff6ff;
-  --ethos-admin-green: #059669;
-  --ethos-admin-green-soft: #ecfdf5;
-  --ethos-admin-amber: #d97706;
-  --ethos-admin-amber-soft: #fffbeb;
-  --ethos-admin-danger: #dc2626;
-  --ethos-admin-danger-soft: #fef2f2;
+  --ethos-admin-green: #15803d;
+  --ethos-admin-green-soft: #dcfce7;
+  --ethos-admin-amber: #b45309;
+  --ethos-admin-amber-soft: #fef3c7;
+  --ethos-admin-danger: #b91c1c;
+  --ethos-admin-danger-soft: #fee2e2;
   --ethos-admin-radius: 14px;
-  --ethos-admin-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --ethos-admin-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
 }
 
 /* ---------- Prevent Legacy Dark Page Styles ---------- */
@@ -134,7 +134,7 @@
 .admin-bookings-container .admin-btn.primary {
   background: var(--ethos-admin-primary) !important;
   color: #ffffff !important;
-  box-shadow: 0 5px 14px rgba(239, 35, 60, 0.18);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2) !important;
 }
 
 .admin-attendance-container .admin-btn.primary:hover,
@@ -470,9 +470,17 @@
 .admin-payments-container .table-wrapper,
 .admin-bookings-container .table-wrapper,
 .admin-attendance-container .roster-table-wrapper,
-.admin-workshops-container .workshops-table {
+.admin-workshops-container .workshops-table,
+.admin-students-table-card,
+.admin-trainers-table-card,
+.audit-table-card,
+.admin-table-container,
+.admin-table-wrapper,
+.table-responsive {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: #ffffff !important;
   border: 1px solid var(--ethos-admin-border) !important;
   border-radius: 13px !important;
@@ -526,7 +534,7 @@
 .admin-bookings-container .admin-table tbody tr:hover td,
 .admin-attendance-container .admin-table tbody tr:hover td,
 .admin-workshops-container table tbody tr:hover td {
-  background: #fffafb !important;
+  background: #f8fafc !important;
 }
 
 .admin-packages-page .admin-table tbody tr:last-child td,

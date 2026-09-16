@@ -60,9 +60,9 @@
 }
 
 .tab-btn.active {
-  color: #175cd3;
+  color: #4f46e5;
   font-weight: 700;
-  border-bottom-color: #175cd3;
+  border-bottom-color: #4f46e5;
 }
 
 .filters-bar {
@@ -97,7 +97,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: #175cd3;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
 }
 
@@ -124,7 +124,7 @@
 
 .filter-select-group select:focus {
   outline: none;
-  border-color: #175cd3;
+  border-color: #4f46e5;
 }
 
 .table-wrapper {
@@ -214,7 +214,7 @@
 
 .badge-package {
   background: #eff8ff;
-  color: #175cd3;
+  color: #4f46e5;
   border: 1px solid #b2ddff;
 }
 
@@ -354,7 +354,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #175cd3;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
 }
 
@@ -391,9 +391,9 @@
 }
 
 .admin-btn.primary {
-  background: #175cd3;
+  background: #4f46e5;
   color: #ffffff;
-  border-color: #175cd3;
+  border-color: #4f46e5;
 }
 
 .admin-btn.primary:hover {

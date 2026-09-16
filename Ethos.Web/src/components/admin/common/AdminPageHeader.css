@@ -1,0 +1,94 @@
+/* =========================================================
+   ADMIN PAGE HEADER — UNIFIED COMPONENT
+   ========================================================= */
+
+.admin-page-header-unified {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.header-titles-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.header-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.breadcrumb-link {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-link:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.breadcrumb-sep {
+  color: #cbd5e1;
+  margin: 0 2px;
+}
+
+.breadcrumb-text.active {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.header-category-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #4f46e5;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-page-title {
+  margin: 0 !important;
+  color: #0f172a !important;
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1.2 !important;
+}
+
+.header-title-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-page-subtitle {
+  margin: 6px 0 0 0 !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  max-width: 840px;
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

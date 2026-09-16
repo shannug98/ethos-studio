@@ -1,0 +1,109 @@
+/* =========================================================
+   ADMIN TABS — UNIFIED COMPONENT
+   ========================================================= */
+
+.admin-tabs-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Variant: Pill (in soft rounded background container) */
+.admin-tabs-container.variant-pill {
+  padding: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.admin-tabs-container.variant-pill .admin-tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.admin-tabs-container.variant-pill .admin-tab-item:hover:not(.active) {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.admin-tabs-container.variant-pill .admin-tab-item.active {
+  background: #ffffff;
+  color: #4f46e5;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* Variant: Underline */
+.admin-tabs-container.variant-underline {
+  border-bottom: 1px solid #e2e8f0;
+  gap: 8px;
+  width: 100%;
+}
+
+.admin-tabs-container.variant-underline .admin-tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-tabs-container.variant-underline .admin-tab-item:hover:not(.active) {
+  color: #0f172a;
+  border-bottom-color: #cbd5e1;
+}
+
+.admin-tabs-container.variant-underline .admin-tab-item.active {
+  color: #4f46e5;
+  font-weight: 700;
+  border-bottom-color: #4f46e5;
+}
+
+/* Badge Pill inside Tab */
+.tab-badge-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  line-height: 1;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.admin-tab-item.active .tab-badge-pill {
+  background: #ede9fe;
+  color: #6366f1;
+}
+
+.tab-badge-pill.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.tab-badge-pill.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+.tab-badge-pill.success {
+  background: #dcfce7;
+  color: #15803d;
+}

@@ -18,7 +18,7 @@
 .receipt-letterhead-header {
   width: 100%;
   background: #ffffff;
-  border-bottom: 2px solid #ef233c;
+  border-bottom: 2px solid #4f46e5;
   line-height: 0;
 }
 
@@ -208,7 +208,7 @@
 }
 
 .text-reconciled {
-  color: #2563eb;
+  color: #4f46e5;
   font-weight: 700;
 }
 

@@ -254,10 +254,10 @@ export default function AdminVideos() {
       {/* Page Header */}
       <div className="admin-page-header">
         <div>
-          <div className="admin-breadcrumb-tag">MEDIA & ASSET ENGINE · CLOUDFLARE R2</div>
+          <div className="admin-breadcrumb-tag">MEDIA & ASSET STORAGE · CLOUD REELS</div>
           <h1 className="admin-page-title">Studio Video Management</h1>
           <p className="admin-page-subtitle">
-            Manage short dance clips (reels) and high-production gallery video assets with Cloudflare R2 storage and Neon database metadata.
+            Manage short dance clips (reels) and high-production gallery video assets with cloud object storage and database records.
           </p>
         </div>
         <div className="admin-header-actions">
@@ -276,25 +276,25 @@ export default function AdminVideos() {
           label="Short Dance Videos"
           value={`${activeShorts} Active`}
           tone="brand"
-          sublabel={`${shortVideosList.length} total in R2 (Max 20s · 25MB)`}
+          sublabel={`${shortVideosList.length} total in Storage (Max 20s · 25MB)`}
           icon="📱"
         />
         <AdminKpiCard
           label="Gallery Showcases"
           value={`${activeGallery} of 7`}
           tone="success"
-          sublabel={`${galleryVideosList.length} total in R2 (Max 90s · 100MB)`}
+          sublabel={`${galleryVideosList.length} total in Storage (Max 90s · 100MB)`}
           icon="🎭"
         />
         <AdminKpiCard
-          label="R2 Storage Used"
+          label="Storage Used"
           value={`${totalStorageMb} MB`}
           tone="info"
           sublabel={`${videos.length} MP4 assets stored`}
           icon="☁️"
         />
         <AdminKpiCard
-          label="Cloudflare R2 Rails"
+          label="Storage Provider"
           value="Operational"
           tone="success"
           sublabel="Zero egress · High-speed streaming"
@@ -343,7 +343,7 @@ export default function AdminVideos() {
         {loading ? (
           <div className="videos-loading-state">
             <div className="spinner"></div>
-            <p>Loading {activeTab === "ShortVideos" ? "Short Dance Videos" : "Gallery Showcases"} from Neon DB & R2...</p>
+            <p>Loading {activeTab === "ShortVideos" ? "Short Dance Videos" : "Gallery Showcases"} from cloud storage...</p>
           </div>
         ) : tabVideos.length === 0 ? (
           <div className="videos-empty-state">

@@ -390,7 +390,6 @@ export default function AdminWorkshops() {
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
             className="admin-btn primary"
-            style={{ backgroundColor: "#16a34a", color: "#ffffff", fontWeight: 700 }}
             onClick={handleOpenCreate}
           >
             + Create Workshop

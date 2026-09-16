@@ -16,15 +16,18 @@ import {
 
 import "./AdminDashboardCharts.css";
 
-const ETHOS_RED = "#ed1b3b";
-const BLACK = "#111827";
-const GRAY = "#9ca3af";
+const PRIMARY_INDIGO = "#4f46e5";
+const ACCENT_CYAN = "#06b6d4";
+const SUCCESS_EMERALD = "#10b981";
+const PURPLE = "#8b5cf6";
+const TEXT_MUTED = "#64748b";
 
 const PIE_COLORS = [
-  "#ed1b3b",
-  "#111827",
-  "#9ca3af",
-  "#d1d5db",
+  "#4f46e5",
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#94a3b8",
 ];
 
 function asArray(value) {
@@ -329,11 +332,11 @@ export default function AdminDashboardCharts({
               type="monotone"
               dataKey="adminActions"
               name="Admin Actions"
-              stroke={ETHOS_RED}
-              strokeWidth={3}
+              stroke={PRIMARY_INDIGO}
+              strokeWidth={2.5}
               dot={{
                 r: 3,
-                fill: ETHOS_RED,
+                fill: PRIMARY_INDIGO,
               }}
               activeDot={{
                 r: 6,
@@ -345,11 +348,11 @@ export default function AdminDashboardCharts({
               type="monotone"
               dataKey="workshops"
               name="Workshops"
-              stroke="#8b5cf6"
+              stroke={PURPLE}
               strokeWidth={2.5}
               dot={{
                 r: 3,
-                fill: "#8b5cf6",
+                fill: PURPLE,
               }}
               activeDot={{
                 r: 5,
@@ -361,11 +364,11 @@ export default function AdminDashboardCharts({
               type="monotone"
               dataKey="workshopBookings"
               name="Workshop Bookings"
-              stroke={BLACK}
+              stroke={ACCENT_CYAN}
               strokeWidth={2}
               dot={{
                 r: 3,
-                fill: BLACK,
+                fill: ACCENT_CYAN,
               }}
             />
 
@@ -374,12 +377,12 @@ export default function AdminDashboardCharts({
               type="monotone"
               dataKey="revenue"
               name="Revenue"
-              stroke={GRAY}
+              stroke={SUCCESS_EMERALD}
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{
                 r: 3,
-                fill: GRAY,
+                fill: SUCCESS_EMERALD,
               }}
             />
           </LineChart>
@@ -496,7 +499,7 @@ export default function AdminDashboardCharts({
             <Bar
               dataKey="revenue"
               name="Revenue"
-              fill={ETHOS_RED}
+              fill={PRIMARY_INDIGO}
               radius={[6, 6, 0, 0]}
               maxBarSize={34}
             />

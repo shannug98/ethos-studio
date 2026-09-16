@@ -62,7 +62,7 @@
 }
 
 .price-tag {
-  color: #175cd3;
+  color: #4f46e5;
   font-weight: 700;
   font-size: 13px;
 }
@@ -441,7 +441,7 @@
 
 .activity-badge-updated {
   background: #eff8ff;
-  color: #175cd3;
+  color: #4f46e5;
 }
 
 .activity-badge-deactivated {

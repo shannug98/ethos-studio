@@ -93,7 +93,7 @@
 
 .workshops-search-input:focus {
   outline: none;
-  border-color: #ef233c;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.12);
 }
 
@@ -410,7 +410,7 @@
 }
 
 .admin-btn.primary {
-  background: #ef233c;
+  background: #4f46e5;
   color: #ffffff;
   border: 0;
 }
@@ -597,7 +597,7 @@
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #ef233c;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.12);
 }
 
@@ -745,7 +745,7 @@
   color: #64748b;
 }
 
-.text-blue { color: #2563eb !important; }
+.text-blue { color: #4f46e5 !important; }
 .text-purple { color: #7c3aed !important; }
 .text-green { color: #059669 !important; }
 .text-amber { color: #d97706 !important; }
@@ -829,7 +829,7 @@
 
 .roster-search-box input:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -968,7 +968,7 @@
 .contact-reveal-btn {
   background: transparent;
   border: 0;
-  color: #2563eb;
+  color: #4f46e5;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -1212,7 +1212,7 @@
 .roster-view-profile-link {
   font-size: 11.5px;
   font-weight: 700;
-  color: #2563eb;
+  color: #4f46e5;
   text-decoration: none;
   padding: 3px 8px;
   border-radius: 6px;
