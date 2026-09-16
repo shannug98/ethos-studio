@@ -198,6 +198,29 @@ export const adminApi = {
   getDashboard: (range = "week") =>
     adminRequest(`/api/admin/dashboard?range=${encodeURIComponent(range)}`),
 
+  // Visual Reference Bounded Dashboard Endpoints
+  getDashboardSummary: () => adminRequest("/api/admin/dashboard/summary"),
+
+  getDashboardTrends: (range = "last6months") =>
+    adminRequest(`/api/admin/dashboard/trends?range=${encodeURIComponent(range)}`),
+
+  getWorkshopStatusDonut: () => adminRequest("/api/admin/dashboard/workshop-status"),
+
+  getDashboardPriorities: () => adminRequest("/api/admin/dashboard/priorities"),
+
+  getRecentBookings: (limit = 5) =>
+    adminRequest(`/api/admin/dashboard/recent-bookings?limit=${limit}`),
+
+  getUpcomingWorkshops: (limit = 5) =>
+    adminRequest(`/api/admin/dashboard/upcoming-workshops?limit=${limit}`),
+
+  getRecentActivity: (limit = 10) =>
+    adminRequest(`/api/admin/dashboard/activity?limit=${limit}`),
+
+  getSystemHealth: () => adminRequest("/api/admin/dashboard/system-health"),
+
+  getRevenueOverview: () => adminRequest("/api/admin/dashboard/revenue-overview"),
+
   getDailyActivity: (date) =>
     adminRequest(`/api/admin/dashboard/daily-activity?date=${encodeURIComponent(date)}`),
 

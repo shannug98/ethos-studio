@@ -777,3 +777,92 @@
     display: none;
   }
 }
+
+/* Visual Reference Header Additions */
+.ethos-visual-header {
+  min-height: 64px;
+  padding: 10px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ethos-header-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 7px 16px;
+  width: 380px;
+  max-width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ethos-header-search-wrap:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ethos-header-search-icon {
+  font-size: 0.95rem;
+  color: #64748b;
+  flex: 0 0 auto;
+}
+
+.ethos-header-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: #1e293b;
+  width: 100%;
+  cursor: pointer;
+}
+
+.ethos-header-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.ethos-search-kbd {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex: 0 0 auto;
+}
+
+.ethos-header-datetime-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-left: 14px;
+  border-left: 1px solid #e2e8f0;
+  line-height: 1.25;
+}
+
+.ethos-datetime-date {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.ethos-datetime-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+@media (max-width: 900px) {
+  .ethos-header-search-wrap {
+    width: 220px;
+  }
+  .ethos-header-datetime-block {
+    display: none;
+  }
+}
+

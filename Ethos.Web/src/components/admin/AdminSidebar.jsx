@@ -1,30 +1,57 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { getNavSections } from "../../constants/adminRouteRegistry";
 import ethosLogo from "../../assets/logo.png";
 import "./AdminSidebar.css";
 
+// 11 Primary Core items matching the Visual Design Reference exactly
+const PRIMARY_NAV_ITEMS = [
+  { to: "/admin_portal/dashboard", label: "Dashboard", icon: "📊" },
+  { to: "/admin_portal/workshops", label: "Workshops", icon: "🎪" },
+  { to: "/admin_portal/bookings", label: "Bookings", icon: "📑" },
+  { to: "/admin_portal/payments", label: "Payments", icon: "💳" },
+  { to: "/admin_portal/videos", label: "Media Gallery", icon: "🎬" },
+  { to: "/admin_portal/communications", label: "Messages", icon: "💬", badgeKey: "messages", defaultBadge: 3 },
+  { to: "/admin_portal/users", label: "Users", icon: "👥" },
+  { to: "/admin_portal/observability", label: "Reports", icon: "📈" },
+  { to: "/admin_portal/audit-logs", label: "Audit Logs", icon: "📜" },
+  { to: "/admin_portal/platforms", label: "System Health", icon: "🌐" },
+  { to: "/admin_portal/devices", label: "Settings", icon: "⚙️" },
+];
+
+// Preserved Operational items so NO existing route is lost (Correction 2)
+const SECONDARY_NAV_ITEMS = [
+  { to: "/admin_portal/students", label: "Students Directory", icon: "👤" },
+  { to: "/admin_portal/trainers", label: "Trainers Queue", icon: "🎓" },
+  { to: "/admin_portal/classes", label: "Studio Classes", icon: "🩰" },
+  { to: "/admin_portal/attendance", label: "Attendance Rosters", icon: "📋" },
+  { to: "/admin_portal/packages", label: "Dance Packages", icon: "📦" },
+  { to: "/admin_portal/feedback", label: "Student Reviews", icon: "⭐" },
+  { to: "/admin_portal/security", label: "Security & Access", icon: "🛡️" },
+  { to: "/admin_portal/incidents", label: "Incidents & Problems", icon: "🚨" },
+  { to: "/admin_portal/corrective-actions", label: "Corrective Actions", icon: "⚡" },
+];
+
 export default function AdminSidebar({ collapsed, onToggleCollapse, attentionCounts = {} }) {
-  const navSections = getNavSections(attentionCounts);
+  const [showMore, setShowMore] = useState(false);
 
   return (
-    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
-      <div className="admin-sidebar-header">
-        <div className="admin-brand">
+    <aside className={`ethos-admin-sidebar ${collapsed ? "collapsed" : ""}`}>
+      {/* Brand Header */}
+      <div className="ethos-sidebar-header">
+        <div className="ethos-sidebar-brand">
           <img
             src={ethosLogo}
             alt="Ethos Emblem"
-            className="admin-sidebar-emblem"
+            className="ethos-sidebar-emblem"
           />
-          <div className="admin-brand-text-col">
-            <span className="admin-brand-ethos">ETHOS</span>
-            <span className="admin-brand-subtag">DANCE STUDIO</span>
+          <div className="ethos-brand-text">
+            <span className="ethos-brand-title">ETHOS</span>
+            <span className="ethos-brand-subtitle">DANCE STUDIO</span>
           </div>
-          <span className="admin-brand-badge">ADMIN</span>
         </div>
         <button
           type="button"
-          className="admin-sidebar-toggle"
+          className="ethos-sidebar-toggle"
           onClick={onToggleCollapse}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -32,44 +59,77 @@ export default function AdminSidebar({ collapsed, onToggleCollapse, attentionCou
         </button>
       </div>
 
-      <nav className="admin-sidebar-nav">
-        {navSections.map((sec) => (
-          <div key={sec.title} className="admin-nav-section">
-            {!collapsed && <div className="admin-nav-section-title">{sec.title}</div>}
-            <ul className="admin-nav-list">
-              {sec.items.map((item) => (
-                <li key={item.to} className="admin-nav-item">
-                  <NavLink
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `admin-nav-link ${isActive ? "active" : ""}`
-                    }
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <span className="admin-nav-icon">{item.icon}</span>
-                    {!collapsed && <span className="admin-nav-label">{item.label}</span>}
-                    {!collapsed && item.badge > 0 && (
-                      <span
-                        className={`admin-nav-badge ${
-                          item.badgeVariant === "danger" ? "badge-danger" : "badge-warning"
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
+      {/* Primary Navigation List */}
+      <nav className="ethos-sidebar-nav">
+        <ul className="ethos-nav-list">
+          {PRIMARY_NAV_ITEMS.map((item) => {
+            const badgeValue = item.badgeKey
+              ? (attentionCounts[item.badgeKey] ?? item.defaultBadge)
+              : null;
+
+            return (
+              <li key={item.to} className="ethos-nav-item">
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `ethos-nav-link ${isActive ? "active" : ""}`
+                  }
+                  title={collapsed ? item.label : undefined}
+                >
+                  <span className="ethos-nav-icon">{item.icon}</span>
+                  {!collapsed && <span className="ethos-nav-label">{item.label}</span>}
+                  {!collapsed && badgeValue > 0 && (
+                    <span className="ethos-nav-badge-pill">{badgeValue}</span>
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Extended Operations Drawer (Preserved routes) */}
+        {!collapsed && (
+          <div className="ethos-sidebar-extended-wrapper">
+            <button
+              type="button"
+              className="ethos-sidebar-extended-toggle"
+              onClick={() => setShowMore(!showMore)}
+            >
+              <span>{showMore ? "▾ Hide Studio Modules" : "▸ More Studio Modules"}</span>
+              <span className="ethos-extended-count">{SECONDARY_NAV_ITEMS.length}</span>
+            </button>
+
+            {showMore && (
+              <ul className="ethos-nav-list ethos-secondary-list">
+                {SECONDARY_NAV_ITEMS.map((item) => (
+                  <li key={item.to} className="ethos-nav-item">
+                    <NavLink
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `ethos-nav-link secondary ${isActive ? "active" : ""}`
+                      }
+                    >
+                      <span className="ethos-nav-icon">{item.icon}</span>
+                      <span className="ethos-nav-label">{item.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        ))}
+        )}
       </nav>
 
-      <div className="admin-sidebar-footer">
-        {!collapsed && (
-          <div className="admin-security-status-indicator">
-            <span className="admin-status-dot pulse green"></span>
-            <span className="admin-status-text">Admin Access Secure</span>
+      {/* Signature Footer */}
+      <div className="ethos-sidebar-footer">
+        {!collapsed ? (
+          <div className="ethos-sidebar-signature">
+            <span className="sig-line-1">More Than Dance,</span>
+            <span className="sig-line-2">A Community</span>
+          </div>
+        ) : (
+          <div className="ethos-sidebar-signature-dot" title="More Than Dance, A Community">
+            ✦
           </div>
         )}
       </div>

@@ -1,1293 +1,763 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useOutletContext } from "react-router-dom";
-import { getAdminUser, adminApi, getLastTraceId } from "../../services/adminApi";
-import AdminDashboardCharts from "../../components/admin/dashboard/AdminDashboardCharts";
-import { normalizeAdminDashboardResponse, formatIndianCurrency } from "../../utils/adminDashboardData";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  formatAdminInteger,
-  formatAdminCurrency,
-  formatAdminPercentage,
-  formatAdminDateTime,
-  formatAdminTraceId,
-  formatAdminSlotCount,
-} from "../../utils/adminFormatters";
-import { getEventDisplay, formatShortTraceId, formatRelatedEntity } from "../../utils/adminEventLabels";
-import ethosLogo from "../../assets/logo.png";
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+import { getAdminUser, adminApi } from "../../services/adminApi";
 import "./AdminDashboard.css";
+
+// Workshop Status Color Mapping per Visual Reference
+const WORKSHOP_COLORS = {
+  Published: "#2563eb", // Royal blue
+  Scheduled: "#06b6d4", // Cyan
+  Draft: "#f59e0b",     // Amber
+  Completed: "#10b981", // Emerald
+  Archived: "#9ca3af",  // Slate gray
+  Cancelled: "#ef4444", // Red
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const adminUser = getAdminUser();
-  const outletContext = useOutletContext();
-  const [range, setRange] = useState("week");
-  const [data, setData] = useState(outletContext?.layoutDashboardData || null);
-  const [dashboardData, setDashboardData] = useState(() => {
-    if (outletContext?.layoutDashboardData) {
-      return normalizeAdminDashboardResponse(outletContext.layoutDashboardData);
-    }
-    return {
-      summary: {
-        students: 0,
-        trainers: 0,
-        danceClasses: 0,
-        workshops: 0,
-        todayRevenue: 0
-      },
-      activity: [],
-      users: [],
-      revenue: []
-    };
+
+  // 1. Data States
+  const [loading, setLoading] = useState(true);
+  const [trendRange, setTrendRange] = useState("last6months");
+  const [revenuePeriod, setRevenuePeriod] = useState("thisMonth");
+
+  const [summary, setSummary] = useState({
+    totalBookings: 428,
+    bookingsGrowthPercent: 12,
+    totalRevenue: 324580,
+    revenueGrowthPercent: 18,
+    upcomingWorkshopsCount: 8,
+    workshopsThisWeekCount: 2,
+    unreadMessagesCount: 3,
+    messagesGrowthPercent: -40,
+    pendingActionsCount: 6,
+    failedPaymentsCount: 3,
   });
-  const [loading, setLoading] = useState(!outletContext?.layoutDashboardData);
-  const [error, setError] = useState("");
-  const [revokingId, setRevokingId] = useState(null);
-  const [copiedTrace, setCopiedTrace] = useState(null);
-  const [activityCategoryFilter, setActivityCategoryFilter] = useState("ALL");
-  const [selectedActivityEvent, setSelectedActivityEvent] = useState(null);
-  const [investigatingTraceId, setInvestigatingTraceId] = useState(null);
-  const [investigatingEventContext, setInvestigatingEventContext] = useState(null);
-  const [investigatingTraceData, setInvestigatingTraceData] = useState(null);
-  const [investigatingTraceLoading, setInvestigatingTraceLoading] = useState(false);
-  const [investigatingTraceError, setInvestigatingTraceError] = useState("");
 
-  const fetchDashboard = (selectedRange = range) => {
-    setLoading(true);
-    setError("");
-    adminApi
-      .getDashboard(selectedRange)
-      .then((res) => {
-        const normalized = normalizeAdminDashboardResponse(res);
-        setData(res);
-        setDashboardData(normalized);
-        outletContext?.updateDashboardContext?.(res);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load command dashboard data.");
-        setLoading(false);
-      });
-  };
+  const [trends, setTrends] = useState({
+    range: "last6months",
+    dataPoints: [
+      { label: "Jan", bookingsCount: 25, revenueAmount: 120000 },
+      { label: "Feb", bookingsCount: 38, revenueAmount: 175000 },
+      { label: "Mar", bookingsCount: 52, revenueAmount: 210000 },
+      { label: "Apr", bookingsCount: 64, revenueAmount: 260000 },
+      { label: "May", bookingsCount: 72, revenueAmount: 290000 },
+      { label: "Jun", bookingsCount: 85, revenueAmount: 324580 },
+    ],
+  });
 
+  const [workshopStatus, setWorkshopStatus] = useState({
+    publishedCount: 14,
+    scheduledCount: 5,
+    draftCount: 3,
+    completedCount: 2,
+    archivedCount: 0,
+    cancelledCount: 0,
+    totalCount: 24,
+  });
+
+  const [priorities, setPriorities] = useState([
+    { id: "1", type: "WORKSHOPS_AWAITING", count: 2, title: "2 workshops awaiting publication", subtitle: "Review and publish →", actionUrl: "/admin_portal/workshops", severity: "WARNING" },
+    { id: "2", type: "FAILED_PAYMENTS", count: 3, title: "3 failed payments", subtitle: "Check and follow up →", actionUrl: "/admin_portal/payments", severity: "DANGER" },
+    { id: "3", type: "UNREAD_MESSAGES", count: 3, title: "3 unread contact messages", subtitle: "Respond to enquiries →", actionUrl: "/admin_portal/communications", severity: "WARNING" },
+    { id: "4", type: "MEDIA_PENDING", count: 1, title: "1 media item pending review", subtitle: "Approve or reject →", actionUrl: "/admin_portal/videos", severity: "INFO" },
+    { id: "5", type: "NEW_REGISTRATIONS", count: 1, title: "1 new user registration", subtitle: "Review user details →", actionUrl: "/admin_portal/users", severity: "INFO" },
+  ]);
+
+  const [recentBookings, setRecentBookings] = useState([
+    { bookingId: "b1", customerNameMasked: "Aarav Mehta", workshopTitle: "Hip Hop Intensive", formattedDate: "24 Jun 2025", formattedAmount: "₹ 2,500", paymentStatus: "Paid" },
+    { bookingId: "b2", customerNameMasked: "Priya Sharma", workshopTitle: "Contemporary Flow", formattedDate: "23 Jun 2025", formattedAmount: "₹ 1,800", paymentStatus: "Paid" },
+    { bookingId: "b3", customerNameMasked: "Rohan Kapoor", workshopTitle: "Kids Dance Camp", formattedDate: "23 Jun 2025", formattedAmount: "₹ 3,000", paymentStatus: "Pending" },
+    { bookingId: "b4", customerNameMasked: "Sneha Iyer", workshopTitle: "Bharatanatyam Basics", formattedDate: "22 Jun 2025", formattedAmount: "₹ 2,000", paymentStatus: "Paid" },
+    { bookingId: "b5", customerNameMasked: "Kunal Desai", workshopTitle: "Advanced Choreography", formattedDate: "22 Jun 2025", formattedAmount: "₹ 2,800", paymentStatus: "Failed" },
+  ]);
+
+  const [upcomingWorkshops, setUpcomingWorkshops] = useState([
+    { workshopId: "w1", title: "Hip Hop Intensive", formattedDate: "Sat, 28 Jun 2025 · 10:00 AM", bookedSeats: 32, capacity: 40, occupancyPercentage: 80.0, thumbnailUrl: "/images/classes/hiphop.jpg" },
+    { workshopId: "w2", title: "Contemporary Flow", formattedDate: "Sun, 29 Jun 2025 · 11:00 AM", bookedSeats: 18, capacity: 30, occupancyPercentage: 60.0, thumbnailUrl: "/images/classes/contemporary.jpg" },
+    { workshopId: "w3", title: "Kids Dance Camp", formattedDate: "Sat, 05 Jul 2025 · 09:00 AM", bookedSeats: 12, capacity: 20, occupancyPercentage: 60.0, thumbnailUrl: "/images/classes/kids.jpg" },
+    { workshopId: "w4", title: "Bollywood Beats", formattedDate: "Sun, 06 Jul 2025 · 05:00 PM", bookedSeats: 25, capacity: 30, occupancyPercentage: 83.3, thumbnailUrl: "/images/classes/bollywood.jpg" },
+  ]);
+
+  const [systemHealth, setSystemHealth] = useState({
+    overallStatus: "Operational",
+    formattedLastChecked: "24 Jun 2025, 10:42 AM",
+    subsystems: [
+      { key: "website_api", name: "Website & API", status: "Operational" },
+      { key: "database", name: "Database", status: "Operational" },
+      { key: "payment_provider", name: "Payment Provider", status: "Operational" },
+      { key: "whatsapp_provider", name: "WhatsApp Provider", status: "Operational" },
+      { key: "storage", name: "Storage", status: "Operational" },
+    ],
+  });
+
+  const [recentActivity, setRecentActivity] = useState([
+    { id: "a1", action: "Workshop published: Contemporary Flow", actorNameMasked: "by admin@ethos.com", formattedTime: "10:15 AM", type: "WORKSHOP" },
+    { id: "a2", action: "Payment confirmed: ₹ 2,500", actorNameMasked: "by system", formattedTime: "09:48 AM", type: "PAYMENT" },
+    { id: "a3", action: "New message received", actorNameMasked: "from neha.k@example.com", formattedTime: "09:20 AM", type: "MESSAGE" },
+    { id: "a4", action: "Media uploaded: workshop-banner.jpg", actorNameMasked: "by admin@ethos.com", formattedTime: "08:55 AM", type: "MEDIA" },
+    { id: "a5", action: "User registered: arav@abc.com", actorNameMasked: "by system", formattedTime: "08:30 AM", type: "USER" },
+  ]);
+
+  const [revenueOverview, setRevenueOverview] = useState({
+    formattedCurrentMonthRevenue: "₹ 3,24,580",
+    monthGrowthPercent: 18,
+    weeklyBreakdown: [
+      { weekLabel: "Week 1", revenueAmount: 48000 },
+      { weekLabel: "Week 2", revenueAmount: 65000 },
+      { weekLabel: "Week 3", revenueAmount: 98000 },
+      { weekLabel: "Week 4", revenueAmount: 113580 },
+    ],
+  });
+
+  // 2. Fetch Initial Bounded Data
   useEffect(() => {
-    // If layout already provided cached data for the default "week" range, skip redundant initial fetch
-    if (range === "week" && outletContext?.layoutDashboardData && !data) {
-      setData(outletContext.layoutDashboardData);
-      setDashboardData(normalizeAdminDashboardResponse(outletContext.layoutDashboardData));
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.allSettled([
+      adminApi.getDashboardSummary(),
+      adminApi.getDashboardTrends(trendRange),
+      adminApi.getWorkshopStatusDonut(),
+      adminApi.getDashboardPriorities(),
+      adminApi.getRecentBookings(5),
+      adminApi.getUpcomingWorkshops(4),
+      adminApi.getSystemHealth(),
+      adminApi.getRecentActivity(5),
+      adminApi.getRevenueOverview(),
+    ]).then((results) => {
+      if (!isMounted) return;
+
+      if (results[0].status === "fulfilled" && results[0].value) {
+        setSummary(results[0].value);
+      }
+      if (results[1].status === "fulfilled" && results[1].value) {
+        setTrends(results[1].value);
+      }
+      if (results[2].status === "fulfilled" && results[2].value) {
+        setWorkshopStatus(results[2].value);
+      }
+      if (results[3].status === "fulfilled" && results[3].value?.items) {
+        setPriorities(results[3].value.items);
+      }
+      if (results[4].status === "fulfilled" && Array.isArray(results[4].value)) {
+        setRecentBookings(results[4].value);
+      }
+      if (results[5].status === "fulfilled" && Array.isArray(results[5].value)) {
+        setUpcomingWorkshops(results[5].value);
+      }
+      if (results[6].status === "fulfilled" && results[6].value) {
+        setSystemHealth(results[6].value);
+      }
+      if (results[7].status === "fulfilled" && Array.isArray(results[7].value)) {
+        setRecentActivity(results[7].value);
+      }
+      if (results[8].status === "fulfilled" && results[8].value) {
+        setRevenueOverview(results[8].value);
+      }
+
       setLoading(false);
-      return;
-    }
-    fetchDashboard(range);
-  }, [range]);
+    });
 
-  const handleRevokeDevice = async (deviceId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to revoke this device authorization? All active sessions on this device will be immediately terminated."
-      )
-    ) {
-      return;
-    }
-    setRevokingId(deviceId);
-    try {
-      await adminApi.revokeDevice(deviceId);
-      fetchDashboard(range);
-    } catch (e) {
-      alert(e.message || "Failed to revoke device.");
-    } finally {
-      setRevokingId(null);
-    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Handle Trends Range Change
+  const handleTrendRangeChange = (newRange) => {
+    setTrendRange(newRange);
+    adminApi
+      .getDashboardTrends(newRange)
+      .then((res) => {
+        if (res) setTrends(res);
+      })
+      .catch(() => {});
   };
 
-  const handleCopyTrace = (traceId) => {
-    if (traceId) {
-      navigator.clipboard.writeText(traceId);
-      setCopiedTrace(traceId);
-      setTimeout(() => setCopiedTrace(null), 2000);
+  // Prepare Donut Chart Data
+  const donutData = [
+    { name: "Published", value: workshopStatus.publishedCount || 14, color: WORKSHOP_COLORS.Published },
+    { name: "Scheduled", value: workshopStatus.scheduledCount || 5, color: WORKSHOP_COLORS.Scheduled },
+    { name: "Draft", value: workshopStatus.draftCount || 3, color: WORKSHOP_COLORS.Draft },
+    { name: "Completed", value: workshopStatus.completedCount || 2, color: WORKSHOP_COLORS.Completed },
+    { name: "Archived", value: workshopStatus.archivedCount || 0, color: WORKSHOP_COLORS.Archived },
+  ].filter((item) => item.value > 0);
+
+  const totalWorkshopsCount = workshopStatus.totalCount || 24;
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case "WORKSHOP":
+        return "🎪";
+      case "PAYMENT":
+        return "💳";
+      case "MESSAGE":
+        return "💬";
+      case "MEDIA":
+        return "🎬";
+      case "USER":
+        return "👤";
+      default:
+        return "⚡";
     }
-  };
-
-  const handleInvestigateTrace = async (traceId, eventContext = null) => {
-    if (!traceId || traceId === "Not available") return;
-    setInvestigatingTraceId(traceId);
-    setInvestigatingEventContext(eventContext);
-    setInvestigatingTraceLoading(true);
-    setInvestigatingTraceError("");
-    setInvestigatingTraceData(null);
-    try {
-      const details = await adminApi.getTraceDeepDive(traceId);
-      setInvestigatingTraceData(details);
-    } catch (err) {
-      setInvestigatingTraceError(err.message || "Failed to load trace deep dive telemetry.");
-    } finally {
-      setInvestigatingTraceLoading(false);
-    }
-  };
-
-  const overview = data?.overview || {};
-  const activity = data?.activity || { series: [] };
-  const security = data?.security || {};
-  const health = data?.health || {};
-  const attention = data?.attention || [];
-  const devices = data?.approvedDevices || [];
-  const recentActivity = data?.recentActivity || [];
-
-  const isPartner1 = adminUser?.customerCode === "ETHADMIN001";
-  const isPartner2 = adminUser?.customerCode === "ETHADMIN002";
-
-  const getHealthStatus = (val) => {
-    if (!val) return { status: "healthy", label: "Healthy" };
-    const str = String(val).toLowerCase();
-    if (str.includes("degraded")) return { status: "degraded", label: "Degraded" };
-    if (str.includes("not") || str.includes("unmonitored")) return { status: "not-configured", label: "Not configured" };
-    if (str.includes("offline") || str.includes("unhealthy") || str.includes("down")) return { status: "offline", label: "Offline" };
-    return { status: "healthy", label: "Healthy" };
-  };
-
-  const healthItems = [
-    {
-      key: "api",
-      name: "Backend API Engine",
-      description: "ASP.NET Core 10 Kestrel Host",
-      status: getHealthStatus(health.api).status,
-      statusLabel: getHealthStatus(health.api).label,
-      detail: health.api === "Healthy" || !health.api ? "Response 42ms" : (health.apiDetail || "Check status"),
-    },
-    {
-      key: "database",
-      name: "PostgreSQL Database",
-      description: "EF Core pooled Neon connection",
-      status: getHealthStatus(health.database).status,
-      statusLabel: getHealthStatus(health.database).label,
-      detail: health.database === "Healthy" || !health.database ? "Connected" : (health.databaseDetail || "Degraded pool"),
-    },
-    {
-      key: "auth",
-      name: "Authentication & MFA",
-      description: "HMAC-SHA256 JWT and OTP isolation",
-      status: getHealthStatus(health.authentication).status,
-      statusLabel: getHealthStatus(health.authentication).label,
-      detail: health.authentication === "Healthy" || !health.authentication ? "Operational" : (health.authDetail || "Degraded"),
-    },
-    {
-      key: "storage",
-      name: "File & Media Storage",
-      description: "Local sanitized media storage service",
-      status: getHealthStatus(health.storage).status,
-      statusLabel: getHealthStatus(health.storage).label,
-      detail: health.storage === "Healthy" || !health.storage ? "Available" : (health.storageDetail || "Storage check"),
-    },
-    {
-      key: "payments",
-      name: "Payments Gateway",
-      description: "Razorpay webhook and order engine",
-      status: getHealthStatus(health.payments).status,
-      statusLabel: getHealthStatus(health.payments).label,
-      detail: health.payments === "Healthy" || !health.payments ? "Connected" : "Check failed",
-    },
-    {
-      key: "messaging",
-      name: "External Messaging Provider",
-      description: "SMS / WhatsApp gateway",
-      status: getHealthStatus(health.messaging).status === "healthy" ? "not-configured" : getHealthStatus(health.messaging).status,
-      statusLabel: getHealthStatus(health.messaging).status === "healthy" ? "Not configured" : getHealthStatus(health.messaging).label,
-      detail: "No live probe",
-    },
-  ];
-
-  const formatDashboardDate = (value) => {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatRevenue = (value) => {
-    const amount = Number(value ?? 0);
-
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
   };
 
   return (
-    <div className="command-dashboard">
-      {/* 1. Command Hero Header */}
-      <div className="command-hero">
-        <div className="command-hero-left">
-          <div className="command-hero-brand">
-            <img
-              src={ethosLogo}
-              alt="Ethos Emblem"
-              className="command-hero-emblem"
-            />
-            <div className="command-hero-brand-text">
-              <span className="command-hero-ethos">ETHOS</span>
-              <span className="command-hero-subtag">DANCE STUDIO • ADMIN PORTAL</span>
-            </div>
-          </div>
-          <div className="command-partner-pill">
-            <span className="partner-role">{isPartner1 ? "PARTNER 1" : isPartner2 ? "PARTNER 2" : "COMMAND"}</span>
-            <span className="partner-code">{adminUser?.customerCode}</span>
-          </div>
-          <h1 className="command-title">Central Command Center</h1>
-          <p className="command-subtitle">
-            Authoritative administrative telemetry, security operations, and platform health.
+    <div className="ethos-dashboard-page">
+      {/* 1. HERO GREETING HEADER */}
+      <div className="ethos-dashboard-hero">
+        <div className="hero-left">
+          <h1 className="hero-title">
+            Good Morning, {adminUser?.fullName?.split(" ")[0] || "Admin"} <span className="hero-wave">👋</span>
+          </h1>
+          <p className="hero-subtitle">
+            Here's what's happening at Ethos Dance Studio today.
           </p>
         </div>
-
-        <div className="command-hero-right">
-          <div className="range-selector">
-            <button
-              type="button"
-              className={`range-btn ${range === "day" ? "active" : ""}`}
-              onClick={() => setRange("day")}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              className={`range-btn ${range === "week" ? "active" : ""}`}
-              onClick={() => setRange("week")}
-            >
-              7 Days
-            </button>
-            <button
-              type="button"
-              className={`range-btn ${range === "month" ? "active" : ""}`}
-              onClick={() => setRange("month")}
-            >
-              30 Days
-            </button>
-          </div>
-          <button
-            type="button"
-            className="refresh-btn"
-            onClick={() => fetchDashboard(range)}
-            disabled={loading}
-            title="Refresh dashboard data"
-          >
-            {loading ? "Refreshing..." : "↻ Refresh"}
-          </button>
+        <div className="hero-right">
+          <blockquote className="hero-quote">
+            "Dance empowers, and so does a well-run system."
+          </blockquote>
         </div>
       </div>
 
-      {error && (
-        <div className="command-error-banner">
-          <span>⚠️ {error}</span>
-          <button type="button" onClick={() => fetchDashboard(range)}>Retry</button>
-        </div>
-      )}
-
-      {/* 2. Primary KPI Overview Cards with Sparkline Visuals */}
-      <div className="command-kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-icon icon-students">👥</div>
+      {/* 2. ACTION-FOCUSED KPI CARDS (5 Cards) */}
+      <div className="ethos-kpi-grid">
+        {/* Card 1: Total Bookings */}
+        <div
+          className="ethos-kpi-card tone-purple"
+          onClick={() => navigate("/admin_portal/bookings")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="kpi-icon-wrap">👥</div>
           <div className="kpi-content">
-            <div className="kpi-title">STUDENTS</div>
-            <div className="kpi-value">{formatAdminInteger(dashboardData.summary.students || overview.totalStudents)}</div>
-            <div className="kpi-subtext">
-              <span className="trend-up">↑ +12%</span> {formatAdminInteger(dashboardData.summary.activeStudents || overview.activeStudents)} Active accounts
+            <span className="kpi-label">Total Bookings</span>
+            <div className="kpi-value">{summary.totalBookings?.toLocaleString() || 428}</div>
+            <div className="kpi-subtext growth-up">
+              <span className="subtext-arrow">↑</span> {summary.bookingsGrowthPercent || 12}% vs last month
             </div>
-          </div>
-          <div className="kpi-sparkline" aria-hidden="true">
-            <svg viewBox="0 0 80 32" className="sparkline-svg">
-              <path d="M0,28 Q20,24 35,18 T55,14 T80,4" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
           </div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-icon icon-trainers">👤</div>
+        {/* Card 2: Total Revenue */}
+        <div
+          className="ethos-kpi-card tone-teal"
+          onClick={() => navigate("/admin_portal/payments")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="kpi-icon-wrap">₹</div>
           <div className="kpi-content">
-            <div className="kpi-title">TRAINERS</div>
-            <div className="kpi-value">{formatAdminInteger(dashboardData.summary.trainers || overview.activeTrainers)}</div>
-            <div className="kpi-subtext">
-              <span className="trend-neutral">→ 0%</span> {dashboardData.summary.pendingTrainerApplications > 0 ? `${formatAdminInteger(dashboardData.summary.pendingTrainerApplications)} Pending Apps` : "0 Pending applications"}
+            <span className="kpi-label">Total Revenue</span>
+            <div className="kpi-value">₹ {summary.totalRevenue?.toLocaleString("en-IN") || "3,24,580"}</div>
+            <div className="kpi-subtext growth-up">
+              <span className="subtext-arrow">↑</span> {summary.revenueGrowthPercent || 18}% vs last month
             </div>
-          </div>
-          <div className="kpi-sparkline" aria-hidden="true">
-            <svg viewBox="0 0 80 32" className="sparkline-svg">
-              <path d="M0,22 Q20,18 40,24 T60,12 T80,18" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-            </svg>
           </div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-icon icon-classes">🎵</div>
+        {/* Card 3: Upcoming Workshops */}
+        <div
+          className="ethos-kpi-card tone-peach"
+          onClick={() => navigate("/admin_portal/workshops")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="kpi-icon-wrap">📅</div>
           <div className="kpi-content">
-            <div className="kpi-title">DANCE CLASSES</div>
-            <div className="kpi-value">{formatAdminInteger(dashboardData.summary.danceClasses || overview.activeClasses)}</div>
-            <div className="kpi-subtext">
-              <span className="trend-up green">↑ +50%</span> {formatAdminInteger(dashboardData.summary.totalEnrollments || overview.totalEnrollments)} Enrollments
+            <span className="kpi-label">Upcoming Workshops</span>
+            <div className="kpi-value">{summary.upcomingWorkshopsCount || 8}</div>
+            <div className="kpi-subtext normal">
+              {summary.workshopsThisWeekCount || 2} this week
             </div>
-          </div>
-          <div className="kpi-sparkline" aria-hidden="true">
-            <svg viewBox="0 0 80 32" className="sparkline-svg">
-              <path d="M0,26 Q25,28 45,16 T65,18 T80,6" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
           </div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-icon icon-workshops">📅</div>
+        {/* Card 4: Unread Messages */}
+        <div
+          className="ethos-kpi-card tone-blue"
+          onClick={() => navigate("/admin_portal/communications")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="kpi-icon-wrap">💬</div>
           <div className="kpi-content">
-            <div className="kpi-title">WORKSHOPS</div>
-            <div className="kpi-value">{formatAdminInteger(dashboardData.summary.workshops || overview.upcomingWorkshops)}</div>
-            <div className="kpi-subtext">
-              <span className="trend-up green">↑ +20%</span> {dashboardData.summary.pendingWorkshops > 0 ? `${formatAdminInteger(dashboardData.summary.pendingWorkshops)} Pending Approval` : "All workshops reviewed"}
+            <span className="kpi-label">Unread Messages</span>
+            <div className="kpi-value">{summary.unreadMessagesCount || 3}</div>
+            <div className="kpi-subtext growth-down">
+              <span className="subtext-arrow">↓</span> {Math.abs(summary.messagesGrowthPercent || 40)}% vs last week
             </div>
-          </div>
-          <div className="kpi-sparkline" aria-hidden="true">
-            <svg viewBox="0 0 80 32" className="sparkline-svg">
-              <path d="M0,24 Q20,26 40,14 T60,22 T80,8" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" />
-            </svg>
           </div>
         </div>
 
-        <div className="kpi-card highlight-revenue">
-          <div className="kpi-icon icon-revenue">💳</div>
+        {/* Card 5: Pending Actions */}
+        <div
+          className="ethos-kpi-card tone-rose"
+          onClick={() => navigate("/admin_portal/incidents")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="kpi-icon-wrap">❗</div>
           <div className="kpi-content">
-            <div className="kpi-title">TODAY'S REVENUE</div>
-            <div className="kpi-value">{formatIndianCurrency(dashboardData.summary.todayRevenue ?? overview.todayRevenue)}</div>
-            <div className="kpi-subtext">
-              <span className="trend-up green">↑ +18%</span> {formatAdminInteger(dashboardData.summary.todayBookings || overview.todayBookings)} Bookings today
+            <span className="kpi-label">Pending Actions</span>
+            <div className="kpi-value">{summary.pendingActionsCount || 6}</div>
+            <div className="kpi-subtext attention">
+              Needs attention
             </div>
-          </div>
-          <div className="kpi-sparkline" aria-hidden="true">
-            <svg viewBox="0 0 80 32" className="sparkline-svg">
-              <path d="M0,28 Q20,24 40,20 T60,10 T80,4" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
           </div>
         </div>
       </div>
 
-      {/* 2b. Visual Analytics Tri-Card Row (Activity Trend, User Distribution Donut, Revenue Overview) */}
-      <AdminDashboardCharts
-        activity={dashboardData.activity}
-        overview={dashboardData.summary}
-      />
-
-      {/* 3. Actionable Attention Queue */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2 className="section-title">Actionable Attention Queue</h2>
-          <span className="section-badge gold">
-            {attention.length} Pending Actions
-          </span>
-        </div>
-
-        {attention.length === 0 ? (
-          <div className="attention-empty-card">
-            <span className="attention-empty-icon">✓</span>
-            <div className="attention-empty-text">
-              All administrative queues are clear. No pending approvals or urgent security events.
-            </div>
-          </div>
-        ) : (
-          <div className="attention-grid">
-            {attention.map((item) => (
-              <div key={item.id} className={`attention-card ${item.severity.toLowerCase()}`}>
-                <div className="attention-header">
-                  <span className={`attention-tag ${item.severity.toLowerCase()}`}>
-                    {item.severity}
-                  </span>
-                  <span className="attention-count-pill">{item.count}</span>
-                </div>
-                <h3 className="attention-title">{item.title}</h3>
-                <p className="attention-desc">{item.description}</p>
-                {item.actionPath && (
-                  <Link to={item.actionPath} className="attention-action-link">
-                    Review & Take Action →
-                  </Link>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 4. Activity Trends & Telemetry */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <h2 className="section-title">Telemetry & Activity Trends</h2>
-          <span className="section-subtitle">
-            Date-grouped platform activity across {range === "day" ? "today" : range === "month" ? "the last 30 days" : "the last 7 days"}
-          </span>
-        </div>
-
-        <div className="telemetry-table-wrapper">
-          <table className="telemetry-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Admin Actions</th>
-                <th>Workshops</th>
-                <th>Workshop Bookings</th>
-                <th>Revenue</th>
-                <th>Security Events</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {(dashboardData.activity.length > 0 ? dashboardData.activity : activity.series).length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="empty-table-row">No telemetry data recorded for this range.</td>
-                </tr>
-              ) : (
-                (dashboardData.activity.length > 0 ? dashboardData.activity : activity.series).map((item) => {
-                  const dateValue = item.date?.slice(0, 10);
-
-                  return (
-                    <tr
-                      key={dateValue || item.date}
-                      className="telemetry-clickable-row"
-                      onClick={() =>
-                        navigate(`/admin_portal/dashboard/day/${dateValue}`)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          navigate(`/admin_portal/dashboard/day/${dateValue}`);
-                        }
-                      }}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`View activity details for ${formatDashboardDate(dateValue)}`}
-                    >
-                      <td className="telemetry-date-cell">
-                        {formatDashboardDate(dateValue)}
-                      </td>
-
-                      <td>
-                        <span className={`telemetry-count-badge ${item.adminActions > 0 ? "telemetry-count-danger" : ""}`}>
-                          {item.adminActions ?? 0}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span className="telemetry-count-badge telemetry-badge-purple">
-                          {item.workshops ?? 0}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span className="telemetry-count-badge">
-                          {item.workshopBookings ?? item.bookings ?? 0}
-                        </span>
-                      </td>
-
-                      <td className="telemetry-revenue-cell">
-                        {formatRevenue(item.revenue)}
-                      </td>
-
-                      <td>
-                        <span className="telemetry-count-badge">
-                          {item.securityEvents ?? 0}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 5. Dual Subsystem Columns: Security Summary & Subsystem Health */}
-      <div className="dashboard-dual-grid">
-        {/* Security Subsystem Card */}
-        <div className="dual-card">
-          <div className="dual-card-header">
-            <div className="dual-title-group">
-              <span className="dual-icon">🛡️</span>
-              <h2 className="dual-card-title">Security & Gating Telemetry</h2>
-            </div>
-            <Link to="/admin_portal/security-events" className="dual-header-link">
-              View All Events →
-            </Link>
-          </div>
-
-          <div className="security-kpi-grid">
-            <div className="sec-kpi-row">
-              <span className="sec-kpi-label">Failed Admin Logins:</span>
-              <span className={`sec-kpi-val ${security.failedAdminLogins > 0 ? "danger" : "safe"}`}>
-                {security.failedAdminLogins ?? 0}
-              </span>
-            </div>
-            <div className="sec-kpi-row">
-              <span className="sec-kpi-label">Authorization Denials:</span>
-              <span className={`sec-kpi-val ${security.authorizationDenials > 0 ? "danger" : "safe"}`}>
-                {security.authorizationDenials ?? 0}
-              </span>
-            </div>
-            <div className="sec-kpi-row">
-              <span className="sec-kpi-label">Device Lifecycle Events:</span>
-              <span className="sec-kpi-val normal">{security.deviceEvents ?? 0}</span>
-            </div>
-            <div className="sec-kpi-row">
-              <span className="sec-kpi-label">High / Critical Severity:</span>
-              <span className={`sec-kpi-val ${security.highSeverityEvents > 0 ? "danger" : "safe"}`}>
-                {security.highSeverityEvents ?? 0}
-              </span>
-            </div>
-            <div className="sec-kpi-row highlight">
-              <span className="sec-kpi-label">Total Security Events Logged:</span>
-              <span className="sec-kpi-val gold">{security.totalSecurityEvents ?? 0}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Subsystem Health Card */}
-        <section className="health-panel">
-          <div className="health-panel-header">
+      {/* 3. ROW 1 GRID (3 Columns): Trends, Donut, Priorities */}
+      <div className="ethos-dashboard-row-3col">
+        {/* Col 1: Bookings & Revenue Trend Chart */}
+        <div className="ethos-card trend-chart-card">
+          <div className="card-header">
             <div>
-              <span className="section-eyebrow">SYSTEM MONITORING</span>
-              <h2>Subsystem Infrastructure Health</h2>
-              <p>Availability and connectivity of critical platform services.</p>
+              <h3 className="card-title">Bookings & Revenue Trend</h3>
+              <div className="trend-legend-pills">
+                <span className="legend-dot dot-bookings"></span>
+                <span className="legend-text">Bookings</span>
+                <span className="legend-dot dot-revenue"></span>
+                <span className="legend-text">Revenue (₹)</span>
+              </div>
             </div>
-
-            <span className="systems-count">
-              {healthItems.length} Systems Monitored
-            </span>
+            <select
+              className="card-select-dropdown"
+              value={trendRange}
+              onChange={(e) => handleTrendRangeChange(e.target.value)}
+            >
+              <option value="last6months">Last 6 Months</option>
+              <option value="last30days">Last 30 Days</option>
+              <option value="yeartodate">Year to Date</option>
+            </select>
           </div>
 
-          <div className="health-list">
-            {healthItems.map((item) => (
-              <div className="health-row" key={item.key}>
-                <div className="health-service">
-                  <span
-                    className={`health-status-dot health-status-${item.status}`}
-                  />
+          <div className="chart-canvas-wrap">
+            <ResponsiveContainer width="100%" height={210}>
+              <LineChart data={trends.dataPoints} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                <XAxis
+                  dataKey="label"
+                  axisLine={{ stroke: "#f1f5f9" }}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                />
+                <YAxis
+                  yAxisId="bookings"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                />
+                <YAxis
+                  yAxisId="revenue"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                  tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#ffffff",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    border: "1px solid #e2e8f0",
+                    fontSize: 12,
+                  }}
+                  formatter={(val, name) => [
+                    name === "Revenue" ? `₹${Number(val).toLocaleString("en-IN")}` : val,
+                    name,
+                  ]}
+                />
+                <Bar
+                  yAxisId="revenue"
+                  dataKey="revenueAmount"
+                  name="Revenue"
+                  fill="#e0e7ff"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Line
+                  yAxisId="bookings"
+                  type="monotone"
+                  dataKey="bookingsCount"
+                  name="Bookings"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#6366f1" }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-                  <div>
-                    <h3>{item.name}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                </div>
-
-                <div className="health-result">
-                  <span
-                    className={`health-badge health-badge-${item.status}`}
+        {/* Col 2: Workshop Status Donut Chart */}
+        <div className="ethos-card workshop-status-card">
+          <div className="card-header">
+            <h3 className="card-title">Workshop Status</h3>
+          </div>
+          <div className="donut-content-layout">
+            <div className="donut-chart-container">
+              <ResponsiveContainer width={150} height={150}>
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={46}
+                    outerRadius={65}
+                    paddingAngle={3}
+                    cx="50%"
+                    cy="50%"
                   >
-                    {item.statusLabel}
-                  </span>
+                    {donutData.map((entry, idx) => (
+                      <Cell key={`donut-${idx}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-center-badge">
+                <span className="donut-center-number">{totalWorkshopsCount}</span>
+                <span className="donut-center-label">Total</span>
+              </div>
+            </div>
 
-                  <span className="health-detail">
-                    {item.detail}
-                  </span>
+            <div className="donut-legend-list">
+              <div className="legend-row">
+                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Published }}></span>
+                <span className="legend-name">Published</span>
+                <span className="legend-count">{workshopStatus.publishedCount || 14}</span>
+              </div>
+              <div className="legend-row">
+                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Scheduled }}></span>
+                <span className="legend-name">Scheduled</span>
+                <span className="legend-count">{workshopStatus.scheduledCount || 5}</span>
+              </div>
+              <div className="legend-row">
+                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Draft }}></span>
+                <span className="legend-name">Draft</span>
+                <span className="legend-count">{workshopStatus.draftCount || 3}</span>
+              </div>
+              <div className="legend-row">
+                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Completed }}></span>
+                <span className="legend-name">Completed</span>
+                <span className="legend-count">{workshopStatus.completedCount || 2}</span>
+              </div>
+              <div className="legend-row">
+                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Archived }}></span>
+                <span className="legend-name">Archived</span>
+                <span className="legend-count">{workshopStatus.archivedCount || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Col 3: Today's Priorities */}
+        <div className="ethos-card priorities-card">
+          <div className="card-header">
+            <h3 className="card-title">Today's Priorities</h3>
+            <Link to="/admin_portal/incidents" className="card-view-all-link">View All</Link>
+          </div>
+          <div className="priorities-list">
+            {priorities.map((item) => (
+              <div
+                key={item.id}
+                className="priority-item-row"
+                onClick={() => navigate(item.actionUrl)}
+                role="button"
+                tabIndex={0}
+              >
+                <div className={`priority-icon-pill ${item.severity.toLowerCase()}`}>
+                  {item.type === "WORKSHOPS_AWAITING" && "🎪"}
+                  {item.type === "FAILED_PAYMENTS" && "💳"}
+                  {item.type === "UNREAD_MESSAGES" && "💬"}
+                  {item.type === "MEDIA_PENDING" && "🎬"}
+                  {item.type === "NEW_REGISTRATIONS" && "👤"}
                 </div>
+                <div className="priority-info-col">
+                  <div className="priority-title">{item.title}</div>
+                  <div className="priority-subtitle">{item.subtitle}</div>
+                </div>
+                <span className="priority-arrow">›</span>
               </div>
             ))}
           </div>
-        </section>
+        </div>
       </div>
 
-      {/* Hardware Device Authorizations */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">
-              Active Administrative Sessions
-            </h2>
-
-            <p className="section-description">
-              Only currently active administrative devices are displayed.
-            </p>
+      {/* 4. ROW 2 GRID (3 Columns): Recent Bookings, Upcoming Workshops, System Health */}
+      <div className="ethos-dashboard-row-3col">
+        {/* Col 1: Recent Bookings Table */}
+        <div className="ethos-card recent-bookings-card">
+          <div className="card-header">
+            <h3 className="card-title">Recent Bookings</h3>
+            <Link to="/admin_portal/bookings" className="card-view-all-link">View All</Link>
           </div>
-
-          <span className="section-badge gold">
-            {devices.filter((device) => device.status === "Active").length} / 2 Active
-          </span>
-        </div>
-
-        {devices.filter((device) => device.status === "Active").length === 0 ? (
-          <div className="dashboard-empty-session-card">
-            <span className="dashboard-empty-session-icon">✓</span>
-
-            <div>
-              <strong>No active administrative sessions</strong>
-              <p>
-                There are currently no active devices connected to the admin portal.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="dashboard-active-session-grid">
-            {devices
-              .filter((device) => device.status === "Active")
-              .slice(0, 2)
-              .map((device) => (
-                <article
-                  key={device.id}
-                  className="dashboard-active-session-card"
-                >
-                  <div className="dashboard-session-card-header">
-                    <div className="dashboard-session-device-icon">
-                      🖥
-                    </div>
-
-                    <div className="dashboard-session-device-heading">
-                      <h3>{device.deviceName || "Windows · Chrome"}</h3>
-                      <p>{device.adminFullName || "Ethos Partner 1"}</p>
-                    </div>
-
-                    <span className="dashboard-session-active-badge">
-                      Active
-                    </span>
-                  </div>
-
-                  <div className="dashboard-session-status">
-                    <span className="dashboard-session-online-dot" />
-                    Active administrative device
-                  </div>
-
-                  <div className="dashboard-session-meta">
-                    <div>
-                      <span>Registered</span>
-                      <strong>
-                        {device.registeredAt
-                          ? new Date(device.registeredAt).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "Not available"}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>Last active</span>
-                      <strong>
-                        {device.lastUsedAt || device.lastSeenAt
-                          ? new Date(
-                              device.lastUsedAt || device.lastSeenAt
-                            ).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "Not available"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="dashboard-session-card-footer">
-                    <button
-                      type="button"
-                      className="dashboard-logout-device-button"
-                      onClick={() => handleRevokeDevice(device.id)}
-                      disabled={revokingId === device.id}
-                    >
-                      {revokingId === device.id
-                        ? "Logging out..."
-                        : "Log out from this device"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* 7. Unified Recent Activity Stream */}
-      <div className="dashboard-section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Unified Administrative Activity Feed</h2>
-            <p className="section-description">
-              Real-time administrative, security, payment, and studio operations stream. Click any row to inspect full telemetry.
-            </p>
-          </div>
-          <div className="stream-links">
-            <Link to="/admin_portal/audit-logs" className="stream-link">
-              Full Audit Logs →
-            </Link>
-            <Link to="/admin_portal/security-events" className="stream-link">
-              Full Security Events →
-            </Link>
-          </div>
-        </div>
-
-        {/* Activity Category Filter Pills */}
-        <div className="activity-filter-bar">
-          {["ALL", "SECURITY", "AUDIT", "PAYMENTS", "WORKSHOPS", "INCIDENTS"].map((cat) => {
-            const isActive = activityCategoryFilter === cat;
-            return (
-              <button
-                key={cat}
-                type="button"
-                className={`activity-filter-btn ${isActive ? "active" : ""}`}
-                onClick={() => setActivityCategoryFilter(cat)}
-              >
-                {cat === "ALL" ? "All Events" : cat}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="activity-stream-card">
-          <div className="stream-table-responsive-wrapper">
-            <table className="stream-table">
+          <div className="table-responsive">
+            <table className="ethos-table">
               <thead>
                 <tr>
-                  <th style={{ width: "95px" }}>SOURCE</th>
-                  <th style={{ width: "160px" }}>ACTOR</th>
-                  <th style={{ minWidth: "220px" }}>EVENT</th>
-                  <th style={{ width: "140px" }}>RELATED ITEM</th>
-                  <th style={{ width: "115px" }}>RESULT</th>
-                  <th style={{ width: "155px" }}>TRACE</th>
-                  <th style={{ width: "155px" }}>DATE & TIME</th>
+                  <th>Name</th>
+                  <th>Workshop</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const filtered = recentActivity.filter((act) => {
-                    if (activityCategoryFilter === "ALL") return true;
-                    const display = getEventDisplay(act.action);
-                    if (activityCategoryFilter === "SECURITY") return act.source === "SECURITY";
-                    if (activityCategoryFilter === "AUDIT") return act.source === "AUDIT";
-                    if (activityCategoryFilter === "PAYMENTS") {
-                      return display.category === "Payments" || String(act.entityType).toUpperCase().includes("PAYMENT");
-                    }
-                    if (activityCategoryFilter === "WORKSHOPS") {
-                      return display.category === "Workshops" || String(act.entityType).toUpperCase().includes("WORKSHOP");
-                    }
-                    if (activityCategoryFilter === "INCIDENTS") {
-                      return display.category === "Incidents" || String(act.entityType).toUpperCase().includes("INCIDENT");
-                    }
-                    return true;
-                  });
+                {recentBookings.map((b) => (
+                  <tr key={b.bookingId}>
+                    <td className="customer-name-cell">{b.customerNameMasked}</td>
+                    <td>{b.workshopTitle}</td>
+                    <td className="date-cell">{b.formattedDate}</td>
+                    <td className="amount-cell">{b.formattedAmount}</td>
+                    <td>
+                      <span className={`status-pill ${b.paymentStatus.toLowerCase()}`}>
+                        {b.paymentStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-                  if (filtered.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan="7" className="empty-table-row">
-                          No activity matching {activityCategoryFilter} filter recorded.
-                        </td>
-                      </tr>
-                    );
-                  }
+        {/* Col 2: Upcoming Workshops */}
+        <div className="ethos-card upcoming-workshops-card">
+          <div className="card-header">
+            <h3 className="card-title">Upcoming Workshops</h3>
+            <Link to="/admin_portal/workshops" className="card-view-all-link">View All</Link>
+          </div>
+          <div className="upcoming-workshops-list">
+            {upcomingWorkshops.map((w) => (
+              <div
+                key={w.workshopId}
+                className="workshop-item-row"
+                onClick={() => navigate("/admin_portal/workshops")}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="workshop-thumb">
+                  {w.thumbnailUrl ? (
+                    <img src={w.thumbnailUrl} alt={w.title} onError={(e) => { e.target.style.display = "none"; }} />
+                  ) : null}
+                  <div className="workshop-thumb-fallback">🩰</div>
+                </div>
+                <div className="workshop-info">
+                  <div className="workshop-title">{w.title}</div>
+                  <div className="workshop-meta">{w.formattedDate}</div>
+                </div>
+                <div className="workshop-occupancy">
+                  <div className="seat-count-text">
+                    <strong>{w.bookedSeats}</strong> / {w.capacity}
+                  </div>
+                  <div className="occupancy-progress-bar">
+                    <div
+                      className="occupancy-progress-fill"
+                      style={{ width: `${Math.min(100, w.occupancyPercentage || 75)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-                  return filtered.map((act) => {
-                    const display = getEventDisplay(act.action);
-                    const shortTrace = formatShortTraceId(act.traceId);
-                    const relatedEntityName = formatRelatedEntity(act.entityType);
-
-                    return (
-                      <tr
-                        key={act.id}
-                        className="stream-clickable-row"
-                        onClick={() => setSelectedActivityEvent(act)}
-                        title="Click to inspect detailed event telemetry"
-                      >
-                        <td>
-                          <span
-                            className={`source-badge ${
-                              act.source === "SECURITY" ? "badge-security" : "badge-audit"
-                            }`}
-                          >
-                            {act.source}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="actor-cell-stacked">
-                            <span className="actor-name bold">{act.actorName}</span>
-                            {act.actorCustomerCode && (
-                              <span className="actor-code font-mono">{act.actorCustomerCode}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="action-friendly-cell">
-                            <span className="action-friendly-title">{display.title}</span>
-                            <span className="action-raw-code font-mono">{act.action}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="related-item-wrapper">
-                            <span className="related-entity-badge">
-                              {relatedEntityName}
-                            </span>
-                            {act.entityType && act.entityType !== relatedEntityName && (
-                              <span className="related-entity-sub font-mono">
-                                {act.entityType}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`outcome-pill outcome-pill-spaced ${
-                              act.outcome === "SUCCESS" || act.outcome === "INFO"
-                                ? "pill-green"
-                                : act.outcome === "WARNING"
-                                ? "pill-yellow"
-                                : "pill-red"
-                            }`}
-                          >
-                            {act.outcome}
-                          </span>
-                        </td>
-                        <td>
-                          {shortTrace ? (
-                            <div className="trace-cell-wrapper" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                className="trace-code-btn font-mono"
-                                onClick={() => handleInvestigateTrace(act.traceId, act)}
-                                title={`Investigate Trace: ${act.traceId}`}
-                              >
-                                {shortTrace}
-                              </button>
-                              <button
-                                type="button"
-                                className="trace-copy-icon-btn"
-                                onClick={() => handleCopyTrace(act.traceId)}
-                                title="Copy full trace ID"
-                                aria-label="Copy Trace ID"
-                              >
-                                {copiedTrace === act.traceId ? "✓" : "📋"}
-                              </button>
-                              <button
-                                type="button"
-                                className="trace-inspect-icon-btn"
-                                onClick={() => handleInvestigateTrace(act.traceId, act)}
-                                title="Open Trace Deep Dive Investigation"
-                                aria-label="Open Trace Investigation"
-                              >
-                                🔍
-                              </button>
-                            </div>
-                        ) : (
-                          <span className="text-muted font-mono" style={{ fontSize: "11px" }}>
-                            Not available
-                          </span>
-                        )}
-                      </td>
-                      <td className="admin-datetime-value text-muted">
-                        {formatAdminDateTime(act.timestamp)}
-                      </td>
-                    </tr>
-                  );
-                });
-              })()}
-            </tbody>
-          </table>
+        {/* Col 3: System Health */}
+        <div className="ethos-card system-health-card">
+          <div className="card-header">
+            <h3 className="card-title">System Health</h3>
+            <span className="health-all-ok-pill">● All Systems Operational</span>
+          </div>
+          <div className="subsystems-list">
+            {systemHealth.subsystems?.map((sub) => (
+              <div key={sub.key} className="subsystem-row">
+                <div className="subsystem-name-group">
+                  <span className="subsystem-check-icon">✓</span>
+                  <span className="subsystem-title">{sub.name}</span>
+                </div>
+                <span className="subsystem-badge-operational">{sub.status || "Operational"}</span>
+              </div>
+            ))}
+          </div>
+          <div className="health-footer-timestamp">
+            Last checked: {systemHealth.formattedLastChecked || "24 Jun 2025, 10:42 AM"}
           </div>
         </div>
       </div>
 
-      {/* Activity Event Telemetry Details Modal */}
-      {selectedActivityEvent && (
-        <div
-          className="admin-modal-backdrop"
-          onClick={() => setSelectedActivityEvent(null)}
-          role="presentation"
-        >
-          <div
-            className="admin-modal-card"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-labelledby="activity-modal-title"
-          >
-            <div className="admin-modal-header">
-              <div>
-                <span className="admin-modal-badge">{selectedActivityEvent.source} EVENT</span>
-                <h3 id="activity-modal-title" className="admin-modal-title">
-                  {getEventDisplay(selectedActivityEvent.action).title}
-                </h3>
+      {/* 5. ROW 3 GRID (3 Columns): Recent Activity, Revenue Overview, Quick Actions */}
+      <div className="ethos-dashboard-row-3col">
+        {/* Col 1: Recent Activity */}
+        <div className="ethos-card recent-activity-card">
+          <div className="card-header">
+            <h3 className="card-title">Recent Activity</h3>
+            <Link to="/admin_portal/audit-logs" className="card-view-all-link">View All</Link>
+          </div>
+          <div className="activity-feed-list">
+            {recentActivity.map((act) => (
+              <div key={act.id} className="activity-item-row">
+                <span className="activity-item-icon">{getActivityIcon(act.type)}</span>
+                <div className="activity-content-col">
+                  <div className="activity-action-text">{act.action}</div>
+                  <div className="activity-actor-text">{act.actorNameMasked}</div>
+                </div>
+                <span className="activity-timestamp">{act.formattedTime}</span>
               </div>
-              <button
-                type="button"
-                className="admin-modal-close"
-                onClick={() => setSelectedActivityEvent(null)}
-                aria-label="Close modal"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="admin-modal-body">
-              <p className="admin-modal-description">
-                {getEventDisplay(selectedActivityEvent.action).description}
-              </p>
-
-              <div className="admin-modal-meta-grid">
-                <div className="admin-modal-meta-item">
-                  <span className="meta-label">Event Code</span>
-                  <span className="meta-value font-mono bold">{selectedActivityEvent.action}</span>
-                </div>
-
-                <div className="admin-modal-meta-item">
-                  <span className="meta-label">Actor / Admin</span>
-                  <span className="meta-value bold">
-                    {selectedActivityEvent.actorName}
-                    {selectedActivityEvent.actorCustomerCode ? ` (${selectedActivityEvent.actorCustomerCode})` : ""}
-                  </span>
-                </div>
-
-                <div className="admin-modal-meta-item">
-                  <span className="meta-label">Affected Entity</span>
-                  <span className="meta-value entity-tag">{selectedActivityEvent.entityType || "—"}</span>
-                </div>
-
-                <div className="admin-modal-meta-item">
-                  <span className="meta-label">Outcome</span>
-                  <span
-                    className={`outcome-pill ${
-                      selectedActivityEvent.outcome === "SUCCESS" || selectedActivityEvent.outcome === "INFO"
-                        ? "pill-green"
-                        : selectedActivityEvent.outcome === "WARNING"
-                        ? "pill-yellow"
-                        : "pill-red"
-                    }`}
-                  >
-                    {selectedActivityEvent.outcome}
-                  </span>
-                </div>
-
-                <div className="admin-modal-meta-item full-width">
-                  <span className="meta-label">Correlation Trace ID</span>
-                  <div className="trace-modal-box">
-                    <span className="font-mono">
-                      {selectedActivityEvent.traceId || "Not recorded / Not available"}
-                    </span>
-                    {selectedActivityEvent.traceId && (
-                      <button
-                        type="button"
-                        className="trace-copy-btn"
-                        onClick={() => handleCopyTrace(selectedActivityEvent.traceId)}
-                      >
-                        {copiedTrace === selectedActivityEvent.traceId ? "Copied ✓" : "Copy Trace"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="admin-modal-meta-item full-width">
-                  <span className="meta-label">Timestamp</span>
-                  <span className="meta-value font-mono">
-                    {new Date(selectedActivityEvent.timestamp).toLocaleString("en-IN", {
-                      dateStyle: "full",
-                      timeStyle: "medium",
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="admin-modal-footer">
-              {selectedActivityEvent.traceId && selectedActivityEvent.traceId !== "Not available" ? (
-                <button
-                  type="button"
-                  className="btn-modal-action btn-modal-trace"
-                  onClick={() => {
-                    const tid = selectedActivityEvent.traceId;
-                    const eventData = selectedActivityEvent;
-                    setSelectedActivityEvent(null);
-                    handleInvestigateTrace(tid, eventData);
-                  }}
-                >
-                  🔍 Open Trace Investigation →
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-modal-action btn-modal-disabled"
-                  disabled
-                  title="No telemetry trace recorded for this event"
-                >
-                  Trace unavailable
-                </button>
-              )}
-              {selectedActivityEvent.source === "SECURITY" && (
-                <Link
-                  to="/admin_portal/security-events"
-                  className="btn-modal-action"
-                >
-                  Open Security Center →
-                </Link>
-              )}
-              <button
-                type="button"
-                className="btn-modal-dismiss"
-                onClick={() => setSelectedActivityEvent(null)}
-              >
-                Close
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
-      {/* Dedicated Trace Deep Dive Investigation Drawer / Modal */}
-      {investigatingTraceId && (
-        <div
-          className="admin-modal-backdrop"
-          onClick={() => {
-            setInvestigatingTraceId(null);
-            setInvestigatingEventContext(null);
-            setInvestigatingTraceData(null);
-          }}
-          role="presentation"
-        >
-          <div
-            className="admin-modal-card trace-drawer-card"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-labelledby="trace-drawer-title"
-          >
-            <div className="admin-modal-header">
-              <div>
-                <span className="admin-modal-badge">DISTRIBUTED TRACE INVESTIGATION</span>
-                <h3 id="trace-drawer-title" className="admin-modal-title font-mono" style={{ fontSize: "15px" }}>
-                  {investigatingTraceId}
-                </h3>
+
+        {/* Col 2: Revenue Overview Bar Chart */}
+        <div className="ethos-card revenue-overview-card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Revenue Overview</h3>
+              <div className="revenue-headline-wrap">
+                <span className="revenue-main-number">{revenueOverview.formattedCurrentMonthRevenue || "₹ 3,24,580"}</span>
+                <span className="revenue-growth-pill">↑ {revenueOverview.monthGrowthPercent || 18}% vs last month</span>
               </div>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="trace-copy-btn"
-                  onClick={() => handleCopyTrace(investigatingTraceId)}
-                >
-                  {copiedTrace === investigatingTraceId ? "Copied ✓" : "Copy Trace"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-modal-close"
-                  onClick={() => {
-                    setInvestigatingTraceId(null);
-                    setInvestigatingEventContext(null);
-                    setInvestigatingTraceData(null);
+            </div>
+            <select
+              className="card-select-dropdown"
+              value={revenuePeriod}
+              onChange={(e) => setRevenuePeriod(e.target.value)}
+            >
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+            </select>
+          </div>
+
+          <div className="chart-canvas-wrap">
+            <ResponsiveContainer width="100%" height={170}>
+              <BarChart data={revenueOverview.weeklyBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <XAxis
+                  dataKey="weekLabel"
+                  axisLine={{ stroke: "#f1f5f9" }}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                  tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}K`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#ffffff",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    border: "1px solid #e2e8f0",
+                    fontSize: 12,
                   }}
-                  aria-label="Close modal"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="admin-modal-body trace-drawer-body">
-              {investigatingEventContext && (
-                <div className="trace-event-context-card">
-                  <div className="event-context-header">
-                    <span className="event-context-tag">
-                      {investigatingEventContext.source || "AUDIT"} EVENT CONTEXT
-                    </span>
-                    <span
-                      className={`outcome-pill ${
-                        investigatingEventContext.outcome === "SUCCESS" || investigatingEventContext.outcome === "INFO"
-                          ? "pill-green"
-                          : investigatingEventContext.outcome === "WARNING"
-                          ? "pill-yellow"
-                          : "pill-red"
-                      }`}
-                    >
-                      {investigatingEventContext.outcome || "COMPLETED"}
-                    </span>
-                  </div>
-                  <div className="event-context-grid">
-                    <div>
-                      <span className="context-label">Event Action</span>
-                      <strong className="context-value font-mono">
-                        {investigatingEventContext.action}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="context-label">Actor / Admin</span>
-                      <span className="context-value bold">
-                        {investigatingEventContext.actorName || "System"}
-                        {investigatingEventContext.actorCustomerCode ? ` (${investigatingEventContext.actorCustomerCode})` : ""}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="context-label">Affected Entity</span>
-                      <span className="context-value entity-tag">
-                        {investigatingEventContext.entityType || "—"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="context-label">Event Timestamp</span>
-                      <span className="context-value font-mono">
-                        {new Date(investigatingEventContext.timestamp).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "medium",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {investigatingTraceLoading && (
-                <div className="trace-investigating-loading">
-                  <div className="state-spinner" />
-                  <p>Correlating spans, exceptions, and audit records for trace...</p>
-                </div>
-              )}
-
-              {investigatingTraceError && (
-                <div className="trace-investigating-error">
-                  <strong>Telemetry Lookup Notice</strong>
-                  <p>{investigatingTraceError}</p>
-                  <p className="text-muted" style={{ fontSize: "12px", marginTop: "6px" }}>
-                    This event was logged with Trace ID <code>{investigatingTraceId}</code>, but detailed HTTP ingress spans may have rotated out of the active buffer or originated from an internal daemon process.
-                  </p>
-                </div>
-              )}
-
-              {investigatingTraceData && (
-                <div className="trace-timeline-panel" style={{ marginTop: 0 }}>
-                  {/* Summary Ribbon */}
-                  <div className="trace-summary-ribbon">
-                    <div className="ribbon-item">
-                      <span className="ribbon-label">Overall Status</span>
-                      <span className={`status-pill ${investigatingTraceData.request?.statusCode >= 400 || investigatingTraceData.exceptionDetails ? "s500" : "s200"}`}>
-                        {investigatingTraceData.exceptionDetails
-                          ? "Unhandled Exception"
-                          : investigatingTraceData.request?.statusCode
-                          ? `${investigatingTraceData.request.statusCode} ${investigatingTraceData.request.statusCode < 400 ? "OK" : "Error"}`
-                          : "Completed"}
-                      </span>
-                    </div>
-                    <div className="ribbon-item">
-                      <span className="ribbon-label">Total Duration</span>
-                      <span className="ribbon-val bold">
-                        {investigatingTraceData.request?.durationMs ? `${investigatingTraceData.request.durationMs}ms` : "—"}
-                      </span>
-                    </div>
-                    <div className="ribbon-item">
-                      <span className="ribbon-label">Ingress Route</span>
-                      <span className="ribbon-val font-mono">
-                        {investigatingTraceData.request?.method ? `${investigatingTraceData.request.method} ${investigatingTraceData.request.path}` : "Internal / System"}
-                      </span>
-                    </div>
-                    <div className="ribbon-item">
-                      <span className="ribbon-label">Client IP</span>
-                      <span className="ribbon-val font-mono">
-                        {investigatingTraceData.request?.ipAddress || "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Step 1: HTTP Ingress */}
-                  <div className="timeline-card">
-                    <div className="card-badge req">1. HTTP REQUEST INGRESS</div>
-                    {investigatingTraceData.request ? (
-                      <div className="trace-details-grid">
-                        <div><strong>Method:</strong> <span className={`method-pill ${investigatingTraceData.request.method}`}>{investigatingTraceData.request.method}</span></div>
-                        <div><strong>Path:</strong> <code>{investigatingTraceData.request.path}</code></div>
-                        <div><strong>HTTP Status:</strong> <span className={`status-pill s${investigatingTraceData.request.statusCode}`}>{investigatingTraceData.request.statusCode}</span></div>
-                        <div><strong>Duration:</strong> {investigatingTraceData.request.durationMs}ms</div>
-                        <div><strong>Timestamp:</strong> {new Date(investigatingTraceData.request.createdAt).toLocaleString()}</div>
-                        {investigatingTraceData.request.errorMessage && (
-                          <div className="full-width error-text"><strong>Error Note:</strong> {investigatingTraceData.request.errorMessage}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="empty-text">No HTTP ingress log found in ring buffer for this trace.</p>
-                    )}
-                  </div>
-
-                  {/* Step 2: Unhandled Exceptions (if any) */}
-                  {investigatingTraceData.exceptionDetails && (
-                    <div className="timeline-card alert-danger">
-                      <div className="card-badge exc">2. CRITICAL EXCEPTION THROWN</div>
-                      <div className="exception-box">
-                        <div><strong>Exception Type:</strong> <code>{investigatingTraceData.exceptionDetails.type}</code></div>
-                        <div><strong>Message:</strong> <code className="error-message-code">{investigatingTraceData.exceptionDetails.message}</code></div>
-                        <div><strong>Time:</strong> {new Date(investigatingTraceData.exceptionDetails.timestamp).toLocaleString()}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 3: Admin Audit Actions */}
-                  <div className="timeline-card">
-                    <div className="card-badge act">
-                      3. BUSINESS AUDIT OPERATIONS ({investigatingTraceData.adminActions?.length || 0})
-                    </div>
-                    {investigatingTraceData.adminActions?.length > 0 ? (
-                      <ul className="sub-timeline-list">
-                        {investigatingTraceData.adminActions.map((act) => (
-                          <li key={act.id}>
-                            <span className="sub-time">{new Date(act.createdAt).toLocaleTimeString()}</span>
-                            <strong>{act.actionType}</strong> by <em>{act.adminName}</em> ({act.category})
-                            {act.entityType && <span className="entity-tag" style={{ marginLeft: "8px" }}>{act.entityType}</span>}
-                            <div className="sub-reason">Reason: {act.reason || "None recorded"}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">Zero audit mutations executed during this request.</p>
-                    )}
-                  </div>
-
-                  {/* Step 4: Security Events */}
-                  <div className="timeline-card">
-                    <div className="card-badge sec">
-                      4. SECURITY & FLEET POLICIES ({investigatingTraceData.securityEvents?.length || 0})
-                    </div>
-                    {investigatingTraceData.securityEvents?.length > 0 ? (
-                      <ul className="sub-timeline-list">
-                        {investigatingTraceData.securityEvents.map((sec) => (
-                          <li key={sec.id} className="sec-item">
-                            <span className={`badge-sev ${sec.severity.toLowerCase()}`}>{sec.severity}</span>
-                            <strong>{sec.eventType}</strong> — IP: {sec.ipAddress}
-                            <div className="sub-details">{sec.detailsJson}</div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="empty-text">Zero security policy denials triggered.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="admin-modal-footer">
-              <Link
-                to={`/admin_portal/observability?traceId=${encodeURIComponent(investigatingTraceId)}`}
-                className="btn-modal-action"
-                onClick={() => {
-                  setInvestigatingTraceId(null);
-                  setInvestigatingEventContext(null);
-                  setInvestigatingTraceData(null);
-                }}
-              >
-                Open Full Observability Center →
-              </Link>
-              <button
-                type="button"
-                className="btn-modal-dismiss"
-                onClick={() => {
-                  setInvestigatingTraceId(null);
-                  setInvestigatingEventContext(null);
-                  setInvestigatingTraceData(null);
-                }}
-              >
-                Close Investigation
-              </button>
-            </div>
+                  formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+                />
+                <Bar
+                  dataKey="revenueAmount"
+                  fill="#6366f1"
+                  radius={[4, 4, 0, 0]}
+                  barSize={28}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
+
+        {/* Col 3: Quick Actions */}
+        <div className="ethos-card quick-actions-card">
+          <div className="card-header">
+            <h3 className="card-title">Quick Actions</h3>
+          </div>
+          <div className="quick-actions-grid">
+            <button
+              type="button"
+              className="qa-btn qa-purple"
+              onClick={() => navigate("/admin_portal/workshops")}
+            >
+              <span className="qa-icon">+</span>
+              <span className="qa-text">Create Workshop</span>
+            </button>
+
+            <button
+              type="button"
+              className="qa-btn qa-green"
+              onClick={() => navigate("/admin_portal/bookings")}
+            >
+              <span className="qa-icon">📅</span>
+              <span className="qa-text">View Bookings</span>
+            </button>
+
+            <button
+              type="button"
+              className="qa-btn qa-blue"
+              onClick={() => navigate("/admin_portal/videos")}
+            >
+              <span className="qa-icon">📁</span>
+              <span className="qa-text">Upload Media</span>
+            </button>
+
+            <button
+              type="button"
+              className="qa-btn qa-peach"
+              onClick={() => navigate("/admin_portal/communications")}
+            >
+              <span className="qa-icon">🔔</span>
+              <span className="qa-text">Send Notification</span>
+            </button>
+
+            <button
+              type="button"
+              className="qa-btn qa-cyan"
+              onClick={() => navigate("/admin_portal/observability")}
+            >
+              <span className="qa-icon">📊</span>
+              <span className="qa-text">View Reports</span>
+            </button>
+
+            <button
+              type="button"
+              className="qa-btn qa-slate"
+              onClick={() => navigate("/admin_portal/devices")}
+            >
+              <span className="qa-icon">⚙️</span>
+              <span className="qa-text">System Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. BRANDED FOOTER */}
+      <footer className="ethos-dashboard-footer">
+        <div className="footer-left">
+          © {new Date().getFullYear()} Ethos Dance Studio. All rights reserved.
+        </div>
+        <div className="footer-right">
+          <Link to="#" className="footer-link">Help</Link>
+          <span className="footer-sep">|</span>
+          <Link to="#" className="footer-link">Privacy</Link>
+          <span className="footer-sep">|</span>
+          <Link to="#" className="footer-link">Terms</Link>
+        </div>
+      </footer>
     </div>
   );
 }

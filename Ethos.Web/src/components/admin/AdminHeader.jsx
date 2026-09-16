@@ -23,6 +23,25 @@ export default function AdminHeader({
   const [activePopover, setActivePopover] = useState(null); // 'devices' | 'health' | 'attention' | 'profile' | null
   const [showTechnicalHealth, setShowTechnicalHealth] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = currentDateTime.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const formattedTime = currentDateTime.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 
   const headerRef = useRef(null);
 
@@ -117,49 +136,49 @@ export default function AdminHeader({
       name: "API Service",
       key: "api",
       state: getSubsystemState(healthData?.api),
-      technical: "ASP.NET Core 10 Kestrel Host · Port 5000",
+      technical: "ASP.NET Core 10 Kestrel Host",
     },
     {
       name: "Database",
       key: "database",
       state: getSubsystemState(healthData?.database),
-      technical: "Neon Serverless PostgreSQL · AWS ap-southeast-1",
+      technical: "Configured PostgreSQL Database",
     },
     {
       name: "Authentication",
       key: "auth",
       state: getSubsystemState(healthData?.authentication),
-      technical: "HMAC-SHA256 JWT Token Authority & Admin MFA",
+      technical: "HMAC-SHA256 JWT Token Authority & MFA",
     },
     {
-      name: "Razorpay Integration",
+      name: "Payment Provider",
       key: "payments",
       state: getSubsystemState(healthData?.payments),
-      technical: "Razorpay Webhook & Standard Payment Gateway",
+      technical: "Payment Gateway & Webhook Rail",
     },
     {
-      name: "Transactional Email",
-      key: "email",
-      state: getSubsystemState(healthData?.email || healthData?.storage),
-      technical: "SMTP / Studio Notification Dispatcher",
+      name: "Storage",
+      key: "storage",
+      state: getSubsystemState(healthData?.storage),
+      technical: "Configured Media & Cloud Storage",
     },
     {
-      name: "WhatsApp Messaging",
+      name: "WhatsApp Provider",
       key: "messaging",
       state: getSubsystemState(healthData?.messaging, true),
-      technical: "Twilio / Meta WhatsApp Business Cloud API",
+      technical: "Configured WhatsApp Messaging Rail",
     },
     {
       name: "Background Jobs",
       key: "jobs",
       state: { status: "operational", label: "Operational", desc: "Running scheduled maintenance and notifications." },
-      technical: "Hosted In-Process Background HostedService Queue",
+      technical: "Hosted In-Process Background Queue",
     },
     {
       name: "Audit Logging",
       key: "audit",
       state: { status: "operational", label: "Operational", desc: "Immutable administrative ledger recording all events." },
-      technical: "Synchronous EF Core Audit Trail Interceptor",
+      technical: "Audit Trail Interceptor",
     },
   ];
 
@@ -212,51 +231,29 @@ export default function AdminHeader({
   );
 
   return (
-    <header className="admin-header-bar" ref={headerRef}>
-      {/* LEFT SECTION: BRAND & BREADCRUMBS */}
-      <div className="admin-header-brand-breadcrumbs">
-        <Link to="/admin_portal/dashboard" className="admin-header-brand-link">
-          <img src={ethosLogo} alt="Ethos Logo" className="admin-header-logo" />
-          <div className="admin-header-brand-text">
-            <span className="admin-header-brand-title">ETHOS</span>
-            <span className="admin-header-brand-subtitle">DANCE STUDIO</span>
-          </div>
-        </Link>
-
-        <span className="admin-header-badge">ADMIN PORTAL</span>
-
-        <nav className="admin-breadcrumbs" aria-label="Breadcrumb">
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={idx}>
-              {idx > 0 && <span className="breadcrumb-separator">/</span>}
-              <span
-                className={`breadcrumb-item ${
-                  idx === breadcrumbs.length - 1 ? "current" : ""
-                }`}
-              >
-                {crumb}
-              </span>
-            </React.Fragment>
-          ))}
-        </nav>
+    <header className="admin-header-bar ethos-visual-header" ref={headerRef}>
+      {/* LEFT: VISUAL SEARCH PILL INPUT */}
+      <div
+        className="ethos-header-search-wrap"
+        onClick={() => {
+          setActivePopover(null);
+          setPaletteOpen(true);
+        }}
+        title="Search workshops, bookings, payments, users... (Ctrl+K)"
+      >
+        <span className="ethos-header-search-icon">🔍</span>
+        <input
+          type="text"
+          readOnly
+          value=""
+          placeholder="Search workshops, bookings, payments, users..."
+          className="ethos-header-search-input"
+        />
+        <kbd className="ethos-search-kbd">Ctrl+K</kbd>
       </div>
 
-      {/* RIGHT SECTION: BUSINESS CONTROLS */}
+      {/* RIGHT SECTION: BUSINESS CONTROLS & LIVE DATE/TIME */}
       <div className="admin-header-controls">
-        {/* 1. SEARCH TRIGGER */}
-        <button
-          type="button"
-          className="admin-header-btn btn-search"
-          onClick={() => {
-            setActivePopover(null);
-            setPaletteOpen(true);
-          }}
-          title="Search students, trainers, workshops, bookings, or pages (Ctrl+K)"
-        >
-          <span className="btn-icon">🔍</span>
-          <span className="btn-label">Search</span>
-          <kbd className="btn-kbd">Ctrl + K</kbd>
-        </button>
 
         {/* 2. DEVICES POPOVER TRIGGER */}
         <div className="popover-anchor">
@@ -600,6 +597,12 @@ export default function AdminHeader({
               </div>
             </div>
           )}
+        </div>
+
+        {/* 6. LIVE DATE & TIME DISPLAY */}
+        <div className="ethos-header-datetime-block">
+          <span className="ethos-datetime-date">{formattedDate}</span>
+          <span className="ethos-datetime-time">{formattedTime}</span>
         </div>
 
         {/* Global Two-Level Command Palette */}

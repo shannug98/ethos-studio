@@ -519,6 +519,136 @@ public class AdminRecentActivityItem
     public DateTime Timestamp { get; set; }
 }
 
+// Visual Reference Dashboard Bounded DTOs
+public class AdminDashboardSummaryDto
+{
+    public int TotalBookings { get; set; }
+    public double BookingsGrowthPercent { get; set; } // vs last month e.g. +12%
+    public decimal TotalRevenue { get; set; }
+    public double RevenueGrowthPercent { get; set; } // vs last month e.g. +18%
+    public int UpcomingWorkshopsCount { get; set; }
+    public int WorkshopsThisWeekCount { get; set; } // e.g. "2 this week"
+    public int UnreadMessagesCount { get; set; }
+    public double MessagesGrowthPercent { get; set; } // vs last week e.g. -40%
+    public int PendingActionsCount { get; set; }
+    public int FailedPaymentsCount { get; set; }
+}
+
+public class AdminTrendDataPoint
+{
+    public string Label { get; set; } = null!; // e.g. "Jan", "24 Jun"
+    public int BookingsCount { get; set; }
+    public decimal RevenueAmount { get; set; }
+}
+
+public class AdminDashboardTrendsDto
+{
+    public string Range { get; set; } = "last6months"; // last30days, last6months, yeartodate
+    public List<AdminTrendDataPoint> DataPoints { get; set; } = new();
+    public int TotalBookings { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class AdminWorkshopStatusDonutDto
+{
+    public int PublishedCount { get; set; }
+    public int ScheduledCount { get; set; }
+    public int DraftCount { get; set; }
+    public int CompletedCount { get; set; }
+    public int ArchivedCount { get; set; }
+    public int CancelledCount { get; set; }
+    public int TotalCount { get; set; }
+}
+
+public class AdminPriorityItemDto
+{
+    public string Id { get; set; } = null!;
+    public string Type { get; set; } = null!; // WORKSHOPS_AWAITING, FAILED_PAYMENTS, UNREAD_MESSAGES, MEDIA_PENDING, NEW_REGISTRATIONS
+    public string Title { get; set; } = null!;
+    public string Subtitle { get; set; } = null!;
+    public int Count { get; set; }
+    public string ActionUrl { get; set; } = null!;
+    public string Severity { get; set; } = "INFO"; // INFO, WARNING, DANGER
+}
+
+public class AdminDashboardPrioritiesDto
+{
+    public List<AdminPriorityItemDto> Items { get; set; } = new();
+    public int TotalPendingCount { get; set; }
+}
+
+public class AdminRecentBookingDto
+{
+    public Guid BookingId { get; set; }
+    public string CustomerNameMasked { get; set; } = null!;
+    public string WorkshopTitle { get; set; } = null!;
+    public DateTime BookingDate { get; set; }
+    public string FormattedDate { get; set; } = null!;
+    public decimal Amount { get; set; }
+    public string FormattedAmount { get; set; } = null!;
+    public string PaymentStatus { get; set; } = "Paid"; // Paid, Pending, Failed
+    public string BookingStatus { get; set; } = "Confirmed";
+}
+
+public class AdminUpcomingWorkshopDto
+{
+    public Guid WorkshopId { get; set; }
+    public string Title { get; set; } = null!;
+    public string? ThumbnailUrl { get; set; }
+    public DateTime WorkshopDate { get; set; }
+    public string FormattedDate { get; set; } = null!; // e.g. "Sat, 28 Jun 2025 · 10:00 AM"
+    public string TrainerName { get; set; } = null!;
+    public int Capacity { get; set; }
+    public int BookedSeats { get; set; }
+    public double OccupancyPercentage { get; set; } // e.g. 80.0
+    public string Status { get; set; } = "Scheduled";
+}
+
+public class AdminSubsystemHealthItem
+{
+    public string Key { get; set; } = null!; // website_api, database, payment_provider, whatsapp_provider, storage, background_jobs
+    public string Name { get; set; } = null!; // Website & API, Database, Payment Provider, WhatsApp Provider, Storage, Background Jobs
+    public string Status { get; set; } = "Operational"; // Operational, Degraded, Unavailable, Not configured
+    public string? Description { get; set; }
+}
+
+public class AdminSystemHealthDto
+{
+    public string OverallStatus { get; set; } = "Operational"; // Operational, Degraded, Unavailable
+    public DateTime LastCheckedUtc { get; set; } = DateTime.UtcNow;
+    public string FormattedLastChecked { get; set; } = null!;
+    public List<AdminSubsystemHealthItem> Subsystems { get; set; } = new();
+}
+
+public class AdminAuditActivityDto
+{
+    public Guid Id { get; set; }
+    public Guid? ActorUserId { get; set; }
+    public string ActorNameMasked { get; set; } = null!;
+    public string Action { get; set; } = null!;
+    public string? EntityType { get; set; }
+    public Guid? EntityId { get; set; }
+    public string Result { get; set; } = "SUCCESS";
+    public string? TraceId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string FormattedTime { get; set; } = null!; // e.g. "10:15 AM" or "Today, 10:15 AM"
+}
+
+public class AdminWeeklyRevenueBucket
+{
+    public string WeekLabel { get; set; } = null!; // e.g. "Week 1", "Week 2", "Week 3", "Week 4"
+    public decimal RevenueAmount { get; set; }
+}
+
+public class AdminRevenueOverviewDto
+{
+    public decimal CurrentMonthRevenue { get; set; }
+    public double MonthGrowthPercent { get; set; }
+    public string FormattedCurrentMonthRevenue { get; set; } = null!;
+    public List<AdminWeeklyRevenueBucket> WeeklyBreakdown { get; set; } = new();
+}
+
+
 public class CreateDanceClassRequest
 {
     public string Name { get; set; } = null!;
