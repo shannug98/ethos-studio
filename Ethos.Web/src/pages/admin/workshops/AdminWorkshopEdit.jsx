@@ -48,6 +48,9 @@ export default function AdminWorkshopEdit() {
     }
   };
 
+  const phase = workshop.LifecyclePhase || workshop.lifecyclePhase;
+  const isLockedOut = phase === "Ongoing" || phase === "Completed";
+
   return (
     <div className="workshop-subpage-container">
       <div className="subpage-header">
@@ -55,7 +58,21 @@ export default function AdminWorkshopEdit() {
           <h1 className="subpage-title">Edit Workshop Details</h1>
           <p className="subpage-subtitle">Update workshop title, capacity, price, venue, and banner image.</p>
         </div>
+        <button
+          type="button"
+          className="admin-btn secondary"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+          onClick={() => navigate(`/admin_portal/workshops/${workshopId}/wizard`)}
+        >
+          <span>✨ Open in 5-Step Wizard</span>
+        </button>
       </div>
+
+      {isLockedOut && (
+        <div className="subpage-error-banner" style={{ background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+          ⚠️ This workshop is currently {phase}. Workshop editing and schedule mutations are locked.
+        </div>
+      )}
 
       {statusMsg && (
         <div className={`subpage-${statusMsg.type}-banner`}>{statusMsg.text}</div>

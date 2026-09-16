@@ -59,6 +59,53 @@ public class WorkshopConfiguration : IEntityTypeConfiguration<Workshop>
         builder.Property(x => x.ImageUrl)
             .HasMaxLength(500);
 
+        builder.Property(x => x.LandscapeImageUrl)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.City)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.Area)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.ShortDescription)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.ContactPerson)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.ContactNumber)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.PublicVisibility)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(x => x.RegistrationType)
+            .HasMaxLength(50)
+            .HasDefaultValue("Standard")
+            .IsRequired();
+
+        builder.Property(x => x.TermsAndCancellationPolicy)
+            .HasMaxLength(4000);
+
+        builder.Property(x => x.GooglePlaceId)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.VenueAddress)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.Timezone)
+            .HasMaxLength(100)
+            .HasDefaultValue("Asia/Kolkata")
+            .IsRequired();
+
+        builder.Property(x => x.StartUtc)
+            .HasColumnType("timestamptz");
+
+        builder.Property(x => x.EndUtc)
+            .HasColumnType("timestamptz");
+
         builder.Property(x => x.CreatedAt)
             .HasColumnType("timestamptz")
             .IsRequired();

@@ -35,17 +35,29 @@ public class AdminWorkshopsController : ControllerBase
     public async Task<ActionResult<PagedResult<TrainerWorkshopResponse>>> GetWorkshops(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? phase = null,
         [FromQuery] WorkshopStatus? status = null,
         [FromQuery] Guid? trainerId = null,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
         [FromQuery] string? search = null,
+        [FromQuery] string? city = null,
         CancellationToken cancellationToken = default)
     {
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", null, HttpContext, cancellationToken);
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
-        var result = await _workshopService.GetWorkshopsAsync(page, pageSize, status, trainerId, startDate, endDate, search, cancellationToken);
+        var result = await _workshopService.GetWorkshopsAsync(page, pageSize, phase, status, trainerId, startDate, endDate, search, city, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("workshops/counts")]
+    public async Task<ActionResult<AdminWorkshopCountsDto>> GetWorkshopCounts(CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.GetWorkshopCountsAsync(cancellationToken);
         return Ok(result);
     }
 
@@ -85,6 +97,10 @@ public class AdminWorkshopsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { code = "WORKSHOP_ALREADY_STARTED", message = ex.Message });
         }
     }
 

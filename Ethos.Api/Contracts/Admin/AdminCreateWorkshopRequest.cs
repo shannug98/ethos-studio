@@ -42,6 +42,23 @@ public class AdminCreateWorkshopRequest
     public Guid? TrainerProfileId { get; set; }
 
     public string? ImageUrl { get; set; }
+    public string? LandscapeImageUrl { get; set; }
+
+    public string? City { get; set; }
+    public string? Area { get; set; }
+    public string? ShortDescription { get; set; }
+    public string? ContactPerson { get; set; }
+    public string? ContactNumber { get; set; }
+    public bool? PublicVisibility { get; set; }
+    public string? RegistrationType { get; set; }
+    public string? TermsAndCancellationPolicy { get; set; }
+
+    public string? GooglePlaceId { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? VenueAddress { get; set; }
+
+    public string? Timezone { get; set; }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public WorkshopStatus? Status { get; set; }
@@ -91,6 +108,23 @@ public class AdminUpdateWorkshopRequest
     public Guid? TrainerProfileId { get; set; }
 
     public string? ImageUrl { get; set; }
+    public string? LandscapeImageUrl { get; set; }
+
+    public string? City { get; set; }
+    public string? Area { get; set; }
+    public string? ShortDescription { get; set; }
+    public string? ContactPerson { get; set; }
+    public string? ContactNumber { get; set; }
+    public bool? PublicVisibility { get; set; }
+    public string? RegistrationType { get; set; }
+    public string? TermsAndCancellationPolicy { get; set; }
+
+    public string? GooglePlaceId { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? VenueAddress { get; set; }
+
+    public string? Timezone { get; set; }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public WorkshopStatus? Status { get; set; }

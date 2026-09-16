@@ -36,11 +36,13 @@ public class AdminWorkshopService : IAdminWorkshopService
     public async Task<PagedResult<TrainerWorkshopResponse>> GetWorkshopsAsync(
         int page,
         int pageSize,
+        string? phase,
         WorkshopStatus? status,
         Guid? trainerId,
         DateTime? startDate,
         DateTime? endDate,
         string? search,
+        string? city,
         CancellationToken cancellationToken)
     {
         page = Math.Max(1, page);
@@ -51,6 +53,38 @@ public class AdminWorkshopService : IAdminWorkshopService
             .Include(w => w.TrainerProfile)
             .Include(w => w.Bookings)
             .AsQueryable();
+
+        var nowUtc = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(phase) && !string.Equals(phase, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            var p = phase.Trim().ToLowerInvariant();
+            if (p == "pendingreview" || p == "pending_review" || p == "pending")
+            {
+                query = query.Where(w => w.Status == WorkshopStatus.PendingApproval);
+            }
+            else if (p == "upcoming")
+            {
+                query = query.Where(w => (w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Published) && w.StartUtc > nowUtc);
+            }
+            else if (p == "ongoing")
+            {
+                query = query.Where(w => (w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Published) && w.StartUtc <= nowUtc && nowUtc < w.EndUtc);
+            }
+            else if (p == "completed")
+            {
+                query = query.Where(w => w.EndUtc <= nowUtc || w.Status == WorkshopStatus.Completed);
+            }
+            else if (p == "cancelled")
+            {
+                query = query.Where(w => w.Status == WorkshopStatus.Cancelled);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(city))
+        {
+            var c = city.Trim().ToLower();
+            query = query.Where(w => w.City != null && w.City.ToLower() == c);
+        }
 
         if (status.HasValue)
             query = query.Where(w => w.Status == status.Value);
@@ -90,6 +124,68 @@ public class AdminWorkshopService : IAdminWorkshopService
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount
+        };
+    }
+
+    
+    public async Task<AdminWorkshopCountsDto> GetWorkshopCountsAsync(CancellationToken cancellationToken)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var workshops = await _db.Workshops
+            .AsNoTracking()
+            .Where(w => w.Status != WorkshopStatus.Archived)
+            .Select(w => new
+            {
+                w.Status,
+                w.StartUtc,
+                w.EndUtc,
+                w.WorkshopDate,
+                w.StartTime,
+                w.EndTime,
+                w.Timezone
+            })
+            .ToListAsync(cancellationToken);
+
+        int pendingReview = 0;
+        int upcoming = 0;
+        int ongoing = 0;
+        int completed = 0;
+        int cancelled = 0;
+
+        foreach (var w in workshops)
+        {
+            if (w.Status == WorkshopStatus.Cancelled)
+            {
+                cancelled++;
+                continue;
+            }
+            if (w.Status == WorkshopStatus.PendingApproval)
+            {
+                pendingReview++;
+                continue;
+            }
+            if (w.Status == WorkshopStatus.Completed)
+            {
+                completed++;
+                continue;
+            }
+
+            var startUtc = w.StartUtc ?? (w.WorkshopDate.Date + w.StartTime);
+            var endUtc = w.EndUtc ?? (w.EndTime > w.StartTime ? w.WorkshopDate.Date + w.EndTime : w.WorkshopDate.Date.AddDays(1) + w.EndTime);
+
+            if (nowUtc < startUtc) upcoming++;
+            else if (nowUtc >= startUtc && nowUtc < endUtc) ongoing++;
+            else completed++;
+        }
+
+        return new AdminWorkshopCountsDto
+        {
+            PendingReview = pendingReview,
+            Upcoming = upcoming,
+            Ongoing = ongoing,
+            Completed = completed,
+            Cancelled = cancelled,
+            All = workshops.Count
         };
     }
 
@@ -143,6 +239,19 @@ public class AdminWorkshopService : IAdminWorkshopService
         var now = DateTime.UtcNow;
         var initialStatus = request.Status ?? WorkshopStatus.Approved;
 
+        var tzId = string.IsNullOrWhiteSpace(request.Timezone) ? "Asia/Kolkata" : request.Timezone.Trim();
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+
+        var startLocal = request.WorkshopDate.Date + request.StartTime;
+        var endLocal = request.EndTime > request.StartTime
+            ? request.WorkshopDate.Date + request.EndTime
+            : request.WorkshopDate.Date.AddDays(1) + request.EndTime;
+
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
+        var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
+
         var workshop = new Workshop
         {
             Id = Guid.NewGuid(),
@@ -162,6 +271,22 @@ public class AdminWorkshopService : IAdminWorkshopService
             Capacity = request.Capacity,
             Status = initialStatus,
             ImageUrl = request.ImageUrl?.Trim(),
+            LandscapeImageUrl = request.LandscapeImageUrl?.Trim(),
+            City = request.City?.Trim(),
+            Area = request.Area?.Trim(),
+            ShortDescription = request.ShortDescription?.Trim(),
+            ContactPerson = request.ContactPerson?.Trim(),
+            ContactNumber = request.ContactNumber?.Trim(),
+            PublicVisibility = request.PublicVisibility ?? true,
+            RegistrationType = string.IsNullOrWhiteSpace(request.RegistrationType) ? "Standard" : request.RegistrationType.Trim(),
+            TermsAndCancellationPolicy = request.TermsAndCancellationPolicy?.Trim(),
+            GooglePlaceId = request.GooglePlaceId?.Trim(),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            VenueAddress = request.VenueAddress?.Trim(),
+            Timezone = tzId,
+            StartUtc = startUtc,
+            EndUtc = endUtc,
             AllowReEntry = request.AllowReEntry,
             RequireReEntryVerification = request.RequireReEntryVerification,
             ReEntryCooldown = request.ReEntryCooldown,
@@ -204,6 +329,8 @@ public class AdminWorkshopService : IAdminWorkshopService
         if (workshop == null)
             throw new ArgumentException("Workshop not found.");
 
+        EnsureWorkshopEditable(workshop);
+
         if (string.IsNullOrWhiteSpace(request.Title))
             throw new ArgumentException("Workshop title is required.");
 
@@ -235,6 +362,16 @@ public class AdminWorkshopService : IAdminWorkshopService
 
         var now = DateTime.UtcNow;
 
+        var updateTzId = string.IsNullOrWhiteSpace(request.Timezone) ? (workshop.Timezone ?? "Asia/Kolkata") : request.Timezone.Trim();
+        TimeZoneInfo updateTz;
+        try { updateTz = TimeZoneInfo.FindSystemTimeZoneById(updateTzId); }
+        catch { updateTz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+
+        var upStartLocal = request.WorkshopDate.Date + request.StartTime;
+        var upEndLocal = request.EndTime > request.StartTime
+            ? request.WorkshopDate.Date + request.EndTime
+            : request.WorkshopDate.Date.AddDays(1) + request.EndTime;
+
         workshop.Title = request.Title.Trim();
         workshop.Description = request.Description?.Trim();
         workshop.DanceStyle = request.DanceStyle.Trim();
@@ -245,6 +382,22 @@ public class AdminWorkshopService : IAdminWorkshopService
         workshop.Venue = request.Venue.Trim();
         workshop.Capacity = request.Capacity;
         workshop.ImageUrl = request.ImageUrl?.Trim();
+        workshop.LandscapeImageUrl = request.LandscapeImageUrl?.Trim();
+        workshop.City = request.City?.Trim();
+        workshop.Area = request.Area?.Trim();
+        workshop.ShortDescription = request.ShortDescription?.Trim();
+        workshop.ContactPerson = request.ContactPerson?.Trim();
+        workshop.ContactNumber = request.ContactNumber?.Trim();
+        if (request.PublicVisibility.HasValue) workshop.PublicVisibility = request.PublicVisibility.Value;
+        if (!string.IsNullOrWhiteSpace(request.RegistrationType)) workshop.RegistrationType = request.RegistrationType.Trim();
+        workshop.TermsAndCancellationPolicy = request.TermsAndCancellationPolicy?.Trim();
+        workshop.GooglePlaceId = request.GooglePlaceId?.Trim();
+        workshop.Latitude = request.Latitude;
+        workshop.Longitude = request.Longitude;
+        workshop.VenueAddress = request.VenueAddress?.Trim();
+        workshop.Timezone = updateTzId;
+        workshop.StartUtc = TimeZoneInfo.ConvertTimeToUtc(upStartLocal, updateTz);
+        workshop.EndUtc = TimeZoneInfo.ConvertTimeToUtc(upEndLocal, updateTz);
         workshop.TrainerProfileId = request.TrainerProfileId == Guid.Empty ? null : request.TrainerProfileId;
         workshop.AllowReEntry = request.AllowReEntry;
         workshop.RequireReEntryVerification = request.RequireReEntryVerification;
@@ -647,9 +800,64 @@ public class AdminWorkshopService : IAdminWorkshopService
         };
     }
 
+    
+    public static string DeriveLifecyclePhase(Workshop w, DateTime nowUtc)
+    {
+        if (w.Status == WorkshopStatus.Cancelled) return "Cancelled";
+        if (w.Status == WorkshopStatus.PendingApproval) return "PendingReview";
+        if (w.Status == WorkshopStatus.Draft) return "Draft";
+
+        var startUtc = w.StartUtc ?? ComputeStartUtc(w);
+        var endUtc = w.EndUtc ?? ComputeEndUtc(w);
+
+        if (nowUtc < startUtc) return "Upcoming";
+        if (nowUtc >= startUtc && nowUtc < endUtc) return "Ongoing";
+        return "Completed";
+    }
+
+    public static DateTime ComputeStartUtc(Workshop w)
+    {
+        var tzId = string.IsNullOrWhiteSpace(w.Timezone) ? "Asia/Kolkata" : w.Timezone;
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+
+        var startLocal = w.WorkshopDate.Date + w.StartTime;
+        return TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
+    }
+
+    public static DateTime ComputeEndUtc(Workshop w)
+    {
+        var tzId = string.IsNullOrWhiteSpace(w.Timezone) ? "Asia/Kolkata" : w.Timezone;
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+
+        var endLocal = w.EndTime > w.StartTime
+            ? w.WorkshopDate.Date + w.EndTime
+            : w.WorkshopDate.Date.AddDays(1) + w.EndTime;
+
+        return TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
+    }
+
+    private static void EnsureWorkshopEditable(Workshop w)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var startUtc = w.StartUtc ?? ComputeStartUtc(w);
+        if (nowUtc >= startUtc)
+        {
+            throw new InvalidOperationException("WORKSHOP_ALREADY_STARTED: Workshop has already started or concluded. Modifications, unpublishing, and cancellation are permanently locked.");
+        }
+    }
+
     private static TrainerWorkshopResponse Map(Workshop w)
     {
         var effectivePrice = w.AdminApprovedPrice ?? w.TrainerProposedPrice ?? w.Price;
+        var nowUtc = DateTime.UtcNow;
+        var startUtc = w.StartUtc ?? ComputeStartUtc(w);
+        var endUtc = w.EndUtc ?? ComputeEndUtc(w);
+        var phase = DeriveLifecyclePhase(w, nowUtc);
+
         return new TrainerWorkshopResponse
         {
             Id = w.Id,
@@ -670,7 +878,25 @@ public class AdminWorkshopService : IAdminWorkshopService
             Capacity = w.Capacity,
             BookedCount = w.Bookings?.Count(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended) ?? 0,
             Status = w.Status.ToString(),
+            ApprovalStatus = w.Status.ToString(),
+            LifecyclePhase = phase,
             ImageUrl = w.ImageUrl,
+            LandscapeImageUrl = w.LandscapeImageUrl,
+            City = w.City,
+            Area = w.Area,
+            ShortDescription = w.ShortDescription,
+            ContactPerson = w.ContactPerson,
+            ContactNumber = w.ContactNumber,
+            PublicVisibility = w.PublicVisibility,
+            RegistrationType = w.RegistrationType ?? "Standard",
+            TermsAndCancellationPolicy = w.TermsAndCancellationPolicy,
+            GooglePlaceId = w.GooglePlaceId,
+            Latitude = w.Latitude,
+            Longitude = w.Longitude,
+            VenueAddress = w.VenueAddress,
+            Timezone = string.IsNullOrWhiteSpace(w.Timezone) ? "Asia/Kolkata" : w.Timezone,
+            StartUtc = startUtc,
+            EndUtc = endUtc,
             CreatedAt = w.CreatedAt
         };
     }
@@ -932,6 +1158,7 @@ public class AdminWorkshopService : IAdminWorkshopService
         if (workshop == null)
             throw new ArgumentException("Workshop not found.");
 
+        EnsureWorkshopEditable(workshop);
         workshop.Status = WorkshopStatus.Unpublished;
         workshop.UpdatedAt = DateTime.UtcNow;
 
@@ -1150,6 +1377,31 @@ public class AdminWorkshopService : IAdminWorkshopService
                 WorkshopId = workshopId,
                 TicketId = ticket.Id,
                 TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var startUtc = ticket.Workshop?.StartUtc ?? ComputeStartUtc(ticket.Workshop ?? new Workshop { WorkshopDate = DateTime.UtcNow });
+        var endUtc = ticket.Workshop?.EndUtc ?? ComputeEndUtc(ticket.Workshop ?? new Workshop { WorkshopDate = DateTime.UtcNow });
+        var checkInOpen = startUtc.AddMinutes(-30);
+
+        if (nowUtc < checkInOpen)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "CHECKIN_NOT_OPEN",
+                Message = $"Check-in opens 30 minutes before the workshop starts (at {checkInOpen:hh:mm tt} UTC)."
+            };
+        }
+
+        if (nowUtc > endUtc)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "WORKSHOP_ENDED",
+                Message = "This workshop has concluded. New check-ins are closed."
             };
         }
 

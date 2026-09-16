@@ -1,16 +1,61 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  RefreshCw,
+  Search,
+  LayoutGrid,
+  List,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  IndianRupee,
+  QrCode,
+  Edit,
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Lock,
+  ChevronRight,
+  Filter,
+} from "lucide-react";
 import { adminApi } from "../../services/adminApi";
 import AdminWorkshopFormModal from "../../components/admin/AdminWorkshopFormModal";
 import "./AdminWorkshops.css";
 
+const TABS = [
+  { key: "pending", label: "Pending Review", countKey: "pendingReview", phaseParam: "PendingReview" },
+  { key: "upcoming", label: "Upcoming", countKey: "upcoming", phaseParam: "Upcoming" },
+  { key: "ongoing", label: "Ongoing", countKey: "ongoing", phaseParam: "Ongoing" },
+  { key: "completed", label: "Completed", countKey: "completed", phaseParam: "Completed" },
+  { key: "cancelled", label: "Cancelled", countKey: "cancelled", phaseParam: "Cancelled" },
+  { key: "all", label: "All Workshops", countKey: "all", phaseParam: null },
+];
+
 export default function AdminWorkshops() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("pending");
+  const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState("cards"); // "cards" | "list"
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all"); // "all" | "today" | "week" | "month"
+
+  // Counts from backend
+  const [counts, setCounts] = useState({
+    pendingReview: 0,
+    upcoming: 0,
+    ongoing: 0,
+    completed: 0,
+    cancelled: 0,
+    all: 0,
+  });
 
   // Modals
   const [workshopFormModal, setWorkshopFormModal] = useState({ open: false, workshop: null });
@@ -21,11 +66,11 @@ export default function AdminWorkshops() {
     loading: false,
     saving: false,
     reason: "",
-    error: ""
+    error: "",
   });
   const [actionModal, setActionModal] = useState({
     open: false,
-    type: "", // "approve" | "reject" | "cancel" | "complete" | "details"
+    type: "", // "approve" | "reject" | "cancel" | "complete" | "publish" | "unpublish"
     workshop: null,
     price: "",
     reason: "",
@@ -37,7 +82,7 @@ export default function AdminWorkshops() {
     workshop: null,
     items: [],
     loading: false,
-    filter: "all", // "all" | "present" | "absent" | "not_marked" | "guests" | "students"
+    filter: "all",
     search: "",
     toastMessage: "",
   });
@@ -49,128 +94,154 @@ export default function AdminWorkshops() {
     if (!phone) return "—";
     const cleaned = String(phone).replace(/\s+/g, "");
     if (cleaned.length <= 4) return cleaned;
-    const start = cleaned.slice(0, 3);
-    const end = cleaned.slice(-3);
-    return `${start}••••${end}`;
+    return `${cleaned.slice(0, 3)}••••${cleaned.slice(-3)}`;
   };
 
   const toggleContactReveal = (bookingId) => {
     setRevealedContacts((prev) => ({ ...prev, [bookingId]: !prev[bookingId] }));
   };
 
-  const loadWorkshops = async () => {
+  // Fetch counts from backend
+  const loadCounts = useCallback(async () => {
+    try {
+      const res = await adminApi.getWorkshopCounts();
+      if (res) {
+        setCounts({
+          pendingReview: res.pendingReview ?? 0,
+          upcoming: res.upcoming ?? 0,
+          ongoing: res.ongoing ?? 0,
+          completed: res.completed ?? 0,
+          cancelled: res.cancelled ?? 0,
+          all: res.all ?? 0,
+        });
+      }
+    } catch (err) {
+      console.warn("Could not fetch workshop counts:", err);
+    }
+  }, []);
+
+  // Fetch workshops
+  const loadWorkshops = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      if (activeTab === "pending") {
-        const data = await adminApi.getPendingWorkshops();
-        setWorkshops(Array.isArray(data) ? data : data?.items || []);
-      } else {
-        const data = await adminApi.getWorkshops();
-        const allItems = data?.items || [];
-        if (activeTab === "approved") {
-          setWorkshops(allItems.filter((w) => w.status === "Approved"));
-        } else if (activeTab === "completed") {
-          setWorkshops(allItems.filter((w) => w.status === "Completed"));
-        } else {
-          setWorkshops(allItems);
-        }
+      const tabConfig = TABS.find((t) => t.key === activeTab);
+      const params = [];
+      if (tabConfig && tabConfig.phaseParam) {
+        params.push(`phase=${encodeURIComponent(tabConfig.phaseParam)}`);
       }
+      if (selectedCity && selectedCity !== "all") {
+        params.push(`city=${encodeURIComponent(selectedCity)}`);
+      }
+
+      const queryString = params.join("&");
+      let data;
+      if (activeTab === "pending" && !selectedCity) {
+        data = await adminApi.getPendingWorkshops();
+      } else {
+        data = await adminApi.getWorkshops(queryString);
+      }
+
+      const list = Array.isArray(data) ? data : data?.items || [];
+      setWorkshops(list);
     } catch (err) {
       setError(err.message || "Failed to load workshops.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, selectedCity]);
+
+  useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
 
   useEffect(() => {
     loadWorkshops();
-  }, [activeTab]);
+  }, [loadWorkshops]);
 
-  // Determine if workshop date & end time have already passed
-  const isWorkshopPassed = (ws) => {
-    if (!ws || !ws.workshopDate) return false;
-    try {
-      const datePart = ws.workshopDate.slice(0, 10);
-      const timePart = ws.endTime ? ws.endTime.slice(0, 8) : "23:59:59";
-      const workshopEnd = new Date(`${datePart}T${timePart}`);
-      return workshopEnd < new Date();
-    } catch {
-      return false;
+  // Distinct cities extracted from loaded workshops
+  const availableCities = useMemo(() => {
+    const set = new Set();
+    workshops.forEach((w) => {
+      if (w.city) set.add(w.city);
+    });
+    return Array.from(set);
+  }, [workshops]);
+
+  // Date filter logic
+  const isWithinDateFilter = (workshopDateStr) => {
+    if (dateFilter === "all" || !workshopDateStr) return true;
+    const wsDate = new Date(workshopDateStr);
+    const now = new Date();
+
+    if (dateFilter === "today") {
+      return (
+        wsDate.getFullYear() === now.getFullYear() &&
+        wsDate.getMonth() === now.getMonth() &&
+        wsDate.getDate() === now.getDate()
+      );
     }
+    if (dateFilter === "week") {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      return wsDate >= startOfWeek && wsDate <= endOfWeek;
+    }
+    if (dateFilter === "month") {
+      return (
+        wsDate.getFullYear() === now.getFullYear() &&
+        wsDate.getMonth() === now.getMonth()
+      );
+    }
+    return true;
   };
 
+  // Client filtered workshops
+  const filteredWorkshops = useMemo(() => {
+    let list = workshops;
+
+    if (dateFilter !== "all") {
+      list = list.filter((w) => isWithinDateFilter(w.workshopDate));
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (w) =>
+          (w.title && w.title.toLowerCase().includes(q)) ||
+          (w.danceStyle && w.danceStyle.toLowerCase().includes(q)) ||
+          (w.trainerName && w.trainerName.toLowerCase().includes(q)) ||
+          (w.workshopReference && w.workshopReference.toLowerCase().includes(q)) ||
+          (w.venue && w.venue.toLowerCase().includes(q)) ||
+          (w.city && w.city.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  }, [workshops, searchQuery, dateFilter]);
+
+  // Determine if workshop is locked out from modifications
+  const isWorkshopLocked = (ws) => {
+    const phase = ws.lifecyclePhase || ws.LifecyclePhase;
+    return phase === "Ongoing" || phase === "Completed";
+  };
+
+  // Open action modal
   const handleOpenAction = (type, ws) => {
-    const isPassed = isWorkshopPassed(ws);
+    if (isWorkshopLocked(ws) && (type === "cancel" || type === "unpublish")) {
+      alert(`This workshop is ${ws.lifecyclePhase}. It has already started and cannot be cancelled or unpublished.`);
+      return;
+    }
+
     setActionModal({
       open: true,
       type,
       workshop: ws,
       price: ws.trainerProposedPrice || ws.price || "",
       reason: "",
-      isEarlyCompletion: type === "complete" && !isPassed,
+      isEarlyCompletion: false,
     });
-  };
-
-  
-  const openPricingTierModal = async (ws) => {
-    setPricingTierModal({
-      open: true,
-      workshop: ws,
-      tiers: [],
-      loading: true,
-      saving: false,
-      reason: "",
-      error: ""
-    });
-
-    try {
-      const res = await adminApi.getWorkshopPricingTiers(ws.id);
-      setPricingTierModal((prev) => ({
-        ...prev,
-        tiers: res?.tiers || [],
-        loading: false
-      }));
-    } catch (err) {
-      console.error("Failed to load tiers:", err);
-      // Fallback default tiers
-      const base = ws.price || 299;
-      setPricingTierModal((prev) => ({
-        ...prev,
-        tiers: [
-          { tierNumber: 1, tierName: "Tier 1 (1–10)", minTickets: 1, maxTickets: 10, price: base },
-          { tierNumber: 2, tierName: "Tier 2 (11–20)", minTickets: 11, maxTickets: 20, price: base + 100 },
-          { tierNumber: 3, tierName: "Tier 3 (21–30)", minTickets: 21, maxTickets: 30, price: base + 200 },
-          { tierNumber: 4, tierName: "Tier 4 (31+)", minTickets: 31, maxTickets: null, price: base + 300 },
-        ],
-        loading: false
-      }));
-    }
-  };
-
-  const handleTierPriceChange = (tierNumber, newPrice) => {
-    setPricingTierModal((prev) => ({
-      ...prev,
-      tiers: prev.tiers.map((t) =>
-        t.tierNumber === tierNumber ? { ...t, price: parseFloat(newPrice) || 0 } : t
-      )
-    }));
-  };
-
-  const savePricingTiers = async () => {
-    const { workshop, tiers, reason } = pricingTierModal;
-    setPricingTierModal((prev) => ({ ...prev, saving: true, error: "" }));
-    try {
-      await adminApi.updateWorkshopPricingTiers(workshop.id, tiers, reason);
-      setPricingTierModal((prev) => ({ ...prev, open: false, saving: false }));
-      loadWorkshops();
-    } catch (err) {
-      setPricingTierModal((prev) => ({
-        ...prev,
-        saving: false,
-        error: err.message || "Failed to update pricing tiers."
-      }));
-    }
   };
 
   const confirmAction = async () => {
@@ -204,10 +275,70 @@ export default function AdminWorkshops() {
       } else if (type === "archive") {
         await adminApi.archiveWorkshop(workshop.id);
       }
+
       setActionModal({ open: false, type: "", workshop: null, price: "", reason: "", isEarlyCompletion: false });
       loadWorkshops();
+      loadCounts();
     } catch (err) {
       alert(err.message || "Action failed.");
+    }
+  };
+
+  const openPricingTierModal = async (ws) => {
+    setPricingTierModal({
+      open: true,
+      workshop: ws,
+      tiers: [],
+      loading: true,
+      saving: false,
+      reason: "",
+      error: "",
+    });
+
+    try {
+      const res = await adminApi.getWorkshopPricingTiers(ws.id);
+      setPricingTierModal((prev) => ({
+        ...prev,
+        tiers: res?.tiers || [],
+        loading: false,
+      }));
+    } catch (err) {
+      const base = ws.price || 500;
+      setPricingTierModal((prev) => ({
+        ...prev,
+        tiers: [
+          { tierNumber: 1, tierName: "Tier 1 (1–10)", minTickets: 1, maxTickets: 10, price: base },
+          { tierNumber: 2, tierName: "Tier 2 (11–20)", minTickets: 11, maxTickets: 20, price: base + 100 },
+          { tierNumber: 3, tierName: "Tier 3 (21–30)", minTickets: 21, maxTickets: 30, price: base + 200 },
+          { tierNumber: 4, tierName: "Tier 4 (31+)", minTickets: 31, maxTickets: null, price: base + 300 },
+        ],
+        loading: false,
+      }));
+    }
+  };
+
+  const handleTierPriceChange = (tierNumber, newPrice) => {
+    setPricingTierModal((prev) => ({
+      ...prev,
+      tiers: prev.tiers.map((t) =>
+        t.tierNumber === tierNumber ? { ...t, price: parseFloat(newPrice) || 0 } : t
+      ),
+    }));
+  };
+
+  const savePricingTiers = async () => {
+    const { workshop, tiers, reason } = pricingTierModal;
+    setPricingTierModal((prev) => ({ ...prev, saving: true, error: "" }));
+    try {
+      await adminApi.updateWorkshopPricingTiers(workshop.id, tiers, reason);
+      setPricingTierModal((prev) => ({ ...prev, open: false, saving: false }));
+      loadWorkshops();
+    } catch (err) {
+      setPricingTierModal((prev) => ({
+        ...prev,
+        saving: false,
+        error: err.message || "Failed to update pricing tiers.",
+      }));
     }
   };
 
@@ -221,6 +352,7 @@ export default function AdminWorkshops() {
       search: "",
       toastMessage: "",
     });
+
     try {
       const res = await adminApi.getWorkshopRegistrations(ws.id);
       setAttendeeModal((prev) => ({
@@ -229,92 +361,14 @@ export default function AdminWorkshops() {
         loading: false,
       }));
     } catch (err) {
-      alert(err.message || "Failed to load attendees.");
-      setAttendeeModal((prev) => ({ ...prev, loading: false }));
-    }
-  };
-
-  const handleExportCsv = async () => {
-    if (!attendeeModal.workshop) return;
-    try {
-      const res = await adminApi.exportWorkshopAttendance(attendeeModal.workshop.id);
-      const blob = new Blob([res], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `attendance_${attendeeModal.workshop.id}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.message || "Failed to export attendance CSV.");
-    }
-  };
-
-  const handleMarkAttendance = async (studentProfileId, targetStatus, bookingId = null) => {
-    if (!attendeeModal.workshop) return;
-    try {
-      await adminApi.markWorkshopAttendance(attendeeModal.workshop.id, studentProfileId, targetStatus, bookingId);
-      // Refresh attendees list
-      const res = await adminApi.getWorkshopRegistrations(attendeeModal.workshop.id);
       setAttendeeModal((prev) => ({
         ...prev,
-        items: res?.items || [],
-        toastMessage:
-          targetStatus === 4
-            ? "Marked as Present (Attended)"
-            : targetStatus === 2
-            ? "Reverted Check-In (Confirmed)"
-            : "Marked as Absent (No-Show)",
+        loading: false,
+        toastMessage: "Could not load attendees: " + (err.message || "Unknown error"),
       }));
-      setTimeout(() => {
-        setAttendeeModal((prev) => ({ ...prev, toastMessage: "" }));
-      }, 3000);
-      loadWorkshops();
-    } catch (err) {
-      alert(err.message || "Failed to update attendance.");
     }
   };
 
-  const handleCopyFeedbackLink = async (bookingId) => {
-    try {
-      const res = await adminApi.generateWorkshopFeedbackToken(bookingId);
-      if (res && res.feedbackUrl) {
-        const fullUrl = res.feedbackUrl.startsWith("http")
-          ? res.feedbackUrl
-          : `${window.location.origin}${res.feedbackUrl}`;
-        await navigator.clipboard.writeText(fullUrl);
-        setCopiedFeedbackLinks((prev) => ({ ...prev, [bookingId]: true }));
-        setAttendeeModal((prev) => ({
-          ...prev,
-          toastMessage: "Feedback link copied to clipboard!",
-        }));
-        setTimeout(() => {
-          setAttendeeModal((prev) => ({ ...prev, toastMessage: "" }));
-        }, 3000);
-      } else {
-        alert("Failed to generate feedback link.");
-      }
-    } catch (err) {
-      alert(err.message || "Failed to generate feedback link.");
-    }
-  };
-
-  // Filtered workshops based on search query
-  const filteredWorkshops = useMemo(() => {
-    if (!searchQuery.trim()) return workshops;
-    const q = searchQuery.toLowerCase();
-    return workshops.filter((w) =>
-      (w.title && w.title.toLowerCase().includes(q)) ||
-      (w.danceStyle && w.danceStyle.toLowerCase().includes(q)) ||
-      (w.trainerName && w.trainerName.toLowerCase().includes(q)) ||
-      (w.workshopReference && w.workshopReference.toLowerCase().includes(q)) ||
-      (w.venue && w.venue.toLowerCase().includes(q))
-    );
-  }, [workshops, searchQuery]);
-
-  // Filtered attendees in modal
   const filteredAttendees = useMemo(() => {
     let list = attendeeModal.items;
     if (attendeeModal.filter === "present") {
@@ -322,7 +376,12 @@ export default function AdminWorkshops() {
     } else if (attendeeModal.filter === "absent") {
       list = list.filter((r) => r.attendanceStatus === "Absent" || r.status === "NoShow");
     } else if (attendeeModal.filter === "not_marked") {
-      list = list.filter((r) => (!r.attendanceStatus || r.attendanceStatus === "Not marked") && r.status !== "Attended" && r.status !== "NoShow");
+      list = list.filter(
+        (r) =>
+          (!r.attendanceStatus || r.attendanceStatus === "Not marked") &&
+          r.status !== "Attended" &&
+          r.status !== "NoShow"
+      );
     } else if (attendeeModal.filter === "guests") {
       list = list.filter((r) => r.isGuest || r.attendeeType === "Workshop Attendee");
     } else if (attendeeModal.filter === "students") {
@@ -343,7 +402,6 @@ export default function AdminWorkshops() {
     return list;
   }, [attendeeModal.items, attendeeModal.filter, attendeeModal.search]);
 
-  // Statistics for the open workshop attendees
   const attendeeStats = useMemo(() => {
     const items = attendeeModal.items;
     const total = items.length;
@@ -352,16 +410,8 @@ export default function AdminWorkshops() {
     const present = items.filter((r) => r.attendanceStatus === "Present" || r.status === "Attended").length;
     const absent = items.filter((r) => r.attendanceStatus === "Absent" || r.status === "NoShow").length;
     const notMarked = Math.max(0, total - present - absent);
-    const feedbackSubmitted = items.filter((r) => r.feedbackRating || (r.feedbackStatus && r.feedbackStatus.startsWith("Submitted"))).length;
-    return { total, guests, students, present, absent, notMarked, feedbackSubmitted };
+    return { total, guests, students, present, absent, notMarked };
   }, [attendeeModal.items]);
-
-  const getWorkshopReference = (w) => {
-    if (w.workshopReference) return w.workshopReference;
-    const year = w.workshopDate ? w.workshopDate.slice(0, 4) : "2026";
-    const shortId = w.id ? w.id.slice(0, 6).toUpperCase() : "WKS";
-    return `WKS-${year}-${shortId}`;
-  };
 
   const getCapacityStatus = (booked, capacity) => {
     if (!capacity) return { label: "Open", color: "#2563eb", pct: 0 };
@@ -371,71 +421,101 @@ export default function AdminWorkshops() {
     return { label: "Open", color: "#059669", pct };
   };
 
-  const handleOpenCreate = () => {
-    setWorkshopFormModal({ open: true, workshop: null });
+  const getPhaseBadgeClass = (phase) => {
+    switch (phase) {
+      case "Upcoming":
+        return "phase-badge upcoming";
+      case "Ongoing":
+        return "phase-badge ongoing";
+      case "Completed":
+        return "phase-badge completed";
+      case "Cancelled":
+        return "phase-badge cancelled";
+      case "Pending Review":
+      case "PendingApproval":
+        return "phase-badge pending";
+      default:
+        return "phase-badge default";
+    }
   };
 
-  const handleOpenEdit = (w) => {
-    setWorkshopFormModal({ open: true, workshop: w });
+  const getApprovalBadgeClass = (status) => {
+    switch (status) {
+      case "Approved":
+        return "approval-badge approved";
+      case "PendingApproval":
+      case "Pending Review":
+        return "approval-badge pending";
+      case "Draft":
+        return "approval-badge draft";
+      case "Rejected":
+        return "approval-badge rejected";
+      default:
+        return "approval-badge default";
+    }
   };
 
   return (
     <div className="admin-workshops-container">
-      {/* Header */}
+      {/* Top Header */}
       <div className="workshops-header">
         <div>
-          <h1>Workshops Management & Attendee Rosters</h1>
+          <h1 className="workshops-page-title">Workshops & Events Management</h1>
           <p className="subtitle">
-            Review trainer proposed workshops, approve pricing, monitor capacities, and track student & guest attendees.
+            Lifecycle monitoring, 5-step wizard creation, dynamic 4-tier pricing, and workshop-scoped QR check-in.
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+
+        <div className="workshops-top-actions">
           <button
-            className="admin-btn primary"
-            onClick={handleOpenCreate}
+            className="btn-create-workshop-primary"
+            onClick={() => navigate("/admin_portal/workshops/create")}
           >
-            + Create Workshop
+            <Plus size={16} />
+            <span>Create Workshop</span>
           </button>
-          <button className="admin-btn secondary" onClick={loadWorkshops} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
+
+          <button
+            className="btn-refresh-workshops"
+            onClick={() => {
+              loadWorkshops();
+              loadCounts();
+            }}
+            disabled={loading}
+            title="Refresh list and counts"
+          >
+            <RefreshCw size={15} className={loading ? "spin-icon" : ""} />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs & Search Controls */}
-      <div className="workshops-controls-row">
-        <div className="workshops-tabs">
-          <button
-            className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
-            onClick={() => setActiveTab("pending")}
-          >
-            Pending Review Queue
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "approved" ? "active" : ""}`}
-            onClick={() => setActiveTab("approved")}
-          >
-            Approved & Upcoming
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "completed" ? "active" : ""}`}
-            onClick={() => setActiveTab("completed")}
-          >
-            Completed
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
-            onClick={() => setActiveTab("all")}
-          >
-            All Workshops
-          </button>
-        </div>
+      {/* 6 Category Tabs with Dynamic Badge Counts */}
+      <div className="workshops-tabs-bar">
+        {TABS.map((t) => {
+          const count = counts[t.countKey] ?? 0;
+          return (
+            <button
+              key={t.key}
+              className={`workshop-tab-btn ${activeTab === t.key ? "active" : ""}`}
+              onClick={() => setActiveTab(t.key)}
+            >
+              <span>{t.label}</span>
+              <span className="tab-count-badge">{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
+      {/* Search & Secondary Filter Bar */}
+      <div className="workshops-filter-row">
+        {/* Search */}
         <div className="workshops-search-wrapper">
+          <Search size={16} className="search-input-icon" />
           <input
             type="text"
             className="workshops-search-input"
-            placeholder="Search title, trainer, style, venue..."
+            placeholder="Search by title, instructor, style, venue, or city..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -445,868 +525,581 @@ export default function AdminWorkshops() {
             </button>
           )}
         </div>
+
+        {/* City Filter */}
+        <div className="filter-dropdown-group">
+          <MapPin size={14} className="filter-group-icon" />
+          <select
+            className="filter-select-input"
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+          >
+            <option value="all">All Cities</option>
+            {availableCities.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Date Filter */}
+        <div className="filter-dropdown-group">
+          <Calendar size={14} className="filter-group-icon" />
+          <select
+            className="filter-select-input"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
+
+        {/* Cards vs List View Toggle */}
+        <div className="view-mode-toggle-group">
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === "cards" ? "active" : ""}`}
+            onClick={() => setViewMode("cards")}
+            title="Grid Cards View"
+          >
+            <LayoutGrid size={15} />
+            <span>Cards</span>
+          </button>
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
+            onClick={() => setViewMode("list")}
+            title="Data Table View"
+          >
+            <List size={15} />
+            <span>List</span>
+          </button>
+        </div>
       </div>
 
-      {loading && <div className="loading-state">Loading workshops data...</div>}
-      {error && <div className="error-banner">Error: {error}</div>}
-
-      {/* Table */}
-      {!loading && !error && (
-        <div className="workshops-table-card">
-          <table className="workshops-main-table">
-            <thead>
-              <tr>
-                <th style={{ width: "260px" }}>Workshop & Style</th>
-                <th>Trainer</th>
-                <th>Date & Schedule</th>
-                <th>Pricing</th>
-                <th style={{ width: "160px" }}>Capacity & Bookings</th>
-                <th>Status</th>
-                <th style={{ width: "260px" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorkshops.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="empty-table-cell">
-                    No workshops found matching your criteria.
-                  </td>
-                </tr>
-              ) : (
-                filteredWorkshops.map((w) => {
-                  const capInfo = getCapacityStatus(w.bookedCount, w.capacity);
-                  const isPassed = isWorkshopPassed(w);
-                  const refCode = getWorkshopReference(w);
-
-                  return (
-                    <tr key={w.id} className="workshop-data-row">
-                      {/* Workshop & Style */}
-                      <td>
-                        <div className="workshop-ref-code">{refCode}</div>
-                        <div
-                          className="workshop-title clickable-title"
-                          style={{ cursor: "pointer", color: "#4f46e5", fontWeight: 700 }}
-                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
-                          title="Click to open dedicated workshop dashboard"
-                        >
-                          {w.title}
-                        </div>
-                        <div className="workshop-tags">
-                          <span className="style-tag">{w.danceStyle}</span>
-                          <span className="level-tag">{w.level}</span>
-                        </div>
-                        {w.venue && <div className="workshop-venue">📍 {w.venue}</div>}
-                      </td>
-
-                      {/* Trainer */}
-                      <td>
-                        <div className="trainer-name">{w.trainerName}</div>
-                      </td>
-
-                      {/* Date & Schedule */}
-                      <td>
-                        <div className="schedule-date">{w.workshopDate?.slice(0, 10)}</div>
-                        <div className="schedule-time">
-                          {w.startTime?.slice(0, 5)} – {w.endTime?.slice(0, 5)}
-                        </div>
-                        <span className={`timing-badge ${isPassed ? "past" : "upcoming"}`}>
-                          {isPassed ? "Session Passed" : "Upcoming"}
-                        </span>
-                      </td>
-
-                      {/* Pricing */}
-                      <td>
-                        <div className="effective-price">₹{w.price}</div>
-                        {w.trainerProposedPrice && w.trainerProposedPrice !== w.adminApprovedPrice && (
-                          <div className="proposed-price-hint">
-                            Proposed: ₹{w.trainerProposedPrice}
-                          </div>
-                        )}
-                        {w.adminApprovedPrice && (
-                          <div className="approved-price-hint">
-                            Approved: ₹{w.adminApprovedPrice}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Capacity & Bookings */}
-                      <td>
-                        <div className="capacity-numbers">
-                          <span className="booked-count">{w.bookedCount}</span>
-                          <span className="capacity-slash"> / </span>
-                          <span className="total-cap">{w.capacity} seats</span>
-                        </div>
-                        <div className="capacity-bar-container">
-                          <div
-                            className="capacity-bar-fill"
-                            style={{
-                              width: `${Math.min(100, capInfo.pct)}%`,
-                              backgroundColor: capInfo.color,
-                            }}
-                          />
-                        </div>
-                        <span className="capacity-chip" style={{ color: capInfo.color }}>
-                          {capInfo.label} ({capInfo.pct}%)
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        <span className={`status-pill ${w.status?.toLowerCase()}`}>
-                          {w.status === "PendingApproval" ? "Pending Review" : w.status}
-                        </span>
-                      </td>
-
-                      {/* Contextual Actions */}
-                      <td>
-                        <div className="actions-cell">
-                          {/* Manage Workshop Link */}
-                          <button
-                            type="button"
-                            className="admin-btn primary small"
-                            style={{ backgroundColor: "#4f46e5", color: "#ffffff", fontWeight: 700 }}
-                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
-                            title="Open workshop control portal"
-                          >
-                            Manage →
-                          </button>
-                          <button
-                            className="admin-btn tier-pricing-btn"
-                            onClick={() => openPricingTierModal(w)}
-                            title="Configure workshop 4-tier pricing model"
-                          >
-                            Tier Pricing
-                          </button>
-                          <button
-                            className="admin-btn view-attendees-btn"
-                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/attendees`)}
-                            title="View registered students and guest attendees"
-                          >
-                            View Attendees ({w.bookedCount}/{w.capacity || "—"})
-                          </button>
-                          <button
-                            className="admin-btn small"
-                            style={{ backgroundColor: "#2563eb", color: "#ffffff", fontWeight: 600 }}
-                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/edit`)}
-                            title="Edit workshop details"
-                          >
-                            ✎ Edit
-                          </button>
-
-                          {/* Pending Review Actions */}
-                          {w.status === "PendingApproval" && (
-                            <div className="context-btn-group">
-                              <button
-                                className="admin-btn primary small"
-                                onClick={() => handleOpenAction("approve", w)}
-                              >
-                                Review & Approve
-                              </button>
-                              <button
-                                className="admin-btn danger small"
-                                onClick={() => handleOpenAction("reject", w)}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Published / Approved Actions */}
-                          {(w.status === "Approved" || w.status === "Published") && (
-                            <div className="context-btn-group">
-                              <button
-                                className="admin-btn small"
-                                style={{ backgroundColor: "#d97706", color: "#ffffff", fontWeight: 600 }}
-                                onClick={() => handleOpenAction("unpublish", w)}
-                                title="Unpublish workshop from public website"
-                              >
-                                Unpublish
-                              </button>
-                              <button
-                                className="admin-btn complete-btn small"
-                                onClick={() => handleOpenAction("complete", w)}
-                              >
-                                Complete
-                              </button>
-                              <button
-                                className="admin-btn danger small"
-                                onClick={() => handleOpenAction("cancel", w)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Draft / Unpublished Actions */}
-                          {(w.status === "Draft" || w.status === "Unpublished") && (
-                            <div className="context-btn-group">
-                              <button
-                                className="admin-btn small"
-                                style={{ backgroundColor: "#10b981", color: "#ffffff", fontWeight: 600 }}
-                                onClick={() => handleOpenAction("publish", w)}
-                                title="Publish workshop to public website"
-                              >
-                                Publish Live
-                              </button>
-                              <button
-                                className="admin-btn danger small"
-                                onClick={() => handleOpenAction("archive", w)}
-                              >
-                                Archive
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Completed Actions */}
-                          {w.status === "Completed" && (
-                            <div className="context-btn-group">
-                              <button
-                                className="admin-btn feedback-btn small"
-                                onClick={() => openAttendeeList(w)}
-                              >
-                                View Feedback
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Cancelled or Rejected Actions */}
-                          {(w.status === "Cancelled" || w.status === "Rejected") && (
-                            <div className="context-btn-group">
-                              <button
-                                className="admin-btn secondary small"
-                                onClick={() => handleOpenAction("details", w)}
-                              >
-                                View Details
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {/* Loading & Error States */}
+      {loading && (
+        <div className="workshops-loading-state">
+          <div className="loading-spinner" />
+          <span>Loading workshops...</span>
         </div>
       )}
 
-      {/* ACTION CONFIRMATION MODALS */}
-      {actionModal.open && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
-            <div className="modal-header">
-              <h3>
-                {actionModal.type === "approve" && "Review & Approve Workshop Price"}
-                {actionModal.type === "reject" && "Reject Workshop Proposal"}
-                {actionModal.type === "cancel" && "Cancel Workshop"}
-                {actionModal.type === "complete" && "Mark Workshop as Completed"}
-                {actionModal.type === "publish" && "Publish Workshop to Live Website"}
-                {actionModal.type === "unpublish" && "Unpublish Workshop from Live Website"}
-                {actionModal.type === "archive" && "Archive Workshop"}
-                {actionModal.type === "details" && "Workshop Details"}
-              </h3>
+      {error && (
+        <div className="workshops-error-banner">
+          <AlertTriangle size={18} />
+          <span>Error loading workshops: {error}</span>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      {!loading && !error && (
+        <>
+          {filteredWorkshops.length === 0 ? (
+            <div className="workshops-empty-panel">
+              <div className="empty-icon-wrap">
+                <Calendar size={40} />
+              </div>
+              <h3 className="empty-title">No workshops found</h3>
+              <p className="empty-desc">
+                There are no workshops matching your selected tab and filters.
+              </p>
               <button
-                className="modal-close-icon"
-                onClick={() =>
-                  setActionModal({
-                    open: false,
-                    type: "",
-                    workshop: null,
-                    price: "",
-                    reason: "",
-                    isEarlyCompletion: false,
-                  })
-                }
+                className="btn-create-workshop-subtle"
+                onClick={() => navigate("/admin_portal/workshops/create")}
+              >
+                + Create New Workshop
+              </button>
+            </div>
+          ) : viewMode === "cards" ? (
+            /* CARDS VIEW */
+            <div className="workshops-cards-grid">
+              {filteredWorkshops.map((w) => {
+                const phase = w.lifecyclePhase || "Upcoming";
+                const approval = w.approvalStatus || w.status || "Approved";
+                const isLocked = isWorkshopLocked(w);
+                const capInfo = getCapacityStatus(w.bookedCount || 0, w.capacity || 50);
+
+                return (
+                  <div key={w.id} className="workshop-feature-card">
+                    {/* Card Media Header */}
+                    <div
+                      className="card-media-wrap"
+                      onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                    >
+                      {w.imageUrl ? (
+                        <img src={w.imageUrl} alt={w.title} className="card-cover-img" />
+                      ) : (
+                        <div className="card-placeholder-img">
+                          <span>Ethos Studio</span>
+                        </div>
+                      )}
+
+                      {/* Overlaid Badges */}
+                      <div className="card-badges-overlay">
+                        <span className={getPhaseBadgeClass(phase)}>{phase}</span>
+                        {approval !== "Approved" && (
+                          <span className={getApprovalBadgeClass(approval)}>
+                            {approval === "PendingApproval" ? "Pending Review" : approval}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Starting Price Pill */}
+                      <div className="card-price-overlay">
+                        <span className="price-prefix">From</span>
+                        <span className="price-val">₹{w.price || 500}</span>
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="card-body-content">
+                      <div className="card-tags-row">
+                        <span className="style-tag">{w.danceStyle}</span>
+                        <span className="level-tag">{w.level || "Open Level"}</span>
+                      </div>
+
+                      <h3
+                        className="card-title"
+                        onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                        title={w.title}
+                      >
+                        {w.title}
+                      </h3>
+
+                      <div className="card-instructor">
+                        <span className="instructor-lbl">Trainer:</span>
+                        <span className="instructor-val">{w.trainerName || "Ethos Faculty"}</span>
+                      </div>
+
+                      <div className="card-meta-list">
+                        <div className="card-meta-item">
+                          <Calendar size={13} />
+                          <span>{w.workshopDate?.slice(0, 10)}</span>
+                        </div>
+                        <div className="card-meta-item">
+                          <Clock size={13} />
+                          <span>
+                            {w.startTime?.slice(0, 5)} – {w.endTime?.slice(0, 5)} IST
+                          </span>
+                        </div>
+                        <div className="card-meta-item venue-item">
+                          <MapPin size={13} />
+                          <span title={w.venueAddress || w.venue}>
+                            {w.venue}
+                            {w.city ? `, ${w.city}` : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Capacity Bar */}
+                      <div className="card-capacity-box">
+                        <div className="capacity-label-row">
+                          <span className="cap-lbl">Registrations</span>
+                          <span className="cap-val" style={{ color: capInfo.color }}>
+                            {w.bookedCount || 0} / {w.capacity || 50} ({capInfo.label})
+                          </span>
+                        </div>
+                        <div className="capacity-progress-track">
+                          <div
+                            className="capacity-progress-fill"
+                            style={{
+                              width: `${Math.min(100, capInfo.pct)}%`,
+                              background: capInfo.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Card Action Buttons */}
+                      <div className="card-action-bar">
+                        <button
+                          type="button"
+                          className="btn-card-primary"
+                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                        >
+                          <span>Manage</span>
+                          <ChevronRight size={14} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-card-scanner"
+                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/scanner`)}
+                          title="Open Workshop QR Scanner"
+                        >
+                          <QrCode size={15} />
+                        </button>
+
+                        {isLocked ? (
+                          <button
+                            type="button"
+                            className="btn-card-edit locked"
+                            disabled
+                            title="Modifications locked: workshop has already started"
+                          >
+                            <Lock size={14} />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-card-edit"
+                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/wizard`)}
+                            title="Edit Workshop in Multi-Step Wizard"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* DATA TABLE LIST VIEW */
+            <div className="workshops-table-card">
+              <table className="workshops-main-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "320px" }}>Workshop & Trainer</th>
+                    <th>Date & Schedule</th>
+                    <th>Location</th>
+                    <th>Tiers & Price</th>
+                    <th>Capacity</th>
+                    <th>Lifecycle & Approval</th>
+                    <th style={{ width: "240px" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWorkshops.map((w) => {
+                    const phase = w.lifecyclePhase || "Upcoming";
+                    const approval = w.approvalStatus || w.status || "Approved";
+                    const isLocked = isWorkshopLocked(w);
+                    const capInfo = getCapacityStatus(w.bookedCount || 0, w.capacity || 50);
+
+                    return (
+                      <tr key={w.id} className="workshop-data-row">
+                        {/* Title & Trainer */}
+                        <td>
+                          <div className="table-workshop-cell">
+                            {w.imageUrl ? (
+                              <img src={w.imageUrl} alt="" className="table-thumb-img" />
+                            ) : (
+                              <div className="table-thumb-placeholder">W</div>
+                            )}
+                            <div className="table-workshop-texts">
+                              <div
+                                className="table-workshop-title"
+                                onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                              >
+                                {w.title}
+                              </div>
+                              <div className="table-workshop-sub">
+                                {w.trainerName || "Lead Instructor"} • {w.danceStyle}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Date & Schedule */}
+                        <td>
+                          <div className="schedule-date">{w.workshopDate?.slice(0, 10)}</div>
+                          <div className="schedule-time">
+                            {w.startTime?.slice(0, 5)} – {w.endTime?.slice(0, 5)} IST
+                          </div>
+                        </td>
+
+                        {/* Location */}
+                        <td>
+                          <div className="location-venue">{w.venue}</div>
+                          <div className="location-city">{w.city || "Hyderabad"}</div>
+                        </td>
+
+                        {/* Pricing */}
+                        <td>
+                          <div className="effective-price">₹{w.price || 500}</div>
+                          <button
+                            className="tier-inspect-btn"
+                            onClick={() => openPricingTierModal(w)}
+                          >
+                            4 Tiers (₹500+)
+                          </button>
+                        </td>
+
+                        {/* Capacity */}
+                        <td>
+                          <div className="cap-progress-cell">
+                            <span style={{ color: capInfo.color, fontWeight: 700 }}>
+                              {w.bookedCount || 0} / {w.capacity || 50}
+                            </span>
+                            <button
+                              className="view-attendees-link"
+                              onClick={() => openAttendeeList(w)}
+                            >
+                              View Roster
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Status Badges */}
+                        <td>
+                          <div className="table-status-stack">
+                            <span className={getPhaseBadgeClass(phase)}>{phase}</span>
+                            <span className={getApprovalBadgeClass(approval)}>
+                              {approval === "PendingApproval" ? "Pending Review" : approval}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td>
+                          <div className="table-actions-group">
+                            <button
+                              className="btn-table-primary"
+                              onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                            >
+                              Portal
+                            </button>
+                            <button
+                              className="btn-table-scanner"
+                              onClick={() => navigate(`/admin_portal/workshops/${w.id}/scanner`)}
+                              title="QR Scanner"
+                            >
+                              <QrCode size={14} />
+                            </button>
+                            {isLocked ? (
+                              <button
+                                className="btn-table-edit locked"
+                                disabled
+                                title="Editing locked: workshop has started"
+                              >
+                                <Lock size={13} />
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-table-edit"
+                                onClick={() => navigate(`/admin_portal/workshops/${w.id}/wizard`)}
+                                title="Edit in Multi-Step Wizard"
+                              >
+                                <Edit size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Pricing Tier Modal */}
+      {pricingTierModal.open && (
+        <div className="modal-backdrop" onClick={() => setPricingTierModal({ ...pricingTierModal, open: false })}>
+          <div className="modal-card pricing-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Dynamic 4-Tier Pricing: {pricingTierModal.workshop?.title}</h3>
+              <button
+                className="close-btn"
+                onClick={() => setPricingTierModal({ ...pricingTierModal, open: false })}
               >
                 ✕
               </button>
             </div>
-
             <div className="modal-body">
-              <div className="modal-workshop-summary">
-                <span className="summary-ref">{getWorkshopReference(actionModal.workshop)}</span>
-                <strong className="summary-title">{actionModal.workshop?.title}</strong>
-                <span className="summary-trainer">Trainer: {actionModal.workshop?.trainerName}</span>
-              </div>
+              <p className="pricing-modal-desc">
+                Authoritative 4-tier pricing model (₹500 / ₹600 / ₹700 / ₹800). Ticket prices update server-side exclusively as confirmed registrations accumulate.
+              </p>
+
+              {pricingTierModal.loading ? (
+                <div className="loading-state">Loading tiers...</div>
+              ) : (
+                <div className="tiers-list">
+                  {pricingTierModal.tiers.map((t) => (
+                    <div key={t.tierNumber} className="tier-row-input">
+                      <span className="tier-name-label">{t.tierName || `Tier ${t.tierNumber}`}</span>
+                      <span className="tier-range-label">
+                        {t.minTickets} – {t.maxTickets ? t.maxTickets : "Max"} Bookings
+                      </span>
+                      <div className="tier-price-input-wrap">
+                        <span className="currency-prefix">₹</span>
+                        <input
+                          type="number"
+                          className="tier-price-field"
+                          value={t.price}
+                          onChange={(e) => handleTierPriceChange(t.tierNumber, e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {pricingTierModal.error && (
+                <div className="error-banner" style={{ marginTop: "12px" }}>
+                  {pricingTierModal.error}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button
+                className="admin-btn secondary"
+                onClick={() => setPricingTierModal({ ...pricingTierModal, open: false })}
+              >
+                Close
+              </button>
+              <button
+                className="admin-btn primary"
+                onClick={savePricingTiers}
+                disabled={pricingTierModal.saving}
+              >
+                {pricingTierModal.saving ? "Saving..." : "Save Pricing Tiers"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Modal (Approve, Reject, Cancel, etc.) */}
+      {actionModal.open && (
+        <div className="modal-backdrop" onClick={() => setActionModal({ ...actionModal, open: false })}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {actionModal.type === "approve" && "Approve Workshop"}
+                {actionModal.type === "reject" && "Reject Workshop"}
+                {actionModal.type === "cancel" && "Cancel Workshop"}
+                {actionModal.type === "complete" && "Mark Workshop Completed"}
+                {actionModal.type === "publish" && "Publish Workshop"}
+                {actionModal.type === "unpublish" && "Unpublish Workshop"}
+              </h3>
+              <button
+                className="close-btn"
+                onClick={() => setActionModal({ ...actionModal, open: false })}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Target Workshop: <strong>{actionModal.workshop?.title}</strong>
+              </p>
 
               {actionModal.type === "approve" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text">
-                    Trainer proposed price:{" "}
-                    <strong>
-                      ₹{actionModal.workshop?.trainerProposedPrice || actionModal.workshop?.price}
-                    </strong>
-                  </p>
-                  <label className="form-label">
-                    Official Approved Price (INR):
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={actionModal.price}
-                      onChange={(e) => setActionModal({ ...actionModal, price: e.target.value })}
-                      placeholder="e.g. 799"
-                      min="1"
-                    />
-                  </label>
-                  <p className="form-hint">
-                    This price will be active for student & guest bookings upon approval.
-                  </p>
+                <div className="modal-field">
+                  <label>Approved Starting Price (₹)</label>
+                  <input
+                    type="number"
+                    className="modal-input"
+                    value={actionModal.price}
+                    onChange={(e) => setActionModal({ ...actionModal, price: e.target.value })}
+                  />
                 </div>
               )}
 
-              {actionModal.type === "reject" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text danger-text">
-                    Please provide a reason for rejecting this proposal. This will be logged and visible to the trainer.
-                  </p>
-                  <label className="form-label">
-                    Mandatory Rejection Reason:
-                    <textarea
-                      className="form-textarea"
-                      value={actionModal.reason}
-                      onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value })}
-                      placeholder="Specify rationale for rejection..."
-                      rows={3}
-                    />
-                  </label>
-                </div>
-              )}
-
-              {actionModal.type === "cancel" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text danger-text">
-                    ⚠️ Cancelling an active workshop will prevent any further bookings and mark existing bookings as cancelled.
-                  </p>
-                  <label className="form-label">
-                    Mandatory Cancellation Reason:
-                    <textarea
-                      className="form-textarea"
-                      value={actionModal.reason}
-                      onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value })}
-                      placeholder="Specify rationale for cancellation..."
-                      rows={3}
-                    />
-                  </label>
-                </div>
-              )}
-
-              {actionModal.type === "complete" && (
-                <div className="modal-form-group">
-                  {actionModal.isEarlyCompletion ? (
-                    <div className="warning-callout">
-                      <strong>⚠️ Early Completion Warning:</strong>
-                      <p>
-                        This workshop is scheduled for{" "}
-                        <strong>{actionModal.workshop?.workshopDate?.slice(0, 10)}</strong> at{" "}
-                        <strong>{actionModal.workshop?.startTime?.slice(0, 5)}</strong>, which is in the future.
-                        Marking it completed early will close the workshop session and trigger feedback collection.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="form-info-text">
-                      The scheduled workshop date has passed. Confirm marking this workshop as successfully completed?
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {actionModal.type === "publish" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text">
-                    Publishing this workshop will immediately make it visible on the public Ethos website and open it for attendee registrations.
-                  </p>
-                </div>
-              )}
-
-              {actionModal.type === "unpublish" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text danger-text">
-                    Unpublishing will immediately remove this workshop from the public listings. Existing attendee registrations remain safely stored.
-                  </p>
-                </div>
-              )}
-
-              {actionModal.type === "archive" && (
-                <div className="modal-form-group">
-                  <p className="form-info-text">
-                    Archiving will remove this workshop from active operational lists.
-                  </p>
-                </div>
-              )}
-
-              {actionModal.type === "details" && (
-                <div className="details-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Status:</span>
-                    <span className="detail-val">{actionModal.workshop?.status}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Date:</span>
-                    <span className="detail-val">{actionModal.workshop?.workshopDate?.slice(0, 10)}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Time:</span>
-                    <span className="detail-val">
-                      {actionModal.workshop?.startTime?.slice(0, 5)} – {actionModal.workshop?.endTime?.slice(0, 5)}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Venue:</span>
-                    <span className="detail-val">{actionModal.workshop?.venue || "Main Studio"}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Capacity:</span>
-                    <span className="detail-val">{actionModal.workshop?.capacity} seats</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Booked Attendees:</span>
-                    <span className="detail-val">{actionModal.workshop?.bookedCount}</span>
-                  </div>
-                  {actionModal.workshop?.description && (
-                    <div className="detail-item full-width">
-                      <span className="detail-label">Description:</span>
-                      <p className="detail-desc">{actionModal.workshop?.description}</p>
-                    </div>
-                  )}
+              {(actionModal.type === "reject" || actionModal.type === "cancel") && (
+                <div className="modal-field">
+                  <label>Reason (Mandatory)</label>
+                  <textarea
+                    className="modal-textarea"
+                    rows={3}
+                    placeholder="Enter reason..."
+                    value={actionModal.reason}
+                    onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value })}
+                  />
                 </div>
               )}
             </div>
-
-            <div className="modal-footer">
+            <div className="modal-actions">
               <button
                 className="admin-btn secondary"
-                onClick={() =>
-                  setActionModal({
-                    open: false,
-                    type: "",
-                    workshop: null,
-                    price: "",
-                    reason: "",
-                    isEarlyCompletion: false,
-                  })
-                }
+                onClick={() => setActionModal({ ...actionModal, open: false })}
               >
-                {actionModal.type === "details" ? "Close" : "Cancel"}
+                Cancel
               </button>
-              {actionModal.type !== "details" && (
-                <button
-                  className={`admin-btn ${
-                    actionModal.type === "reject" || actionModal.type === "cancel" ? "danger" : "primary"
-                  }`}
-                  onClick={confirmAction}
-                >
-                  Confirm {actionModal.type.charAt(0).toUpperCase() + actionModal.type.slice(1)}
-                </button>
-              )}
+              <button
+                className={`admin-btn ${actionModal.type === "reject" || actionModal.type === "cancel" ? "danger" : "primary"}`}
+                onClick={confirmAction}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* COMPREHENSIVE ATTENDEES (ROSTER) MODAL */}
+      {/* Attendees Roster Modal */}
       {attendeeModal.open && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-box large-roster-box">
-            {/* Modal Header */}
-            <div className="modal-header roster-header">
-              <div>
-                <div className="roster-meta-tag">
-                  {getWorkshopReference(attendeeModal.workshop)} • {attendeeModal.workshop?.danceStyle} ({attendeeModal.workshop?.level})
-                </div>
-                <h2>Attendee Roster: {attendeeModal.workshop?.title}</h2>
-                <div className="roster-subinfo">
-                  <span>Instructor: <strong>{attendeeModal.workshop?.trainerName}</strong></span>
-                  <span>•</span>
-                  <span>Date: <strong>{attendeeModal.workshop?.workshopDate?.slice(0, 10)}</strong> ({attendeeModal.workshop?.startTime?.slice(0, 5)} - {attendeeModal.workshop?.endTime?.slice(0, 5)})</span>
-                  <span>•</span>
-                  <span>Venue: <strong>{attendeeModal.workshop?.venue || "Studio"}</strong></span>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="export-attendance-csv-btn"
-                  onClick={handleExportCsv}
-                  style={{
-                    background: "rgba(233, 121, 99, 0.15)",
-                    border: "1px solid #e97963",
-                    color: "#e97963",
-                    padding: "6px 14px",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    cursor: "pointer"
-                  }}
-                >
-                  ↓ Export Attendance (CSV)
-                </button>
-                <button
-                  className="modal-close-icon"
-                  onClick={() =>
-                    setAttendeeModal({
-                      open: false,
-                      workshop: null,
-                      items: [],
-                      loading: false,
-                      filter: "all",
-                      search: "",
-                      toastMessage: "",
-                    })
-                  }
-                >
-                  ✕
-                </button>
-              </div>
+        <div className="modal-backdrop" onClick={() => setAttendeeModal({ ...attendeeModal, open: false })}>
+          <div className="modal-card attendees-roster-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Attendee Roster: {attendeeModal.workshop?.title}</h3>
+              <button
+                className="close-btn"
+                onClick={() => setAttendeeModal({ ...attendeeModal, open: false })}
+              >
+                ✕
+              </button>
             </div>
-
-            {/* KPI Summary Cards */}
-            <div className="roster-stats-row">
-              <div className="roster-stat-card">
-                <span className="stat-label">Total Bookings</span>
-                <span className="stat-value">
-                  {attendeeStats.total} <span className="stat-capacity-denom">/ {attendeeModal.workshop?.capacity}</span>
-                </span>
-                <span className="stat-caption">Seats Filled</span>
-              </div>
-              <div className="roster-stat-card">
-                <span className="stat-label">Registered Students</span>
-                <span className="stat-value text-blue">{attendeeStats.students}</span>
-                <span className="stat-caption">ETHOS Student Accounts</span>
-              </div>
-              <div className="roster-stat-card">
-                <span className="stat-label">Guest Attendees</span>
-                <span className="stat-value text-purple">{attendeeStats.guests}</span>
-                <span className="stat-caption">Workshop Guests</span>
-              </div>
-              <div className="roster-stat-card">
-                <span className="stat-label">Attendance Marked</span>
-                <span className="stat-value text-green">
-                  {attendeeStats.present} <span className="stat-subval">/ {attendeeStats.notMarked} Pending</span>
-                </span>
-                <span className="stat-caption">
-                  {attendeeStats.absent > 0 ? `${attendeeStats.absent} No-Show(s)` : "All marked present or pending"}
-                </span>
-              </div>
-              <div className="roster-stat-card">
-                <span className="stat-label">Feedback Submitted</span>
-                <span className="stat-value text-amber">{attendeeStats.feedbackSubmitted}</span>
-                <span className="stat-caption">Completed Reviews</span>
-              </div>
-            </div>
-
-            {/* Toast feedback banner */}
-            {attendeeModal.toastMessage && (
-              <div className="roster-toast-banner">
-                ✓ {attendeeModal.toastMessage}
-              </div>
-            )}
-
-            {/* Filter Pills & Attendee Search */}
-            <div className="roster-filter-row">
-              <div className="roster-filter-pills">
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "all" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "all" })}
-                >
-                  All ({attendeeStats.total})
-                </button>
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "present" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "present" })}
-                >
-                  Present ({attendeeStats.present})
-                </button>
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "absent" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "absent" })}
-                >
-                  No-Show ({attendeeStats.absent})
-                </button>
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "not_marked" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "not_marked" })}
-                >
-                  Not Marked ({attendeeStats.notMarked})
-                </button>
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "guests" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "guests" })}
-                >
-                  Guests ({attendeeStats.guests})
-                </button>
-                <button
-                  className={`filter-pill ${attendeeModal.filter === "students" ? "active" : ""}`}
-                  onClick={() => setAttendeeModal({ ...attendeeModal, filter: "students" })}
-                >
-                  Students ({attendeeStats.students})
-                </button>
+            <div className="modal-body">
+              <div className="roster-stats-strip">
+                <span className="stat-pill">Total: {attendeeStats.total}</span>
+                <span className="stat-pill present">Present: {attendeeStats.present}</span>
+                <span className="stat-pill absent">Absent: {attendeeStats.absent}</span>
+                <span className="stat-pill unmarked">Pending: {attendeeStats.notMarked}</span>
               </div>
 
-              <div className="roster-search-box">
-                <input
-                  type="text"
-                  placeholder="Search attendee or booking reference..."
-                  value={attendeeModal.search}
-                  onChange={(e) => setAttendeeModal({ ...attendeeModal, search: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="roster-scroll-cue">
-              ↔ Scroll horizontally to view booking reference and contact details
-            </div>
-
-            {/* Attendees Table */}
-            <div className="roster-table-wrapper">
-              {attendeeModal.loading ? (
-                <div className="loading-state">Loading registered attendees...</div>
-              ) : (
-                <table className="roster-table">
-                  <thead>
-                    <tr>
-                      <th>Attendee</th>
-                      <th>Booking Status</th>
-                      <th>Payment</th>
-                      <th>Attendance</th>
-                      <th>Feedback</th>
-                      <th>Booking Reference</th>
-                      <th>Contact Details</th>
-                      <th>Booked Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAttendees.length === 0 ? (
+              <div className="roster-table-wrap">
+                {attendeeModal.loading ? (
+                  <div className="loading-state">Loading attendees...</div>
+                ) : filteredAttendees.length === 0 ? (
+                  <div className="empty-roster">No attendees found.</div>
+                ) : (
+                  <table className="roster-table">
+                    <thead>
                       <tr>
-                        <td colSpan={9} className="empty-table-cell">
-                          No attendees match this filter.
-                        </td>
+                        <th>Attendee Name</th>
+                        <th>Ticket Code</th>
+                        <th>Contact</th>
+                        <th>Attendance</th>
                       </tr>
-                    ) : (
-                      filteredAttendees.map((r) => {
-                        const isPresent = r.attendanceStatus === "Present" || r.status === "Attended";
-                        const isAbsent = r.attendanceStatus === "Absent" || r.status === "NoShow";
-                        const isNotMarked = !isPresent && !isAbsent;
-                        const isCancelled = r.status === "Cancelled" || r.status === "CANCELLED";
-                        const isGuest = r.isGuest || r.attendeeType === "Workshop Attendee";
-
-                        return (
-                          <tr key={r.bookingId} className="roster-row">
-                            {/* 1. Attendee Name & Type */}
-                            <td className="attendee-cell-main">
-                              <div className="attendee-name">{r.studentName}</div>
-                              <span className={`attendee-type-badge ${isGuest ? "guest-badge" : "student-badge"}`}>
-                                {isGuest ? "Guest Attendee" : "Registered Student"}
-                              </span>
-                            </td>
-
-                            {/* 2. Booking Status */}
-                            <td>
-                              <span className={`booking-status-badge ${
-                                isPresent ? "attended" :
-                                isAbsent ? "noshow" :
-                                isCancelled ? "cancelled" :
-                                r.paymentStatus?.toLowerCase().includes("pending") ? "pending" :
-                                "confirmed"
-                              }`}>
-                                {isCancelled ? "Cancelled" : isPresent ? "Attended" : isAbsent ? "No-Show" : (r.status || "Confirmed")}
-                              </span>
-                            </td>
-
-                            {/* 3. Payment Status */}
-                            <td>
-                              <span className={`payment-badge ${r.paymentStatus?.toLowerCase().includes("paid") ? "paid" : "pending"}`}>
-                                {r.paymentStatus || "Paid"}
-                              </span>
-                            </td>
-
-                            {/* 4. Attendance Status & Actions */}
-                            <td>
-                              <div className="attendance-cell">
-                                <span className={`attendance-badge ${isPresent ? "present" : isAbsent ? "absent" : "not-marked"}`}>
-                                  {isPresent ? "✓ Present" : isAbsent ? "✕ Absent" : "● Not Marked"}
-                                </span>
-                                {!isCancelled ? (
-                                  <div className="attendance-quick-actions">
-                                    {isNotMarked && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          className="attendance-action-btn present-btn"
-                                          title="Mark attendee as Present"
-                                          onClick={() => handleMarkAttendance(r.studentId, 4, r.bookingId)}
-                                        >
-                                          ✓ Mark Present
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="attendance-action-btn absent-btn"
-                                          title="Mark attendee as Absent (No-Show)"
-                                          onClick={() => handleMarkAttendance(r.studentId, 5, r.bookingId)}
-                                        >
-                                          ✕ Mark No-Show
-                                        </button>
-                                      </>
-                                    )}
-                                    {isPresent && (
-                                      <button
-                                        type="button"
-                                        className="attendance-action-btn undo-btn"
-                                        title="Undo check-in and revert to Confirmed"
-                                        onClick={() => handleMarkAttendance(r.studentId, 2, r.bookingId)}
-                                      >
-                                        Undo Attendance
-                                      </button>
-                                    )}
-                                    {isAbsent && (
-                                      <button
-                                        type="button"
-                                        className="attendance-action-btn present-btn"
-                                        title="Correct status to Present"
-                                        onClick={() => handleMarkAttendance(r.studentId, 4, r.bookingId)}
-                                      >
-                                        ✓ Mark Present
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="attendance-cancelled-note">Booking Cancelled</span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* 5. Feedback Status */}
-                            <td>
-                              <div className="feedback-cell">
-                                {r.feedbackRating || (r.feedbackStatus && r.feedbackStatus.startsWith("Submitted")) ? (
-                                  <span className="feedback-submitted-badge">
-                                    ★ {r.feedbackRating || r.feedbackStatus.replace("Submitted ★", "").trim()} Submitted
-                                  </span>
-                                ) : (
-                                  <div className="feedback-pending-wrapper">
-                                    <span className="feedback-pending-badge">Not Submitted</span>
-                                    {isGuest && (
-                                      <button
-                                        type="button"
-                                        className={`copy-feedback-link-btn ${copiedFeedbackLinks[r.bookingId] ? "copied" : ""}`}
-                                        title="Generate and copy single-use feedback link for this guest"
-                                        onClick={() => handleCopyFeedbackLink(r.bookingId)}
-                                      >
-                                        {copiedFeedbackLinks[r.bookingId] ? "✓ Link Sent" : "🔗 Send Link"}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* 6. Customer / Booking Ref */}
-                            <td>
-                              <div className="booking-ref-code">
-                                {r.bookingReference || `BK-${r.bookingId?.slice(0, 8).toUpperCase()}`}
-                              </div>
-                              <div className="customer-code-sub">
-                                {isGuest ? "Guest Ref: " + (r.customerCode || "GUEST") : r.customerCode}
-                              </div>
-                            </td>
-
-                            {/* 7. Contact Details (Masked with on-demand reveal) */}
-                            <td>
-                              <div className="roster-contact-cell">
-                                <div className="contact-phone-line">
-                                  <span className="contact-icon">📞</span>
-                                  <span className="contact-phone font-mono">
-                                    {revealedContacts[r.bookingId] ? (r.studentPhone || "—") : maskPhone(r.studentPhone)}
-                                  </span>
-                                </div>
-                                {revealedContacts[r.bookingId] && r.studentEmail && (
-                                  <div className="contact-email-line">
-                                    <span className="contact-icon">✉️</span>
-                                    <span className="contact-email">{r.studentEmail}</span>
-                                  </div>
-                                )}
-                                {r.studentPhone && (
-                                  <button
-                                    type="button"
-                                    className="contact-reveal-btn"
-                                    onClick={() => toggleContactReveal(r.bookingId)}
-                                  >
-                                    {revealedContacts[r.bookingId] ? "Hide Details" : "View Contact"}
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* 8. Booked Date */}
-                            <td>
-                              <div className="booking-date-cell">
-                                {r.bookedAt?.slice(0, 10)}
-                                <span className="booking-time-sub">{r.bookedAt?.slice(11, 16)}</span>
-                              </div>
-                            </td>
-
-                            {/* 9. Row Actions */}
-                            <td>
-                              <div className="roster-row-actions">
-                                {!isGuest && r.studentId ? (
-                                  <a
-                                    href={`/admin/students/${r.studentId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="roster-view-profile-link"
-                                    title="Open student dossier in new tab"
-                                  >
-                                    Dossier ↗
-                                  </a>
-                                ) : (
-                                  <span className="roster-guest-indicator">Guest Pass</span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody>
+                      {filteredAttendees.map((r, i) => (
+                        <tr key={r.bookingId || i}>
+                          <td>{r.studentName || "Guest Attendee"}</td>
+                          <td><code>{r.customerCode || r.bookingReference || "—"}</code></td>
+                          <td>{maskPhone(r.studentPhone)}</td>
+                          <td>
+                            <span className={`attend-pill ${(r.attendanceStatus || r.status || "").toLowerCase()}`}>
+                              {r.attendanceStatus || r.status || "Registered"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
-
-            {/* Modal Footer */}
-            <div className="modal-footer roster-footer">
-              <span className="footer-count-text">
-                Showing {filteredAttendees.length} of {attendeeModal.items.length} attendees
-              </span>
+            <div className="modal-actions">
               <button
                 className="admin-btn secondary"
-                onClick={() =>
-                  setAttendeeModal({
-                    open: false,
-                    workshop: null,
-                    items: [],
-                    loading: false,
-                    filter: "all",
-                    search: "",
-                    toastMessage: "",
-                  })
-                }
+                onClick={() => setAttendeeModal({ ...attendeeModal, open: false })}
               >
-                Close Roster
+                Close
               </button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Create / Edit Workshop Modal */}
-      {workshopFormModal.open && (
-        <AdminWorkshopFormModal
-          isOpen={workshopFormModal.open}
-          workshop={workshopFormModal.workshop}
-          onClose={() => setWorkshopFormModal({ open: false, workshop: null })}
-          onSaved={loadWorkshops}
-        />
       )}
     </div>
   );

@@ -12,11 +12,16 @@ public interface IAdminWorkshopService
     Task<PagedResult<TrainerWorkshopResponse>> GetWorkshopsAsync(
         int page,
         int pageSize,
+        string? phase,
         WorkshopStatus? status,
         Guid? trainerId,
         DateTime? startDate,
         DateTime? endDate,
         string? search,
+        string? city,
+        CancellationToken cancellationToken);
+
+    Task<AdminWorkshopCountsDto> GetWorkshopCountsAsync(
         CancellationToken cancellationToken);
 
     Task<TrainerWorkshopResponse?> GetWorkshopByIdAsync(

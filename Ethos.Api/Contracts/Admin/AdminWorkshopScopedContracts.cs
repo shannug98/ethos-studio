@@ -84,3 +84,13 @@ public class AdminWorkshopFeedbackDto
     public DateTime SubmittedAt { get; set; }
     public string FormattedDate { get; set; } = null!;
 }
+
+public class AdminWorkshopCountsDto
+{
+    public int PendingReview { get; set; }
+    public int Upcoming { get; set; }
+    public int Ongoing { get; set; }
+    public int Completed { get; set; }
+    public int Cancelled { get; set; }
+    public int All { get; set; }
+}

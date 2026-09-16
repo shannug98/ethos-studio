@@ -96,6 +96,7 @@ const AdminWorkshopAttendees = lazy(() => import("./pages/admin/workshops/AdminW
 const AdminWorkshopBookings = lazy(() => import("./pages/admin/workshops/AdminWorkshopBookings"));
 const AdminWorkshopFeedback = lazy(() => import("./pages/admin/workshops/AdminWorkshopFeedback"));
 const AdminWorkshopEdit = lazy(() => import("./pages/admin/workshops/AdminWorkshopEdit"));
+const AdminWorkshopWizard = lazy(() => import("./pages/admin/workshops/wizard/AdminWorkshopWizard"));
 import { isAdminAuthenticated } from "./services/adminApi";
 
 function AdminEntryRedirect() {
@@ -390,6 +391,8 @@ function App() {
             <Route path="trainers/:trainerId" element={<AdminTrainerDossier />} />
             <Route path="classes" element={<AdminClasses />} />
             <Route path="workshops" element={<AdminWorkshops />} />
+            <Route path="workshops/create" element={<AdminWorkshopWizard />} />
+            <Route path="workshops/:workshopId/wizard" element={<AdminWorkshopWizard />} />
             <Route path="workshops/:workshopId" element={<AdminWorkshopLayout />}>
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<AdminWorkshopOverview />} />

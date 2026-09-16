@@ -500,6 +500,11 @@ export const adminApi = {
     }),
 
   // Phase 18.9: Workshops Management & Review
+  getWorkshopCounts: () => adminRequest("/api/admin/workshops/counts"),
+
+  searchVenues: (query) =>
+    adminRequest(`/api/admin/venues/autocomplete?query=${encodeURIComponent(query)}`),
+
   getWorkshops: (params = "") =>
     adminRequest(`/api/admin/workshops${params ? `?${params}` : ""}`),
 
