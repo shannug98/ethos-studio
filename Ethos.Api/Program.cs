@@ -19,6 +19,7 @@ using Ethos.Api.Application.Workshops;
 using Ethos.Api.Application.Echo;
 using Ethos.Api.Application.Common;
 using Ethos.Api.Application.Media;
+using Ethos.Api.Application.Videos;
 using Ethos.Api.Infrastructure.Storage;
 using Ethos.Api.Infrastructure.Telemetry;
 using Ethos.Api.Domain.Authentication;
@@ -258,6 +259,7 @@ builder.Services.Configure<CloudflareR2Settings>(
     builder.Configuration.GetSection("CloudflareR2"));
 builder.Services.AddScoped<ICloudflareR2StorageService, CloudflareR2StorageService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddScoped<IVideoService, VideoService>();
 
 // Phase 2 & Phase 3 Trainer & Admin Services
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -395,6 +397,30 @@ using (var scope = app.Services.CreateScope())
     if (db.Database.IsRelational())
     {
         db.Database.Migrate();
+
+        // Ensure studio_videos table exists in Neon PostgreSQL
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS studio_videos (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""Title"" character varying(150) NOT NULL,
+                ""Description"" character varying(500),
+                ""Section"" character varying(50) NOT NULL,
+                ""ObjectKey"" character varying(500) NOT NULL,
+                ""PublicUrl"" character varying(1000) NOT NULL,
+                ""ThumbnailUrl"" character varying(1000),
+                ""DisplayOrder"" integer NOT NULL DEFAULT 0,
+                ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+                ""DurationSeconds"" double precision,
+                ""FileSizeBytes"" bigint NOT NULL DEFAULT 0,
+                ""MimeType"" character varying(100) NOT NULL DEFAULT 'video/mp4',
+                ""UploadedByUserId"" uuid,
+                ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT ""FK_studio_videos_users_UploadedByUserId"" FOREIGN KEY (""UploadedByUserId"") REFERENCES users (""Id"") ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_studio_videos_Section_IsActive_DisplayOrder"" ON studio_videos (""Section"", ""IsActive"", ""DisplayOrder"");
+            CREATE INDEX IF NOT EXISTS ""IX_studio_videos_ObjectKey"" ON studio_videos (""ObjectKey"");
+        ");
     }
 
     Phase2SeedService

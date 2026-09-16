@@ -74,7 +74,7 @@ export function getLastTraceId() {
 
 async function adminRequest(endpoint, options = {}) {
   const headers = {
-    "Content-Type": "application/json",
+    ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 
@@ -879,6 +879,48 @@ export const adminApi = {
   revokeSession: (id) =>
     adminRequest(`/api/admin/sessions/${id}/revoke`, {
       method: "POST",
+    }),
+
+  // Video Management (Short Dance Videos & Gallery Showcases)
+  getPublicVideos: (section = "ShortVideos") =>
+    adminRequest(`/api/videos?section=${encodeURIComponent(section)}`),
+
+  getAdminVideos: (params = "") =>
+    adminRequest(`/api/admin/videos${params ? `?${params}` : ""}`),
+
+  uploadVideo: (formData) =>
+    adminRequest("/api/admin/videos/upload", {
+      method: "POST",
+      body: formData,
+    }),
+
+  replaceVideo: (id, formData) =>
+    adminRequest(`/api/admin/videos/${id}/replace`, {
+      method: "POST",
+      body: formData,
+    }),
+
+  updateVideo: (id, data) =>
+    adminRequest(`/api/admin/videos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  toggleVideoActive: (id, isActive) =>
+    adminRequest(`/api/admin/videos/${id}/toggle-active`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive }),
+    }),
+
+  reorderVideos: (items) =>
+    adminRequest("/api/admin/videos/reorder", {
+      method: "PATCH",
+      body: JSON.stringify({ items }),
+    }),
+
+  deleteVideo: (id) =>
+    adminRequest(`/api/admin/videos/${id}`, {
+      method: "DELETE",
     }),
 };
 

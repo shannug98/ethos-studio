@@ -201,6 +201,20 @@ export const ADMIN_MODULE_REGISTRY = [
     componentName: "AdminFeedback",
   },
 
+  // 14. Video Management (Short Videos & Gallery)
+  {
+    id: "videos",
+    path: "/admin_portal/videos",
+    relativeRoute: "videos",
+    label: "Video Management",
+    description: "Manage short dance clips (reels) and high-production gallery video showcases",
+    section: "OPERATIONS",
+    icon: "🎬",
+    requiredPermission: null, // Core admin media management
+    isNavigable: true,
+    componentName: "AdminVideos",
+  },
+
   // 13. Connected Platforms & Services
   {
     id: "platforms",

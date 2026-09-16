@@ -21,6 +21,7 @@ import hero02 from "../assets/hero/hero-02.jpg";
 import hero03 from "../assets/hero/hero-03.jpg";
 
 import visualReel from "../assets/gallery/ethos-visual-reel.mp4";
+import { adminApi } from "../services/adminApi";
 
 import "../styles/gallery.css";
 
@@ -159,6 +160,25 @@ const galleryItems = [
 function Gallery() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [dynamicVideos, setDynamicVideos] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    adminApi
+      .getPublicVideos("Gallery")
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setDynamicVideos(data);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Gallery] Unable to load dynamic gallery videos:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredItems = useMemo(() => {
     if (activeCategory === "ALL") {
@@ -356,6 +376,60 @@ function Gallery() {
         </button>
 
       </section>
+
+      {/* =====================================================
+          DYNAMIC CLOUDFLARE R2 GALLERY VIDEO SHOWCASES
+          ===================================================== */}
+      {dynamicVideos.length > 0 && (
+        <section className="gallery-showcases-section">
+          <div className="gallery-reel__header">
+            <div>
+              <p className="gallery-section-label">CURATED SHOWCASES</p>
+              <h2>
+                FEATURED
+                <br />
+                <em>PERFORMANCES.</em>
+              </h2>
+            </div>
+            <p className="gallery-reel__description">
+              Handpicked full routines, masterclasses, and showcase films produced at Ethos Dance Studio.
+            </p>
+          </div>
+
+          <div className="gallery-videos-grid">
+            {dynamicVideos.map((video) => (
+              <div
+                key={video.id}
+                className="gallery-video-card"
+                onClick={() =>
+                  setSelectedItem({
+                    id: video.id,
+                    type: "video",
+                    src: video.publicUrl,
+                    title: video.title,
+                    category: "SHOWCASE",
+                  })
+                }
+              >
+                <div className="gallery-video-thumb-wrap">
+                  <video
+                    src={video.publicUrl}
+                    className="gallery-video-thumb"
+                    muted
+                    preload="metadata"
+                    playsInline
+                  />
+                  <div className="gallery-video-play-btn">▶</div>
+                </div>
+                <div className="gallery-video-info">
+                  <h3>{video.title}</h3>
+                  {video.description && <p>{video.description}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* =====================================================
           FILTERS

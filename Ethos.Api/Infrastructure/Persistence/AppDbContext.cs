@@ -105,6 +105,8 @@ public class AppDbContext : DbContext
 
     public DbSet<MediaItem> MediaItems => Set<MediaItem>();
 
+    public DbSet<StudioVideo> StudioVideos => Set<StudioVideo>();
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // Safe role invariant guard:

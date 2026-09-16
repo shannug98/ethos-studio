@@ -1,0 +1,252 @@
+/* ETHOS DANCE STUDIO — SHORT DANCE VIDEOS REELS CSS */
+
+.ethos-short-videos-section {
+  padding: 5rem 2rem;
+  background: #0f0e0d;
+  position: relative;
+  overflow: hidden;
+}
+
+.short-videos-header {
+  max-width: 1200px;
+  margin: 0 auto 2.5rem auto;
+  text-align: center;
+}
+
+.section-eyebrow-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #e97963;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.section-main-heading {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.02em;
+}
+
+.section-subtext {
+  font-size: 1rem;
+  color: #9ca3af;
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Horizontal Reels Track */
+.short-videos-scroll-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  overflow-x: auto;
+  padding: 1rem 0 1.5rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 121, 99, 0.4) transparent;
+}
+
+.short-videos-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.short-videos-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(233, 121, 99, 0.4);
+  border-radius: 4px;
+}
+
+.short-videos-track {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0 1rem;
+}
+
+/* Reel Card (9:16 Aspect Ratio) */
+.short-video-reel-card {
+  flex: 0 0 240px;
+  aspect-ratio: 9 / 16;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  background: #181716;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.short-video-reel-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: #e97963;
+  box-shadow: 0 16px 40px rgba(233, 121, 99, 0.2);
+}
+
+.reel-video-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.reel-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reel-overlay-scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  pointer-events: none;
+}
+
+.reel-sound-toggle-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: background 0.2s ease;
+}
+
+.reel-sound-toggle-btn:hover {
+  background: #e97963;
+  border-color: #e97963;
+}
+
+.reel-meta-overlay {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.reel-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e97963;
+  text-transform: uppercase;
+}
+
+.reel-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reel-desc {
+  font-size: 0.78rem;
+  color: #d1d5db;
+  margin: 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Modal */
+.reel-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1.5rem;
+}
+
+.reel-modal-content {
+  position: relative;
+  background: #151413;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.reel-modal-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.reel-modal-close:hover {
+  background: #e97963;
+}
+
+.reel-modal-player-wrap {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background: #000;
+}
+
+.reel-modal-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  outline: none;
+}
+
+.reel-modal-info {
+  padding: 1rem 1.25rem;
+  background: #181716;
+}
+
+.reel-modal-info h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.35rem 0;
+}
+
+.reel-modal-info p {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.45;
+}

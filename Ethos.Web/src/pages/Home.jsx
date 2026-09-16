@@ -10,6 +10,7 @@ import Trainers from "../components/home/Trainers";
 import Testimonials from "../components/home/Testimonials";
 import ReadyToMove from "../components/home/ReadyToMove";
 import InquirySection from "../components/home/InquirySection";
+import ShortDanceVideos from "../components/home/ShortDanceVideos";
 
 function Home() {
   const location = useLocation();
@@ -60,6 +61,8 @@ function Home() {
         <Hero />
 
         <Workshops />
+
+        <ShortDanceVideos />
 
         <About />
 

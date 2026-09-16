@@ -87,6 +87,7 @@ const AdminDevices = lazy(() => import("./pages/admin/AdminDevices"));
 const AdminDailyActivity = lazy(() => import("./pages/admin/AdminDailyActivity"));
 const AdminFeedback = lazy(() => import("./pages/admin/AdminFeedback"));
 const AdminPlatforms = lazy(() => import("./pages/admin/AdminPlatforms"));
+const AdminVideos = lazy(() => import("./pages/admin/AdminVideos"));
 import { isAdminAuthenticated } from "./services/adminApi";
 
 function AdminEntryRedirect() {
@@ -386,6 +387,7 @@ function App() {
             <Route path="packages" element={<AdminPackages />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="videos" element={<AdminVideos />} />
             <Route path="audit-logs" element={<AdminAudit />} />
             <Route path="audit" element={<Navigate to="/admin_portal/audit-logs" replace />} />
             <Route path="security" element={<AdminSecurity />} />
