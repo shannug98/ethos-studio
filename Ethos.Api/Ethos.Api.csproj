@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>b73ef38c-c1bb-418f-a097-1971d873b814</UserSecretsId>
+    <UserSecretsId>ethos-dance-studio-neon-production-2026</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

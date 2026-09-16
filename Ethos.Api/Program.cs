@@ -389,23 +389,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    if (!db.Packages.Any())
+    // Automatically apply any pending EF Core migrations to Neon
+    if (db.Database.IsRelational())
     {
-        db.Packages.Add(new Package
-        {
-            Id = Guid.NewGuid(),
-            Name = "Ethos Monthly Pass",
-            Description = "Unlimited access to regular dance classes for 30 days",
-            Price = 1500.00m,
-            DurationDays = 30,
-            ClassLimit = 12,
-            IsActive = true,
-            IsFeatured = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        });
-
-        db.SaveChanges();
+        db.Database.Migrate();
     }
 
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
