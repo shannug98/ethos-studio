@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
 import AdminWorkshopFormModal from "../../components/admin/AdminWorkshopFormModal";
 import "./AdminWorkshops.css";
 
 export default function AdminWorkshops() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("pending");
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -481,7 +483,14 @@ export default function AdminWorkshops() {
                       {/* Workshop & Style */}
                       <td>
                         <div className="workshop-ref-code">{refCode}</div>
-                        <div className="workshop-title">{w.title}</div>
+                        <div
+                          className="workshop-title clickable-title"
+                          style={{ cursor: "pointer", color: "#4f46e5", fontWeight: 700 }}
+                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                          title="Click to open dedicated workshop dashboard"
+                        >
+                          {w.title}
+                        </div>
                         <div className="workshop-tags">
                           <span className="style-tag">{w.danceStyle}</span>
                           <span className="level-tag">{w.level}</span>
@@ -551,7 +560,16 @@ export default function AdminWorkshops() {
                       {/* Contextual Actions */}
                       <td>
                         <div className="actions-cell">
-                          {/* Main Roster Action with capacity indicator */}
+                          {/* Manage Workshop Link */}
+                          <button
+                            type="button"
+                            className="admin-btn primary small"
+                            style={{ backgroundColor: "#4f46e5", color: "#ffffff", fontWeight: 700 }}
+                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                            title="Open workshop control portal"
+                          >
+                            Manage →
+                          </button>
                           <button
                             className="admin-btn tier-pricing-btn"
                             onClick={() => openPricingTierModal(w)}
@@ -561,7 +579,7 @@ export default function AdminWorkshops() {
                           </button>
                           <button
                             className="admin-btn view-attendees-btn"
-                            onClick={() => openAttendeeList(w)}
+                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/attendees`)}
                             title="View registered students and guest attendees"
                           >
                             View Attendees ({w.bookedCount}/{w.capacity || "—"})
@@ -569,7 +587,7 @@ export default function AdminWorkshops() {
                           <button
                             className="admin-btn small"
                             style={{ backgroundColor: "#2563eb", color: "#ffffff", fontWeight: 600 }}
-                            onClick={() => handleOpenEdit(w)}
+                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/edit`)}
                             title="Edit workshop details"
                           >
                             ✎ Edit

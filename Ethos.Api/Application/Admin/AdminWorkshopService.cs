@@ -968,4 +968,432 @@ public class AdminWorkshopService : IAdminWorkshopService
 
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<AdminWorkshopOverviewResponse> GetWorkshopOverviewAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var w = await _db.Workshops
+            .AsNoTracking()
+            .Include(ws => ws.TrainerProfile)
+            .Include(ws => ws.Bookings)
+            .Include(ws => ws.Tickets)
+                .ThenInclude(t => t.Attendance)
+            .FirstOrDefaultAsync(ws => ws.Id == workshopId, cancellationToken);
+
+        if (w == null)
+            throw new ArgumentException("Workshop not found.");
+
+        var tickets = w.Tickets ?? new List<WorkshopTicket>();
+        var bookings = w.Bookings ?? new List<WorkshopBooking>();
+
+        var bookedCount = tickets.Count(t => t.Status == TicketStatus.Issued);
+        if (bookedCount == 0)
+        {
+            bookedCount = bookings.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => b.Quantity);
+        }
+
+        var attendedCount = tickets.Count(t => t.CheckedInAt.HasValue);
+        var capacity = w.Capacity;
+        var capacityPct = capacity > 0 ? Math.Round((double)bookedCount / capacity * 100, 1) : 0;
+        var checkInPct = bookedCount > 0 ? Math.Round((double)attendedCount / bookedCount * 100, 1) : 0;
+
+        var totalRevenue = bookings
+            .Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended)
+            .Sum(b => b.TotalPrice);
+
+        var recentCheckIns = tickets
+            .Where(t => t.CheckedInAt.HasValue)
+            .OrderByDescending(t => t.CheckedInAt)
+            .Take(15)
+            .Select(t => new AdminWorkshopRecentCheckInDto
+            {
+                TicketId = t.Id,
+                AttendeeName = t.AttendeeName,
+                TicketNumber = t.TicketNumber,
+                CheckedInAt = t.CheckedInAt!.Value,
+                FormattedTime = t.CheckedInAt!.Value.ToString("hh:mm tt"),
+                CheckInMethod = t.CheckInMethod?.ToString() ?? "QR"
+            })
+            .ToList();
+
+        var dateStr = w.WorkshopDate.ToString("ddd, dd MMM yyyy");
+        var startStr = DateTime.Today.Add(w.StartTime).ToString("hh:mm tt");
+        var endStr = DateTime.Today.Add(w.EndTime).ToString("hh:mm tt");
+
+        return new AdminWorkshopOverviewResponse
+        {
+            Id = w.Id,
+            Title = w.Title,
+            WorkshopReference = $"WKS-{w.WorkshopDate.Year}-{w.Id.ToString()[..6].ToUpperInvariant()}",
+            DanceStyle = w.DanceStyle,
+            Level = w.Level,
+            Status = w.Status.ToString(),
+            WorkshopDate = w.WorkshopDate,
+            StartTime = w.StartTime,
+            EndTime = w.EndTime,
+            FormattedSchedule = $"{dateStr} · {startStr} - {endStr}",
+            Venue = w.Venue,
+            Price = w.AdminApprovedPrice ?? w.TrainerProposedPrice ?? w.Price,
+            Capacity = w.Capacity,
+            BookedCount = bookedCount,
+            AttendedCount = attendedCount,
+            CapacityPercentage = capacityPct,
+            CheckInPercentage = checkInPct,
+            TotalRevenue = totalRevenue,
+            TrainerName = w.TrainerProfile?.FullName ?? "Ethos Master Trainer",
+            ImageUrl = w.ImageUrl,
+            Description = w.Description,
+            RecentCheckIns = recentCheckIns
+        };
+    }
+
+    public async Task<AdminCheckInTicketResponse> CheckInWorkshopTicketAsync(
+        Guid workshopId,
+        Guid adminUserId,
+        AdminCheckInTicketRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request?.QrToken) && string.IsNullOrWhiteSpace(request?.TicketNumber))
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "INVALID_TOKEN",
+                Message = "Please scan a valid QR code or provide a ticket number."
+            };
+        }
+
+        string? tokenHash = null;
+        if (!string.IsNullOrWhiteSpace(request.QrToken))
+        {
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(request.QrToken.Trim()));
+            tokenHash = Convert.ToHexString(bytes).ToLowerInvariant();
+        }
+
+        var query = _db.WorkshopTickets
+            .Include(t => t.Workshop)
+            .Include(t => t.WorkshopBooking)
+            .Include(t => t.Attendance)
+            .AsQueryable();
+
+        WorkshopTicket? ticket = null;
+        if (!string.IsNullOrWhiteSpace(tokenHash))
+        {
+            ticket = await query.FirstOrDefaultAsync(t => t.QrTokenHash == tokenHash, cancellationToken);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.TicketNumber))
+        {
+            var cleanNum = request.TicketNumber.Trim().ToUpperInvariant();
+            ticket = await query.FirstOrDefaultAsync(t => t.TicketNumber.ToUpper() == cleanNum, cancellationToken);
+        }
+
+        if (ticket == null)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "TICKET_NOT_FOUND",
+                Message = "Ticket was not found in studio records."
+            };
+        }
+
+        // CRITICAL WORKSHOP RELATIONSHIP CHECK
+        var actualWorkshopId = ticket.WorkshopId != Guid.Empty ? ticket.WorkshopId : ticket.WorkshopBooking?.WorkshopId;
+        if (actualWorkshopId != workshopId)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "WRONG_WORKSHOP",
+                Message = "This ticket belongs to another workshop and cannot be checked in here.",
+                WorkshopId = actualWorkshopId,
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        if (ticket.Status == TicketStatus.Cancelled || ticket.Status == TicketStatus.Refunded)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "TICKET_CANCELLED",
+                Message = $"This ticket is {ticket.Status.ToString().ToLowerInvariant()} and cannot be checked in.",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        if (ticket.WorkshopBooking?.Status == WorkshopBookingStatus.Cancelled)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "BOOKING_CANCELLED",
+                Message = "The booking for this ticket has been cancelled.",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        if (ticket.WorkshopBooking != null && ticket.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment)
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "PAYMENT_NOT_CONFIRMED",
+                Message = "Payment has not been confirmed for this booking.",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        if (ticket.CheckedInAt.HasValue || ticket.Attendance != null)
+        {
+            var timeStr = ticket.CheckedInAt?.ToString("hh:mm tt") ?? "earlier";
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "ALREADY_CHECKED_IN",
+                Message = $"This ticket was already checked in at {timeStr}.",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                AttendeeName = ticket.AttendeeName,
+                TicketNumber = ticket.TicketNumber,
+                CheckedInAt = ticket.CheckedInAt
+            };
+        }
+
+        if (ticket.Workshop != null && (ticket.Workshop.Status == WorkshopStatus.Cancelled || ticket.Workshop.Status == WorkshopStatus.Archived))
+        {
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "WORKSHOP_NOT_OPEN",
+                Message = $"This workshop is {ticket.Workshop.Status.ToString().ToLowerInvariant()} and closed for check-ins.",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber
+            };
+        }
+
+        // Concurrency-safe check-in transaction
+        using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var dbTicket = await _db.WorkshopTickets
+                .FirstOrDefaultAsync(t => t.Id == ticket.Id, cancellationToken);
+
+            if (dbTicket == null || dbTicket.CheckedInAt.HasValue)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return new AdminCheckInTicketResponse
+                {
+                    Success = false,
+                    Code = "ALREADY_CHECKED_IN",
+                    Message = "Ticket was already checked in by another session.",
+                    WorkshopId = workshopId,
+                    TicketId = ticket.Id,
+                    AttendeeName = ticket.AttendeeName,
+                    TicketNumber = ticket.TicketNumber
+                };
+            }
+
+            var now = DateTime.UtcNow;
+            var method = !string.IsNullOrWhiteSpace(request.QrToken) ? CheckInMethod.QrScan : CheckInMethod.AdminOverride;
+
+            dbTicket.CheckedInAt = now;
+            dbTicket.CheckedInByUserId = adminUserId;
+            dbTicket.CheckInMethod = method;
+            dbTicket.AttendeeDetailsLockedAt = now;
+
+            var existingAttendance = await _db.WorkshopAttendances
+                .FirstOrDefaultAsync(a => a.WorkshopTicketId == ticket.Id, cancellationToken);
+
+            if (existingAttendance == null)
+            {
+                var attendance = new WorkshopAttendance
+                {
+                    Id = Guid.NewGuid(),
+                    WorkshopTicketId = ticket.Id,
+                    WorkshopId = workshopId,
+                    CheckedInByUserId = adminUserId,
+                    FirstCheckedInAt = now,
+                    LastCheckedInAt = now,
+                    IsCurrentlyInside = true,
+                    Method = method,
+                    Notes = request.Notes ?? (method == CheckInMethod.QrScan ? "Scanned via QR Check-In" : "Manual Admin Check-In")
+                };
+                _db.WorkshopAttendances.Add(attendance);
+            }
+            else
+            {
+                existingAttendance.LastCheckedInAt = now;
+                existingAttendance.IsCurrentlyInside = true;
+            }
+
+            if (ticket.WorkshopBooking != null && ticket.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed)
+            {
+                ticket.WorkshopBooking.Status = WorkshopBookingStatus.Attended;
+            }
+
+            _auditService.AddAuditLog(
+                adminUserId,
+                "WORKSHOP_TICKET_CHECKED_IN",
+                "WorkshopTicket",
+                ticket.Id,
+                $"Ticket {ticket.TicketNumber} checked in for workshop {workshopId} via {method}.");
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            return new AdminCheckInTicketResponse
+            {
+                Success = true,
+                Code = "SUCCESS",
+                Message = "Check-in successful",
+                WorkshopId = workshopId,
+                TicketId = ticket.Id,
+                AttendeeName = ticket.AttendeeName,
+                TicketNumber = ticket.TicketNumber,
+                CheckedInAt = now,
+                CheckInMethod = method.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "CHECKIN_FAILED",
+                Message = $"Check-in failed: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<IReadOnlyList<AdminWorkshopAttendeeDto>> GetWorkshopAttendeesAsync(
+        Guid workshopId,
+        string? filter,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _db.WorkshopTickets
+            .AsNoTracking()
+            .Include(t => t.WorkshopBooking)
+            .Include(t => t.Attendance)
+            .Where(t => t.WorkshopId == workshopId || t.WorkshopBooking.WorkshopId == workshopId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter))
+        {
+            var f = filter.Trim().ToLower();
+            if (f == "checked_in" || f == "present")
+                query = query.Where(t => t.CheckedInAt.HasValue);
+            else if (f == "not_checked_in" || f == "absent")
+                query = query.Where(t => !t.CheckedInAt.HasValue);
+            else if (f == "guests")
+                query = query.Where(t => !t.IsPrimaryAttendee || t.WorkshopBooking.GuestName != null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(t =>
+                t.AttendeeName.ToLower().Contains(s) ||
+                t.TicketNumber.ToLower().Contains(s));
+        }
+
+        var tickets = await query
+            .OrderBy(t => t.TicketNumber)
+            .ToListAsync(cancellationToken);
+
+        return tickets.Select(t =>
+        {
+            var isGuest = !t.IsPrimaryAttendee || t.WorkshopBooking?.GuestName != null;
+            var isCheckedIn = t.CheckedInAt.HasValue;
+
+            string phoneMasked = "—";
+            if (!string.IsNullOrWhiteSpace(t.AttendeePhone))
+            {
+                var clean = t.AttendeePhone.Trim();
+                phoneMasked = clean.Length > 6 ? $"{clean[..3]}••••{clean[^3..]}" : clean;
+            }
+
+            string? emailMasked = null;
+            if (!string.IsNullOrWhiteSpace(t.AttendeeEmail))
+            {
+                var parts = t.AttendeeEmail.Split('@');
+                if (parts.Length == 2 && parts[0].Length > 2)
+                    emailMasked = $"{parts[0][..2]}***@{parts[1]}";
+                else
+                    emailMasked = t.AttendeeEmail;
+            }
+
+            var payStatus = (t.WorkshopBooking?.PaymentTransactionId.HasValue == true ||
+                             t.WorkshopBooking?.Status == WorkshopBookingStatus.Confirmed ||
+                             t.WorkshopBooking?.Status == WorkshopBookingStatus.Attended)
+                ? "Paid"
+                : (t.WorkshopBooking?.Status == WorkshopBookingStatus.PendingPayment ? "Pending" : "Free/Unpaid");
+
+            return new AdminWorkshopAttendeeDto
+            {
+                TicketId = t.Id,
+                BookingId = t.WorkshopBookingId,
+                AttendeeName = t.AttendeeName,
+                AttendeePhoneMasked = phoneMasked,
+                AttendeeEmailMasked = emailMasked,
+                TicketNumber = t.TicketNumber,
+                BookingReference = $"BK-{t.WorkshopBookingId.ToString()[..8].ToUpperInvariant()}",
+                BookingStatus = t.WorkshopBooking?.Status.ToString() ?? "Confirmed",
+                PaymentStatus = payStatus,
+                IsCheckedIn = isCheckedIn,
+                CheckedInAt = t.CheckedInAt,
+                FormattedCheckedInAt = t.CheckedInAt?.ToString("hh:mm tt"),
+                CheckInMethod = t.CheckInMethod?.ToString(),
+                IsGuest = isGuest,
+                AttendeeType = isGuest ? "Workshop Guest" : "ETHOS Student"
+            };
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<AdminWorkshopFeedbackDto>> GetWorkshopFeedbackAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var feedbacks = await _db.WorkshopFeedbacks
+            .AsNoTracking()
+            .Include(f => f.StudentProfile)
+                .ThenInclude(sp => sp.User)
+            .Include(f => f.WorkshopBooking)
+            .Where(f => (f.WorkshopId == workshopId || (f.WorkshopBooking != null && f.WorkshopBooking.WorkshopId == workshopId)) && f.IsValid)
+            .OrderByDescending(f => f.SubmittedAt)
+            .ToListAsync(cancellationToken);
+
+        return feedbacks.Select(f =>
+        {
+            var rawName = f.StudentProfile?.User?.FullName;
+            string masked = "Verified Attendee";
+            if (!string.IsNullOrWhiteSpace(rawName))
+            {
+                var parts = rawName.Trim().Split(' ');
+                masked = parts.Length > 1 ? $"{parts[0]} {parts[1][0]}." : parts[0];
+            }
+
+            return new AdminWorkshopFeedbackDto
+            {
+                Id = f.Id,
+                Rating = f.Rating,
+                Comment = f.Comment,
+                StudentNameMasked = masked,
+                SubmittedAt = f.SubmittedAt,
+                FormattedDate = f.SubmittedAt.ToString("dd MMM yyyy, hh:mm tt")
+            };
+        }).ToList();
+    }
 }

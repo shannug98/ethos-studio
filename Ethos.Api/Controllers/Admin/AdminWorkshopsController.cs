@@ -481,6 +481,72 @@ public class AdminWorkshopsController : ControllerBase
         var csv = await _workshopService.ExportWorkshopAttendanceCsvAsync(id, cancellationToken);
         return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", $"workshop_attendance_{id}.csv");
     }
+
+    [HttpGet("workshops/{workshopId:guid}/overview")]
+    public async Task<ActionResult<AdminWorkshopOverviewResponse>> GetWorkshopOverview(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _workshopService.GetWorkshopOverviewAsync(workshopId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("workshops/{workshopId:guid}/tickets/check-in")]
+    public async Task<ActionResult<AdminCheckInTicketResponse>> CheckInWorkshopTicket(
+        Guid workshopId,
+        [FromBody] AdminCheckInTicketRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success)
+        {
+            return StatusCode(authCheck.StatusCode, new AdminCheckInTicketResponse
+            {
+                Success = false,
+                Code = "UNAUTHORIZED",
+                Message = authCheck.ErrorMessage ?? "You do not have permission to check in attendees."
+            });
+        }
+
+        var result = await _workshopService.CheckInWorkshopTicketAsync(workshopId, AdminUserId, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("workshops/{workshopId:guid}/attendees")]
+    public async Task<ActionResult<IReadOnlyList<AdminWorkshopAttendeeDto>>> GetWorkshopAttendees(
+        Guid workshopId,
+        [FromQuery] string? filter,
+        [FromQuery] string? search,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.GetWorkshopAttendeesAsync(workshopId, filter, search, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("workshops/{workshopId:guid}/feedback")]
+    public async Task<ActionResult<IReadOnlyList<AdminWorkshopFeedbackDto>>> GetWorkshopFeedback(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.GetWorkshopFeedbackAsync(workshopId, cancellationToken);
+        return Ok(result);
+    }
 }
 
 public class AdminRejectWorkshopBody

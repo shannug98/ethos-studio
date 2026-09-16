@@ -607,6 +607,21 @@ export const adminApi = {
   getWorkshopTickets: (id) =>
     adminRequest(`/api/admin/workshops/${id}/tickets`),
 
+  getWorkshopOverview: (workshopId) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/overview`),
+
+  checkInWorkshopTicket: (workshopId, payload) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/tickets/check-in`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getWorkshopAttendees: (workshopId, params = "") =>
+    adminRequest(`/api/admin/workshops/${workshopId}/attendees${params ? `?${params}` : ""}`),
+
+  getWorkshopFeedback: (workshopId) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback`),
+
   overrideWorkshopTicket: (workshopId, ticketId, reason) =>
     adminRequest(`/api/admin/workshops/${workshopId}/tickets/${ticketId}/override`, {
       method: "POST",

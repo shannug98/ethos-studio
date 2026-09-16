@@ -88,6 +88,14 @@ const AdminDailyActivity = lazy(() => import("./pages/admin/AdminDailyActivity")
 const AdminFeedback = lazy(() => import("./pages/admin/AdminFeedback"));
 const AdminPlatforms = lazy(() => import("./pages/admin/AdminPlatforms"));
 const AdminVideos = lazy(() => import("./pages/admin/AdminVideos"));
+const AdminWorkshopLayout = lazy(() => import("./components/admin/workshops/AdminWorkshopLayout"));
+const AdminWorkshopOverview = lazy(() => import("./pages/admin/workshops/AdminWorkshopOverview"));
+const AdminWorkshopDetails = lazy(() => import("./pages/admin/workshops/AdminWorkshopDetails"));
+const AdminWorkshopScanner = lazy(() => import("./pages/admin/workshops/AdminWorkshopScanner"));
+const AdminWorkshopAttendees = lazy(() => import("./pages/admin/workshops/AdminWorkshopAttendees"));
+const AdminWorkshopBookings = lazy(() => import("./pages/admin/workshops/AdminWorkshopBookings"));
+const AdminWorkshopFeedback = lazy(() => import("./pages/admin/workshops/AdminWorkshopFeedback"));
+const AdminWorkshopEdit = lazy(() => import("./pages/admin/workshops/AdminWorkshopEdit"));
 import { isAdminAuthenticated } from "./services/adminApi";
 
 function AdminEntryRedirect() {
@@ -382,6 +390,16 @@ function App() {
             <Route path="trainers/:trainerId" element={<AdminTrainerDossier />} />
             <Route path="classes" element={<AdminClasses />} />
             <Route path="workshops" element={<AdminWorkshops />} />
+            <Route path="workshops/:workshopId" element={<AdminWorkshopLayout />}>
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<AdminWorkshopOverview />} />
+              <Route path="details" element={<AdminWorkshopDetails />} />
+              <Route path="scanner" element={<AdminWorkshopScanner />} />
+              <Route path="attendees" element={<AdminWorkshopAttendees />} />
+              <Route path="bookings" element={<AdminWorkshopBookings />} />
+              <Route path="feedback" element={<AdminWorkshopFeedback />} />
+              <Route path="edit" element={<AdminWorkshopEdit />} />
+            </Route>
             <Route path="bookings" element={<AdminBookings />} />
             <Route path="attendance" element={<AdminAttendance />} />
             <Route path="packages" element={<AdminPackages />} />

@@ -109,4 +109,24 @@ public interface IAdminWorkshopService
         Guid workshopId,
         Guid adminUserId,
         CancellationToken cancellationToken);
+
+    Task<AdminWorkshopOverviewResponse> GetWorkshopOverviewAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
+
+    Task<AdminCheckInTicketResponse> CheckInWorkshopTicketAsync(
+        Guid workshopId,
+        Guid adminUserId,
+        AdminCheckInTicketRequest request,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminWorkshopAttendeeDto>> GetWorkshopAttendeesAsync(
+        Guid workshopId,
+        string? filter,
+        string? search,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminWorkshopFeedbackDto>> GetWorkshopFeedbackAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
 }

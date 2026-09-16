@@ -604,7 +604,7 @@ export default function AdminDashboard() {
                 <div
                   key={w.workshopId}
                   className="workshop-item-row"
-                  onClick={() => navigate("/admin_portal/workshops")}
+                  onClick={() => navigate(`/admin_portal/workshops/${w.workshopId}/overview`)}
                   role="button"
                   tabIndex={0}
                 >
