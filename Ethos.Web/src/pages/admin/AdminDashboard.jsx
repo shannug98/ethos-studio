@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -30,153 +30,128 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const adminUser = getAdminUser();
 
-  // 1. Data States
+  // 1. Data States (Zero & Empty Initial States - No Mock Data)
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [trendRange, setTrendRange] = useState("last6months");
   const [revenuePeriod, setRevenuePeriod] = useState("thisMonth");
 
   const [summary, setSummary] = useState({
-    totalBookings: 428,
-    bookingsGrowthPercent: 12,
-    totalRevenue: 324580,
-    revenueGrowthPercent: 18,
-    upcomingWorkshopsCount: 8,
-    workshopsThisWeekCount: 2,
-    unreadMessagesCount: 3,
-    messagesGrowthPercent: -40,
-    pendingActionsCount: 6,
-    failedPaymentsCount: 3,
+    totalBookings: 0,
+    bookingsGrowthPercent: 0,
+    totalRevenue: 0,
+    revenueGrowthPercent: 0,
+    upcomingWorkshopsCount: 0,
+    workshopsThisWeekCount: 0,
+    unreadMessagesCount: 0,
+    messagesGrowthPercent: 0,
+    pendingActionsCount: 0,
+    failedPaymentsCount: 0,
   });
 
   const [trends, setTrends] = useState({
     range: "last6months",
-    dataPoints: [
-      { label: "Jan", bookingsCount: 25, revenueAmount: 120000 },
-      { label: "Feb", bookingsCount: 38, revenueAmount: 175000 },
-      { label: "Mar", bookingsCount: 52, revenueAmount: 210000 },
-      { label: "Apr", bookingsCount: 64, revenueAmount: 260000 },
-      { label: "May", bookingsCount: 72, revenueAmount: 290000 },
-      { label: "Jun", bookingsCount: 85, revenueAmount: 324580 },
-    ],
+    dataPoints: [],
   });
 
   const [workshopStatus, setWorkshopStatus] = useState({
-    publishedCount: 14,
-    scheduledCount: 5,
-    draftCount: 3,
-    completedCount: 2,
+    publishedCount: 0,
+    scheduledCount: 0,
+    draftCount: 0,
+    completedCount: 0,
     archivedCount: 0,
     cancelledCount: 0,
-    totalCount: 24,
+    totalCount: 0,
   });
 
-  const [priorities, setPriorities] = useState([
-    { id: "1", type: "WORKSHOPS_AWAITING", count: 2, title: "2 workshops awaiting publication", subtitle: "Review and publish →", actionUrl: "/admin_portal/workshops", severity: "WARNING" },
-    { id: "2", type: "FAILED_PAYMENTS", count: 3, title: "3 failed payments", subtitle: "Check and follow up →", actionUrl: "/admin_portal/payments", severity: "DANGER" },
-    { id: "3", type: "UNREAD_MESSAGES", count: 3, title: "3 unread contact messages", subtitle: "Respond to enquiries →", actionUrl: "/admin_portal/communications", severity: "WARNING" },
-    { id: "4", type: "MEDIA_PENDING", count: 1, title: "1 media item pending review", subtitle: "Approve or reject →", actionUrl: "/admin_portal/videos", severity: "INFO" },
-    { id: "5", type: "NEW_REGISTRATIONS", count: 1, title: "1 new user registration", subtitle: "Review user details →", actionUrl: "/admin_portal/users", severity: "INFO" },
-  ]);
-
-  const [recentBookings, setRecentBookings] = useState([
-    { bookingId: "b1", customerNameMasked: "Aarav Mehta", workshopTitle: "Hip Hop Intensive", formattedDate: "24 Jun 2025", formattedAmount: "₹ 2,500", paymentStatus: "Paid" },
-    { bookingId: "b2", customerNameMasked: "Priya Sharma", workshopTitle: "Contemporary Flow", formattedDate: "23 Jun 2025", formattedAmount: "₹ 1,800", paymentStatus: "Paid" },
-    { bookingId: "b3", customerNameMasked: "Rohan Kapoor", workshopTitle: "Kids Dance Camp", formattedDate: "23 Jun 2025", formattedAmount: "₹ 3,000", paymentStatus: "Pending" },
-    { bookingId: "b4", customerNameMasked: "Sneha Iyer", workshopTitle: "Bharatanatyam Basics", formattedDate: "22 Jun 2025", formattedAmount: "₹ 2,000", paymentStatus: "Paid" },
-    { bookingId: "b5", customerNameMasked: "Kunal Desai", workshopTitle: "Advanced Choreography", formattedDate: "22 Jun 2025", formattedAmount: "₹ 2,800", paymentStatus: "Failed" },
-  ]);
-
-  const [upcomingWorkshops, setUpcomingWorkshops] = useState([
-    { workshopId: "w1", title: "Hip Hop Intensive", formattedDate: "Sat, 28 Jun 2025 · 10:00 AM", bookedSeats: 32, capacity: 40, occupancyPercentage: 80.0, thumbnailUrl: "/images/classes/hiphop.jpg" },
-    { workshopId: "w2", title: "Contemporary Flow", formattedDate: "Sun, 29 Jun 2025 · 11:00 AM", bookedSeats: 18, capacity: 30, occupancyPercentage: 60.0, thumbnailUrl: "/images/classes/contemporary.jpg" },
-    { workshopId: "w3", title: "Kids Dance Camp", formattedDate: "Sat, 05 Jul 2025 · 09:00 AM", bookedSeats: 12, capacity: 20, occupancyPercentage: 60.0, thumbnailUrl: "/images/classes/kids.jpg" },
-    { workshopId: "w4", title: "Bollywood Beats", formattedDate: "Sun, 06 Jul 2025 · 05:00 PM", bookedSeats: 25, capacity: 30, occupancyPercentage: 83.3, thumbnailUrl: "/images/classes/bollywood.jpg" },
-  ]);
-
+  const [priorities, setPriorities] = useState([]);
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [upcomingWorkshops, setUpcomingWorkshops] = useState([]);
   const [systemHealth, setSystemHealth] = useState({
     overallStatus: "Operational",
-    formattedLastChecked: "24 Jun 2025, 10:42 AM",
-    subsystems: [
-      { key: "website_api", name: "Website & API", status: "Operational" },
-      { key: "database", name: "Database", status: "Operational" },
-      { key: "payment_provider", name: "Payment Provider", status: "Operational" },
-      { key: "whatsapp_provider", name: "WhatsApp Provider", status: "Operational" },
-      { key: "storage", name: "Storage", status: "Operational" },
-    ],
+    formattedLastChecked: "",
+    subsystems: [],
   });
-
-  const [recentActivity, setRecentActivity] = useState([
-    { id: "a1", action: "Workshop published: Contemporary Flow", actorNameMasked: "by admin@ethos.com", formattedTime: "10:15 AM", type: "WORKSHOP" },
-    { id: "a2", action: "Payment confirmed: ₹ 2,500", actorNameMasked: "by system", formattedTime: "09:48 AM", type: "PAYMENT" },
-    { id: "a3", action: "New message received", actorNameMasked: "from neha.k@example.com", formattedTime: "09:20 AM", type: "MESSAGE" },
-    { id: "a4", action: "Media uploaded: workshop-banner.jpg", actorNameMasked: "by admin@ethos.com", formattedTime: "08:55 AM", type: "MEDIA" },
-    { id: "a5", action: "User registered: arav@abc.com", actorNameMasked: "by system", formattedTime: "08:30 AM", type: "USER" },
-  ]);
-
+  const [recentActivity, setRecentActivity] = useState([]);
   const [revenueOverview, setRevenueOverview] = useState({
-    formattedCurrentMonthRevenue: "₹ 3,24,580",
-    monthGrowthPercent: 18,
-    weeklyBreakdown: [
-      { weekLabel: "Week 1", revenueAmount: 48000 },
-      { weekLabel: "Week 2", revenueAmount: 65000 },
-      { weekLabel: "Week 3", revenueAmount: 98000 },
-      { weekLabel: "Week 4", revenueAmount: 113580 },
-    ],
+    formattedCurrentMonthRevenue: "₹ 0",
+    monthGrowthPercent: 0,
+    weeklyBreakdown: [],
   });
 
-  // 2. Fetch Initial Bounded Data
-  useEffect(() => {
-    let isMounted = true;
+  // 2. Fetch Initial Real DB Data
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
+    setError(null);
 
-    Promise.allSettled([
-      adminApi.getDashboardSummary(),
-      adminApi.getDashboardTrends(trendRange),
-      adminApi.getWorkshopStatusDonut(),
-      adminApi.getDashboardPriorities(),
-      adminApi.getRecentBookings(5),
-      adminApi.getUpcomingWorkshops(4),
-      adminApi.getSystemHealth(),
-      adminApi.getRecentActivity(5),
-      adminApi.getRevenueOverview(),
-    ]).then((results) => {
-      if (!isMounted) return;
+    try {
+      const results = await Promise.allSettled([
+        adminApi.getDashboardSummary(),
+        adminApi.getDashboardTrends(trendRange),
+        adminApi.getWorkshopStatusDonut(),
+        adminApi.getDashboardPriorities(),
+        adminApi.getRecentBookings(5),
+        adminApi.getUpcomingWorkshops(4),
+        adminApi.getSystemHealth(),
+        adminApi.getRecentActivity(5),
+        adminApi.getRevenueOverview(),
+      ]);
 
-      if (results[0].status === "fulfilled" && results[0].value) {
-        setSummary(results[0].value);
-      }
-      if (results[1].status === "fulfilled" && results[1].value) {
-        setTrends(results[1].value);
-      }
-      if (results[2].status === "fulfilled" && results[2].value) {
-        setWorkshopStatus(results[2].value);
-      }
-      if (results[3].status === "fulfilled" && results[3].value?.items) {
-        setPriorities(results[3].value.items);
-      }
-      if (results[4].status === "fulfilled" && Array.isArray(results[4].value)) {
-        setRecentBookings(results[4].value);
-      }
-      if (results[5].status === "fulfilled" && Array.isArray(results[5].value)) {
-        setUpcomingWorkshops(results[5].value);
-      }
-      if (results[6].status === "fulfilled" && results[6].value) {
-        setSystemHealth(results[6].value);
-      }
-      if (results[7].status === "fulfilled" && Array.isArray(results[7].value)) {
-        setRecentActivity(results[7].value);
-      }
-      if (results[8].status === "fulfilled" && results[8].value) {
-        setRevenueOverview(results[8].value);
+      const [
+        summaryRes,
+        trendsRes,
+        donutRes,
+        prioritiesRes,
+        bookingsRes,
+        workshopsRes,
+        healthRes,
+        activityRes,
+        revenueRes,
+      ] = results;
+
+      // Count rejections
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      if (failedCount >= 5) {
+        setError("Unable to connect to Ethos Admin API. Please check your backend connection or session.");
       }
 
+      if (summaryRes.status === "fulfilled" && summaryRes.value) {
+        setSummary(summaryRes.value);
+      }
+      if (trendsRes.status === "fulfilled" && trendsRes.value) {
+        setTrends(trendsRes.value);
+      }
+      if (donutRes.status === "fulfilled" && donutRes.value) {
+        setWorkshopStatus(donutRes.value);
+      }
+      if (prioritiesRes.status === "fulfilled" && prioritiesRes.value?.items) {
+        setPriorities(prioritiesRes.value.items);
+      }
+      if (bookingsRes.status === "fulfilled" && Array.isArray(bookingsRes.value)) {
+        setRecentBookings(bookingsRes.value);
+      }
+      if (workshopsRes.status === "fulfilled" && Array.isArray(workshopsRes.value)) {
+        setUpcomingWorkshops(workshopsRes.value);
+      }
+      if (healthRes.status === "fulfilled" && healthRes.value) {
+        setSystemHealth(healthRes.value);
+      }
+      if (activityRes.status === "fulfilled" && Array.isArray(activityRes.value)) {
+        setRecentActivity(activityRes.value);
+      }
+      if (revenueRes.status === "fulfilled" && revenueRes.value) {
+        setRevenueOverview(revenueRes.value);
+      }
+    } catch (err) {
+      setError(err?.message || "Failed to load dashboard data.");
+    } finally {
       setLoading(false);
-    });
+    }
+  }, [trendRange]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   // Handle Trends Range Change
   const handleTrendRangeChange = (newRange) => {
@@ -191,14 +166,14 @@ export default function AdminDashboard() {
 
   // Prepare Donut Chart Data
   const donutData = [
-    { name: "Published", value: workshopStatus.publishedCount || 14, color: WORKSHOP_COLORS.Published },
-    { name: "Scheduled", value: workshopStatus.scheduledCount || 5, color: WORKSHOP_COLORS.Scheduled },
-    { name: "Draft", value: workshopStatus.draftCount || 3, color: WORKSHOP_COLORS.Draft },
-    { name: "Completed", value: workshopStatus.completedCount || 2, color: WORKSHOP_COLORS.Completed },
-    { name: "Archived", value: workshopStatus.archivedCount || 0, color: WORKSHOP_COLORS.Archived },
+    { name: "Published", value: workshopStatus?.publishedCount ?? 0, color: WORKSHOP_COLORS.Published },
+    { name: "Scheduled", value: workshopStatus?.scheduledCount ?? 0, color: WORKSHOP_COLORS.Scheduled },
+    { name: "Draft", value: workshopStatus?.draftCount ?? 0, color: WORKSHOP_COLORS.Draft },
+    { name: "Completed", value: workshopStatus?.completedCount ?? 0, color: WORKSHOP_COLORS.Completed },
+    { name: "Archived", value: workshopStatus?.archivedCount ?? 0, color: WORKSHOP_COLORS.Archived },
   ].filter((item) => item.value > 0);
 
-  const totalWorkshopsCount = workshopStatus.totalCount || 24;
+  const totalWorkshopsCount = Number(workshopStatus?.totalCount ?? 0);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -216,6 +191,10 @@ export default function AdminDashboard() {
         return "⚡";
     }
   };
+
+  const isAllHealthy =
+    systemHealth?.overallStatus === "Operational" &&
+    (!systemHealth.subsystems || systemHealth.subsystems.every((s) => s.status === "Operational"));
 
   return (
     <div className="ethos-dashboard-page">
@@ -236,6 +215,19 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Error Banner with Retry */}
+      {error && (
+        <div className="dashboard-error-banner">
+          <div className="error-message-content">
+            <span className="error-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+          <button type="button" className="dashboard-retry-btn" onClick={loadDashboardData}>
+            Retry Connection ↻
+          </button>
+        </div>
+      )}
+
       {/* 2. ACTION-FOCUSED KPI CARDS (5 Cards) */}
       <div className="ethos-kpi-grid">
         {/* Card 1: Total Bookings */}
@@ -248,10 +240,15 @@ export default function AdminDashboard() {
           <div className="kpi-icon-wrap">👥</div>
           <div className="kpi-content">
             <span className="kpi-label">Total Bookings</span>
-            <div className="kpi-value">{summary.totalBookings?.toLocaleString() || 428}</div>
-            <div className="kpi-subtext growth-up">
-              <span className="subtext-arrow">↑</span> {summary.bookingsGrowthPercent || 12}% vs last month
-            </div>
+            <div className="kpi-value">{Number(summary?.totalBookings ?? 0).toLocaleString()}</div>
+            {summary?.bookingsGrowthPercent ? (
+              <div className={`kpi-subtext ${summary.bookingsGrowthPercent >= 0 ? "growth-up" : "growth-down"}`}>
+                <span className="subtext-arrow">{summary.bookingsGrowthPercent >= 0 ? "↑" : "↓"}</span>{" "}
+                {Math.abs(summary.bookingsGrowthPercent)}% vs last month
+              </div>
+            ) : (
+              <div className="kpi-subtext normal">0% vs last month</div>
+            )}
           </div>
         </div>
 
@@ -265,10 +262,15 @@ export default function AdminDashboard() {
           <div className="kpi-icon-wrap">₹</div>
           <div className="kpi-content">
             <span className="kpi-label">Total Revenue</span>
-            <div className="kpi-value">₹ {summary.totalRevenue?.toLocaleString("en-IN") || "3,24,580"}</div>
-            <div className="kpi-subtext growth-up">
-              <span className="subtext-arrow">↑</span> {summary.revenueGrowthPercent || 18}% vs last month
-            </div>
+            <div className="kpi-value">₹ {Number(summary?.totalRevenue ?? 0).toLocaleString("en-IN")}</div>
+            {summary?.revenueGrowthPercent ? (
+              <div className={`kpi-subtext ${summary.revenueGrowthPercent >= 0 ? "growth-up" : "growth-down"}`}>
+                <span className="subtext-arrow">{summary.revenueGrowthPercent >= 0 ? "↑" : "↓"}</span>{" "}
+                {Math.abs(summary.revenueGrowthPercent)}% vs last month
+              </div>
+            ) : (
+              <div className="kpi-subtext normal">0% vs last month</div>
+            )}
           </div>
         </div>
 
@@ -282,9 +284,9 @@ export default function AdminDashboard() {
           <div className="kpi-icon-wrap">📅</div>
           <div className="kpi-content">
             <span className="kpi-label">Upcoming Workshops</span>
-            <div className="kpi-value">{summary.upcomingWorkshopsCount || 8}</div>
+            <div className="kpi-value">{Number(summary?.upcomingWorkshopsCount ?? 0)}</div>
             <div className="kpi-subtext normal">
-              {summary.workshopsThisWeekCount || 2} this week
+              {Number(summary?.workshopsThisWeekCount ?? 0)} this week
             </div>
           </div>
         </div>
@@ -299,10 +301,15 @@ export default function AdminDashboard() {
           <div className="kpi-icon-wrap">💬</div>
           <div className="kpi-content">
             <span className="kpi-label">Unread Messages</span>
-            <div className="kpi-value">{summary.unreadMessagesCount || 3}</div>
-            <div className="kpi-subtext growth-down">
-              <span className="subtext-arrow">↓</span> {Math.abs(summary.messagesGrowthPercent || 40)}% vs last week
-            </div>
+            <div className="kpi-value">{Number(summary?.unreadMessagesCount ?? 0)}</div>
+            {summary?.messagesGrowthPercent ? (
+              <div className={`kpi-subtext ${summary.messagesGrowthPercent <= 0 ? "growth-up" : "growth-down"}`}>
+                <span className="subtext-arrow">{summary.messagesGrowthPercent <= 0 ? "↓" : "↑"}</span>{" "}
+                {Math.abs(summary.messagesGrowthPercent)}% vs last week
+              </div>
+            ) : (
+              <div className="kpi-subtext normal">All messages reviewed</div>
+            )}
           </div>
         </div>
 
@@ -316,9 +323,9 @@ export default function AdminDashboard() {
           <div className="kpi-icon-wrap">❗</div>
           <div className="kpi-content">
             <span className="kpi-label">Pending Actions</span>
-            <div className="kpi-value">{summary.pendingActionsCount || 6}</div>
-            <div className="kpi-subtext attention">
-              Needs attention
+            <div className="kpi-value">{Number(summary?.pendingActionsCount ?? 0)}</div>
+            <div className={`kpi-subtext ${Number(summary?.pendingActionsCount ?? 0) > 0 ? "attention" : "normal"}`}>
+              {Number(summary?.pendingActionsCount ?? 0) > 0 ? "Needs attention" : "All clear"}
             </div>
           </div>
         </div>
@@ -350,61 +357,71 @@ export default function AdminDashboard() {
           </div>
 
           <div className="chart-canvas-wrap">
-            <ResponsiveContainer width="100%" height={210}>
-              <LineChart data={trends.dataPoints} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                <XAxis
-                  dataKey="label"
-                  axisLine={{ stroke: "#f1f5f9" }}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                />
-                <YAxis
-                  yAxisId="bookings"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                />
-                <YAxis
-                  yAxisId="revenue"
-                  orientation="right"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "#94a3b8" }}
-                  tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#ffffff",
-                    borderRadius: 8,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                    border: "1px solid #e2e8f0",
-                    fontSize: 12,
-                  }}
-                  formatter={(val, name) => [
-                    name === "Revenue" ? `₹${Number(val).toLocaleString("en-IN")}` : val,
-                    name,
-                  ]}
-                />
-                <Bar
-                  yAxisId="revenue"
-                  dataKey="revenueAmount"
-                  name="Revenue"
-                  fill="#e0e7ff"
-                  radius={[4, 4, 0, 0]}
-                  barSize={20}
-                />
-                <Line
-                  yAxisId="bookings"
-                  type="monotone"
-                  dataKey="bookingsCount"
-                  name="Bookings"
-                  stroke="#6366f1"
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: "#6366f1" }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {trends?.dataPoints && trends.dataPoints.length > 0 ? (
+              <ResponsiveContainer width="100%" height={210}>
+                <LineChart data={trends.dataPoints} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                  <XAxis
+                    dataKey="label"
+                    axisLine={{ stroke: "#f1f5f9" }}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  />
+                  <YAxis
+                    yAxisId="bookings"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  />
+                  <YAxis
+                    yAxisId="revenue"
+                    orientation="right"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#ffffff",
+                      borderRadius: 8,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      border: "1px solid #e2e8f0",
+                      fontSize: 12,
+                    }}
+                    formatter={(val, name) => [
+                      name === "Revenue" ? `₹${Number(val).toLocaleString("en-IN")}` : val,
+                      name,
+                    ]}
+                  />
+                  <Bar
+                    yAxisId="revenue"
+                    dataKey="revenueAmount"
+                    name="Revenue"
+                    fill="#e0e7ff"
+                    radius={[4, 4, 0, 0]}
+                    barSize={20}
+                  />
+                  <Line
+                    yAxisId="bookings"
+                    type="monotone"
+                    dataKey="bookingsCount"
+                    name="Bookings"
+                    stroke="#6366f1"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "#6366f1" }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="card-empty-state chart-empty-state">
+                <span className="empty-state-icon">📈</span>
+                <span className="empty-state-title">No Trend Data Recorded Yet</span>
+                <span className="empty-state-subtitle">
+                  Historical bookings and revenue trends will populate this chart once bookings are made.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -413,60 +430,79 @@ export default function AdminDashboard() {
           <div className="card-header">
             <h3 className="card-title">Workshop Status</h3>
           </div>
-          <div className="donut-content-layout">
-            <div className="donut-chart-container">
-              <ResponsiveContainer width={150} height={150}>
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={46}
-                    outerRadius={65}
-                    paddingAngle={3}
-                    cx="50%"
-                    cy="50%"
-                  >
-                    {donutData.map((entry, idx) => (
-                      <Cell key={`donut-${idx}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="donut-center-badge">
-                <span className="donut-center-number">{totalWorkshopsCount}</span>
+          {totalWorkshopsCount > 0 && donutData.length > 0 ? (
+            <div className="donut-content-layout">
+              <div className="donut-chart-container">
+                <ResponsiveContainer width={150} height={150}>
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={46}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      cx="50%"
+                      cy="50%"
+                    >
+                      {donutData.map((entry, idx) => (
+                        <Cell key={`donut-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="donut-center-badge">
+                  <span className="donut-center-number">{totalWorkshopsCount}</span>
+                  <span className="donut-center-label">Total</span>
+                </div>
+              </div>
+
+              <div className="donut-legend-list">
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Published }}></span>
+                  <span className="legend-name">Published</span>
+                  <span className="legend-count">{workshopStatus.publishedCount ?? 0}</span>
+                </div>
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Scheduled }}></span>
+                  <span className="legend-name">Scheduled</span>
+                  <span className="legend-count">{workshopStatus.scheduledCount ?? 0}</span>
+                </div>
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Draft }}></span>
+                  <span className="legend-name">Draft</span>
+                  <span className="legend-count">{workshopStatus.draftCount ?? 0}</span>
+                </div>
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Completed }}></span>
+                  <span className="legend-name">Completed</span>
+                  <span className="legend-count">{workshopStatus.completedCount ?? 0}</span>
+                </div>
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Archived }}></span>
+                  <span className="legend-name">Archived</span>
+                  <span className="legend-count">{workshopStatus.archivedCount ?? 0}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="card-empty-state">
+              <div className="donut-empty-circle">
+                <span className="donut-center-number">0</span>
                 <span className="donut-center-label">Total</span>
               </div>
+              <span className="empty-state-title">No Workshops Created</span>
+              <span className="empty-state-subtitle">Get started by creating your studio's first dance workshop.</span>
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                style={{ fontSize: "12px", padding: "6px 12px", marginTop: "8px" }}
+                onClick={() => navigate("/admin_portal/workshops")}
+              >
+                + Create Workshop
+              </button>
             </div>
-
-            <div className="donut-legend-list">
-              <div className="legend-row">
-                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Published }}></span>
-                <span className="legend-name">Published</span>
-                <span className="legend-count">{workshopStatus.publishedCount || 14}</span>
-              </div>
-              <div className="legend-row">
-                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Scheduled }}></span>
-                <span className="legend-name">Scheduled</span>
-                <span className="legend-count">{workshopStatus.scheduledCount || 5}</span>
-              </div>
-              <div className="legend-row">
-                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Draft }}></span>
-                <span className="legend-name">Draft</span>
-                <span className="legend-count">{workshopStatus.draftCount || 3}</span>
-              </div>
-              <div className="legend-row">
-                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Completed }}></span>
-                <span className="legend-name">Completed</span>
-                <span className="legend-count">{workshopStatus.completedCount || 2}</span>
-              </div>
-              <div className="legend-row">
-                <span className="legend-dot" style={{ background: WORKSHOP_COLORS.Archived }}></span>
-                <span className="legend-name">Archived</span>
-                <span className="legend-count">{workshopStatus.archivedCount || 0}</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Col 3: Today's Priorities */}
@@ -475,30 +511,38 @@ export default function AdminDashboard() {
             <h3 className="card-title">Today's Priorities</h3>
             <Link to="/admin_portal/incidents" className="card-view-all-link">View All</Link>
           </div>
-          <div className="priorities-list">
-            {priorities.map((item) => (
-              <div
-                key={item.id}
-                className="priority-item-row"
-                onClick={() => navigate(item.actionUrl)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className={`priority-icon-pill ${item.severity.toLowerCase()}`}>
-                  {item.type === "WORKSHOPS_AWAITING" && "🎪"}
-                  {item.type === "FAILED_PAYMENTS" && "💳"}
-                  {item.type === "UNREAD_MESSAGES" && "💬"}
-                  {item.type === "MEDIA_PENDING" && "🎬"}
-                  {item.type === "NEW_REGISTRATIONS" && "👤"}
+          {priorities && priorities.length > 0 ? (
+            <div className="priorities-list">
+              {priorities.map((item) => (
+                <div
+                  key={item.id}
+                  className="priority-item-row"
+                  onClick={() => navigate(item.actionUrl)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className={`priority-icon-pill ${item.severity?.toLowerCase() || "info"}`}>
+                    {item.type === "WORKSHOPS_AWAITING" && "🎪"}
+                    {item.type === "FAILED_PAYMENTS" && "💳"}
+                    {item.type === "UNREAD_MESSAGES" && "💬"}
+                    {item.type === "MEDIA_PENDING" && "🎬"}
+                    {item.type === "NEW_REGISTRATIONS" && "👤"}
+                  </div>
+                  <div className="priority-info-col">
+                    <div className="priority-title">{item.title}</div>
+                    <div className="priority-subtitle">{item.subtitle}</div>
+                  </div>
+                  <span className="priority-arrow">›</span>
                 </div>
-                <div className="priority-info-col">
-                  <div className="priority-title">{item.title}</div>
-                  <div className="priority-subtitle">{item.subtitle}</div>
-                </div>
-                <span className="priority-arrow">›</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-empty-state">
+              <span className="empty-state-icon">✅</span>
+              <span className="empty-state-title">All Priorities Up to Date</span>
+              <span className="empty-state-subtitle">No pending workshop approvals, failed payments, or unread messages.</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -510,34 +554,42 @@ export default function AdminDashboard() {
             <h3 className="card-title">Recent Bookings</h3>
             <Link to="/admin_portal/bookings" className="card-view-all-link">View All</Link>
           </div>
-          <div className="table-responsive">
-            <table className="ethos-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Workshop</th>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.map((b) => (
-                  <tr key={b.bookingId}>
-                    <td className="customer-name-cell">{b.customerNameMasked}</td>
-                    <td>{b.workshopTitle}</td>
-                    <td className="date-cell">{b.formattedDate}</td>
-                    <td className="amount-cell">{b.formattedAmount}</td>
-                    <td>
-                      <span className={`status-pill ${b.paymentStatus.toLowerCase()}`}>
-                        {b.paymentStatus}
-                      </span>
-                    </td>
+          {recentBookings && recentBookings.length > 0 ? (
+            <div className="table-responsive">
+              <table className="ethos-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Workshop</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentBookings.map((b) => (
+                    <tr key={b.bookingId}>
+                      <td className="customer-name-cell">{b.customerNameMasked}</td>
+                      <td>{b.workshopTitle}</td>
+                      <td className="date-cell">{b.formattedDate}</td>
+                      <td className="amount-cell">{b.formattedAmount}</td>
+                      <td>
+                        <span className={`status-pill ${b.paymentStatus?.toLowerCase() || "pending"}`}>
+                          {b.paymentStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="card-empty-state">
+              <span className="empty-state-icon">📋</span>
+              <span className="empty-state-title">No Bookings Recorded Yet</span>
+              <span className="empty-state-subtitle">When students enroll in workshops, their booking records will appear here.</span>
+            </div>
+          )}
         </div>
 
         {/* Col 2: Upcoming Workshops */}
@@ -546,61 +598,96 @@ export default function AdminDashboard() {
             <h3 className="card-title">Upcoming Workshops</h3>
             <Link to="/admin_portal/workshops" className="card-view-all-link">View All</Link>
           </div>
-          <div className="upcoming-workshops-list">
-            {upcomingWorkshops.map((w) => (
-              <div
-                key={w.workshopId}
-                className="workshop-item-row"
+          {upcomingWorkshops && upcomingWorkshops.length > 0 ? (
+            <div className="upcoming-workshops-list">
+              {upcomingWorkshops.map((w) => (
+                <div
+                  key={w.workshopId}
+                  className="workshop-item-row"
+                  onClick={() => navigate("/admin_portal/workshops")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="workshop-thumb">
+                    {w.thumbnailUrl ? (
+                      <img src={w.thumbnailUrl} alt={w.title} onError={(e) => { e.target.style.display = "none"; }} />
+                    ) : null}
+                    <div className="workshop-thumb-fallback">🩰</div>
+                  </div>
+                  <div className="workshop-info">
+                    <div className="workshop-title">{w.title}</div>
+                    <div className="workshop-meta">{w.formattedDate}</div>
+                  </div>
+                  <div className="workshop-occupancy">
+                    <div className="seat-count-text">
+                      <strong>{w.bookedSeats}</strong> / {w.capacity}
+                    </div>
+                    <div className="occupancy-progress-bar">
+                      <div
+                        className="occupancy-progress-fill"
+                        style={{ width: `${Math.min(100, w.occupancyPercentage || 0)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-empty-state">
+              <span className="empty-state-icon">📅</span>
+              <span className="empty-state-title">No Upcoming Workshops Scheduled</span>
+              <span className="empty-state-subtitle">Create and publish workshops to open enrollment for dancers.</span>
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                style={{ fontSize: "12px", padding: "6px 12px", marginTop: "8px" }}
                 onClick={() => navigate("/admin_portal/workshops")}
-                role="button"
-                tabIndex={0}
               >
-                <div className="workshop-thumb">
-                  {w.thumbnailUrl ? (
-                    <img src={w.thumbnailUrl} alt={w.title} onError={(e) => { e.target.style.display = "none"; }} />
-                  ) : null}
-                  <div className="workshop-thumb-fallback">🩰</div>
-                </div>
-                <div className="workshop-info">
-                  <div className="workshop-title">{w.title}</div>
-                  <div className="workshop-meta">{w.formattedDate}</div>
-                </div>
-                <div className="workshop-occupancy">
-                  <div className="seat-count-text">
-                    <strong>{w.bookedSeats}</strong> / {w.capacity}
-                  </div>
-                  <div className="occupancy-progress-bar">
-                    <div
-                      className="occupancy-progress-fill"
-                      style={{ width: `${Math.min(100, w.occupancyPercentage || 75)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                + Schedule Workshop
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Col 3: System Health */}
         <div className="ethos-card system-health-card">
           <div className="card-header">
             <h3 className="card-title">System Health</h3>
-            <span className="health-all-ok-pill">● All Systems Operational</span>
+            <span className={isAllHealthy ? "health-all-ok-pill" : "health-warning-pill"}>
+              ● {isAllHealthy ? "All Systems Operational" : systemHealth?.overallStatus || "Standby"}
+            </span>
           </div>
           <div className="subsystems-list">
-            {systemHealth.subsystems?.map((sub) => (
-              <div key={sub.key} className="subsystem-row">
-                <div className="subsystem-name-group">
-                  <span className="subsystem-check-icon">✓</span>
-                  <span className="subsystem-title">{sub.name}</span>
-                </div>
-                <span className="subsystem-badge-operational">{sub.status || "Operational"}</span>
+            {systemHealth.subsystems && systemHealth.subsystems.length > 0 ? (
+              systemHealth.subsystems.map((sub) => {
+                const isOp = sub.status === "Operational";
+                return (
+                  <div key={sub.key} className="subsystem-row">
+                    <div className="subsystem-name-group">
+                      <span className={isOp ? "subsystem-check-icon" : "subsystem-standby-icon"}>
+                        {isOp ? "✓" : "ℹ"}
+                      </span>
+                      <span className="subsystem-title">{sub.name}</span>
+                    </div>
+                    <span className={isOp ? "subsystem-badge-operational" : "subsystem-badge-standby"}>
+                      {sub.status || "Standby"}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="card-empty-state">
+                <span className="empty-state-icon">🖥️</span>
+                <span className="empty-state-title">Checking System Services</span>
+                <span className="empty-state-subtitle">Monitoring website, database, and infrastructure endpoints.</span>
               </div>
-            ))}
+            )}
           </div>
-          <div className="health-footer-timestamp">
-            Last checked: {systemHealth.formattedLastChecked || "24 Jun 2025, 10:42 AM"}
-          </div>
+          {systemHealth.formattedLastChecked && (
+            <div className="health-footer-timestamp">
+              Last checked: {systemHealth.formattedLastChecked}
+            </div>
+          )}
         </div>
       </div>
 
@@ -612,18 +699,26 @@ export default function AdminDashboard() {
             <h3 className="card-title">Recent Activity</h3>
             <Link to="/admin_portal/audit-logs" className="card-view-all-link">View All</Link>
           </div>
-          <div className="activity-feed-list">
-            {recentActivity.map((act) => (
-              <div key={act.id} className="activity-item-row">
-                <span className="activity-item-icon">{getActivityIcon(act.type)}</span>
-                <div className="activity-content-col">
-                  <div className="activity-action-text">{act.action}</div>
-                  <div className="activity-actor-text">{act.actorNameMasked}</div>
+          {recentActivity && recentActivity.length > 0 ? (
+            <div className="activity-feed-list">
+              {recentActivity.map((act) => (
+                <div key={act.id} className="activity-item-row">
+                  <span className="activity-item-icon">{getActivityIcon(act.type)}</span>
+                  <div className="activity-content-col">
+                    <div className="activity-action-text">{act.action}</div>
+                    <div className="activity-actor-text">{act.actorNameMasked}</div>
+                  </div>
+                  <span className="activity-timestamp">{act.formattedTime}</span>
                 </div>
-                <span className="activity-timestamp">{act.formattedTime}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-empty-state">
+              <span className="empty-state-icon">⚡</span>
+              <span className="empty-state-title">No Recent Activity</span>
+              <span className="empty-state-subtitle">Studio administrative actions and events will be logged here.</span>
+            </div>
+          )}
         </div>
 
         {/* Col 2: Revenue Overview Bar Chart */}
@@ -632,8 +727,14 @@ export default function AdminDashboard() {
             <div>
               <h3 className="card-title">Revenue Overview</h3>
               <div className="revenue-headline-wrap">
-                <span className="revenue-main-number">{revenueOverview.formattedCurrentMonthRevenue || "₹ 3,24,580"}</span>
-                <span className="revenue-growth-pill">↑ {revenueOverview.monthGrowthPercent || 18}% vs last month</span>
+                <span className="revenue-main-number">{revenueOverview?.formattedCurrentMonthRevenue || "₹ 0"}</span>
+                {revenueOverview?.monthGrowthPercent ? (
+                  <span className="revenue-growth-pill">
+                    {revenueOverview.monthGrowthPercent >= 0 ? "↑" : "↓"} {Math.abs(revenueOverview.monthGrowthPercent)}% vs last month
+                  </span>
+                ) : (
+                  <span className="revenue-neutral-pill">0% vs last month</span>
+                )}
               </div>
             </div>
             <select
@@ -647,38 +748,46 @@ export default function AdminDashboard() {
           </div>
 
           <div className="chart-canvas-wrap">
-            <ResponsiveContainer width="100%" height={170}>
-              <BarChart data={revenueOverview.weeklyBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis
-                  dataKey="weekLabel"
-                  axisLine={{ stroke: "#f1f5f9" }}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "#94a3b8" }}
-                  tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}K`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#ffffff",
-                    borderRadius: 8,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                    border: "1px solid #e2e8f0",
-                    fontSize: 12,
-                  }}
-                  formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
-                />
-                <Bar
-                  dataKey="revenueAmount"
-                  fill="#6366f1"
-                  radius={[4, 4, 0, 0]}
-                  barSize={28}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {revenueOverview?.weeklyBreakdown && revenueOverview.weeklyBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height={170}>
+                <BarChart data={revenueOverview.weeklyBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis
+                    dataKey="weekLabel"
+                    axisLine={{ stroke: "#f1f5f9" }}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}K`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#ffffff",
+                      borderRadius: 8,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      border: "1px solid #e2e8f0",
+                      fontSize: 12,
+                    }}
+                    formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+                  />
+                  <Bar
+                    dataKey="revenueAmount"
+                    fill="#6366f1"
+                    radius={[4, 4, 0, 0]}
+                    barSize={28}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="card-empty-state chart-empty-state">
+                <span className="empty-state-icon">💳</span>
+                <span className="empty-state-title">No Revenue Recorded</span>
+                <span className="empty-state-subtitle">Weekly revenue distribution will show here once bookings are received.</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,4 +1,6 @@
-/* ETHOS DANCE STUDIO — ADMIN CONNECTED PLATFORMS CSS (CLEAN LIGHT THEME) */
+/* =========================================================
+   Ethos Admin Portal — Connected Platforms & Architecture
+   ========================================================= */
 
 .admin-platforms-page {
   display: flex;
@@ -6,7 +8,7 @@
   gap: 1.5rem;
   padding-bottom: 3rem;
   width: 100%;
-  max-width: 1480px;
+  max-width: 1540px;
   margin: 0 auto;
 }
 
@@ -63,7 +65,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .platforms-architecture-header {
@@ -103,55 +105,76 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 1rem;
   padding: 1rem 0;
   overflow-x: auto;
 }
 
-.arch-node {
+.flow-node {
   flex: 1;
-  min-width: 140px;
+  min-width: 180px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 0.85rem;
+  border-radius: 12px;
+  padding: 1.1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   transition: all 0.2s ease;
 }
 
-.arch-node:hover {
+.flow-node:hover {
   border-color: #4f46e5;
   background: #faf5ff;
 }
 
-.arch-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.15rem;
+.flow-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.25rem;
 }
 
-.arch-name {
-  font-size: 0.88rem;
+.flow-title {
+  font-size: 0.95rem;
   font-weight: 700;
   color: #0f172a;
 }
 
-.arch-sub {
-  font-size: 0.72rem;
+.flow-desc {
+  font-size: 0.78rem;
   color: #64748b;
+  line-height: 1.4;
 }
 
-.arch-arrow {
+.flow-arrow {
   color: #94a3b8;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
-/* Category Filter Bar */
-.platforms-filter-bar {
+.flow-services-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.service-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  white-space: nowrap;
+}
+
+/* Controls: Search & Category Filter */
+.platforms-controls-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -161,20 +184,21 @@
   border-radius: 12px;
   padding: 0.75rem 1.25rem;
   flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.platforms-category-tabs {
+.platforms-filter-tabs {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
 }
 
-.cat-tab-btn {
+.platform-tab {
   background: transparent;
   border: 1px solid #cbd5e1;
   color: #475569;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.95rem;
   border-radius: 8px;
   font-size: 0.84rem;
   font-weight: 600;
@@ -182,24 +206,60 @@
   transition: all 0.15s ease;
 }
 
-.cat-tab-btn:hover {
+.platform-tab:hover {
   color: #0f172a;
   border-color: #94a3b8;
   background: #f8fafc;
 }
 
-.cat-tab-btn.active {
+.platform-tab.active {
   background: #ede9fe;
   border-color: #4f46e5;
   color: #4f46e5;
   font-weight: 700;
 }
 
-/* Platforms Grid */
-.platforms-grid {
+.platforms-search-box {
+  position: relative;
+  min-width: 280px;
+  flex: 0 1 340px;
+}
+
+.platforms-search-box input.form-control {
+  width: 100%;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.platforms-search-box input.form-control:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* Platform Cards Grid */
+.platforms-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 1.5rem;
+  width: 100%;
 }
 
 .platform-card {
@@ -210,55 +270,108 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   transition: all 0.2s ease;
 }
 
 .platform-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
-.platform-card-top {
+.platform-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
-.platform-card-identity {
+.platform-brand-info {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
 }
 
-.platform-icon-wrap {
-  width: 44px;
-  height: 44px;
+.platform-icon-bubble {
+  width: 46px;
+  height: 46px;
   background: #f1f5f9;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.platform-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.platform-role-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.platform-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.platform-status-badge.status-operational {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #a6f4c5;
+}
+
+.platform-status-badge.status-setup-needed {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .platform-name {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #0f172a;
-  margin: 0;
+  margin: 0 0 0.15rem 0;
+  line-height: 1.3;
 }
 
 .platform-provider {
   font-size: 0.78rem;
   color: #64748b;
-  margin: 0.15rem 0 0 0;
+  margin: 0;
 }
 
 .platform-desc {
   font-size: 0.85rem;
   color: #475569;
-  line-height: 1.45;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -267,8 +380,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 0.75rem;
+  border-radius: 10px;
+  padding: 0.85rem;
   border: 1px solid #f1f5f9;
   font-size: 0.78rem;
 }
@@ -278,9 +391,68 @@
   display: block;
   font-size: 0.7rem;
   text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .spec-item span {
   color: #0f172a;
   font-weight: 600;
+  word-break: break-all;
+}
+
+.platform-expand-toggle {
+  background: transparent;
+  border: none;
+  color: #4f46e5;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.35rem 0;
+  text-align: left;
+}
+
+.platform-expand-toggle:hover {
+  text-decoration: underline;
+}
+
+.platform-details-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.detail-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem 0;
+}
+
+.detail-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #475569;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.detail-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.detail-entity-pill {
+  font-size: 0.7rem;
+  font-family: var(--admin-font-mono, monospace);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }

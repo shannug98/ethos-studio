@@ -110,3 +110,7 @@
 .admin-kpi-card.tone-neutral {
   border-left: 4px solid var(--admin-accent, #4f46e5);
 }
+
+.admin-kpi-card.tone-brand {
+  border-left: 4px solid var(--admin-accent, #4f46e5);
+}

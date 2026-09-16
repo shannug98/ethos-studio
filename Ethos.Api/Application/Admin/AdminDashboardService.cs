@@ -611,7 +611,7 @@ public class AdminDashboardService : IAdminDashboardService
         var bookingsLastMonth = await _db.WorkshopBookings.CountAsync(b => b.BookedAt >= startOfLastMonth && b.BookedAt < startOfThisMonth, cancellationToken);
         var bookingsGrowth = bookingsLastMonth > 0
             ? Math.Round(((double)(bookingsThisMonth - bookingsLastMonth) / bookingsLastMonth) * 100.0, 1)
-            : 12.0;
+            : 0.0;
 
         var successfulTx = _db.PaymentTransactions.Where(p => p.Status == PaymentStatus.Paid);
         var totalRevenue = await successfulTx.SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
@@ -619,13 +619,12 @@ public class AdminDashboardService : IAdminDashboardService
         var revLastMonth = await successfulTx.Where(p => p.PaidAt >= startOfLastMonth && p.PaidAt < startOfThisMonth).SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
         var revGrowth = revLastMonth > 0
             ? Math.Round(((double)(revThisMonth - revLastMonth) / (double)revLastMonth) * 100.0, 1)
-            : 18.0;
+            : 0.0;
 
         var upcomingWorkshops = await _db.Workshops.CountAsync(w => w.WorkshopDate >= now && w.Status != WorkshopStatus.Cancelled && w.Status != WorkshopStatus.Archived, cancellationToken);
-        var workshopsThisWeek = await _db.Workshops.CountAsync(w => w.WorkshopDate >= now && w.WorkshopDate <= now.AddDays(7) && w.Status != WorkshopStatus.Cancelled, cancellationToken);
+        var workshopsThisWeek = await _db.Workshops.CountAsync(w => w.WorkshopDate >= now && w.WorkshopDate <= now.AddDays(7) && w.Status != WorkshopStatus.Cancelled && w.Status != WorkshopStatus.Archived, cancellationToken);
 
         var unreadMessages = await _db.NotificationRecipients.CountAsync(nr => !nr.IsRead, cancellationToken);
-        if (unreadMessages == 0) unreadMessages = 3;
 
         var pendingApps = await _db.TrainerApplications.CountAsync(a =>
             a.Status == TrainerApplicationStatus.Submitted ||
@@ -633,21 +632,19 @@ public class AdminDashboardService : IAdminDashboardService
             a.Status == TrainerApplicationStatus.PaymentVerified, cancellationToken);
         var pendingWorkshops = await _db.Workshops.CountAsync(w => w.Status == WorkshopStatus.PendingApproval, cancellationToken);
         var pendingActions = pendingApps + pendingWorkshops;
-        if (pendingActions == 0) pendingActions = 6;
 
         var failedPayments = await _db.PaymentTransactions.CountAsync(p => p.Status == PaymentStatus.Failed, cancellationToken);
-        if (failedPayments == 0) failedPayments = 3;
 
         return new AdminDashboardSummaryDto
         {
-            TotalBookings = totalBookings > 0 ? totalBookings : 428,
+            TotalBookings = totalBookings,
             BookingsGrowthPercent = bookingsGrowth,
-            TotalRevenue = totalRevenue > 0 ? totalRevenue : 324580m,
+            TotalRevenue = totalRevenue,
             RevenueGrowthPercent = revGrowth,
-            UpcomingWorkshopsCount = upcomingWorkshops > 0 ? upcomingWorkshops : 8,
-            WorkshopsThisWeekCount = workshopsThisWeek > 0 ? workshopsThisWeek : 2,
+            UpcomingWorkshopsCount = upcomingWorkshops,
+            WorkshopsThisWeekCount = workshopsThisWeek,
             UnreadMessagesCount = unreadMessages,
-            MessagesGrowthPercent = -40.0,
+            MessagesGrowthPercent = 0.0,
             PendingActionsCount = pendingActions,
             FailedPaymentsCount = failedPayments
         };
@@ -738,24 +735,6 @@ public class AdminDashboardService : IAdminDashboardService
             }
         }
 
-        // If newly setup database has very few items, populate representative historical baseline matching design
-        if (dataPoints.All(d => d.BookingsCount == 0 && d.RevenueAmount == 0))
-        {
-            var fallbackLabels = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" };
-            var fallbackBookings = new[] { 28, 40, 52, 65, 72, 85 };
-            var fallbackRevenues = new[] { 120000m, 175000m, 210000m, 260000m, 290000m, 324580m };
-            dataPoints.Clear();
-            for (int i = 0; i < fallbackLabels.Length; i++)
-            {
-                dataPoints.Add(new AdminTrendDataPoint
-                {
-                    Label = fallbackLabels[i],
-                    BookingsCount = fallbackBookings[i],
-                    RevenueAmount = fallbackRevenues[i]
-                });
-            }
-        }
-
         return new AdminDashboardTrendsDto
         {
             Range = normalizedRange,
@@ -778,20 +757,6 @@ public class AdminDashboardService : IAdminDashboardService
 
         var total = publishedCount + scheduledCount + draftCount + completedCount + archivedCount + cancelledCount;
 
-        if (total == 0)
-        {
-            return new AdminWorkshopStatusDonutDto
-            {
-                PublishedCount = 14,
-                ScheduledCount = 5,
-                DraftCount = 3,
-                CompletedCount = 2,
-                ArchivedCount = 0,
-                CancelledCount = 0,
-                TotalCount = 24
-            };
-        }
-
         return new AdminWorkshopStatusDonutDto
         {
             PublishedCount = publishedCount,
@@ -806,65 +771,83 @@ public class AdminDashboardService : IAdminDashboardService
 
     public async Task<AdminDashboardPrioritiesDto> GetPrioritiesAsync(CancellationToken cancellationToken = default)
     {
-        var pendingWorkshops = await _db.Workshops.CountAsync(w => w.Status == WorkshopStatus.PendingApproval || w.Status == WorkshopStatus.Draft, cancellationToken);
+        var pendingWorkshops = await _db.Workshops.CountAsync(w => w.Status == WorkshopStatus.PendingApproval, cancellationToken);
         var failedPayments = await _db.PaymentTransactions.CountAsync(p => p.Status == PaymentStatus.Failed, cancellationToken);
         var unreadMessages = await _db.NotificationRecipients.CountAsync(nr => !nr.IsRead, cancellationToken);
         var pendingVideos = await _db.StudioVideos.CountAsync(v => !v.IsActive, cancellationToken);
         var newUsersToday = await _db.Users.CountAsync(u => u.CreatedAt >= DateTime.UtcNow.Date, cancellationToken);
 
-        var items = new List<AdminPriorityItemDto>
+        var items = new List<AdminPriorityItemDto>();
+
+        if (pendingWorkshops > 0)
         {
-            new AdminPriorityItemDto
+            items.Add(new AdminPriorityItemDto
             {
                 Id = "prio_workshops",
                 Type = "WORKSHOPS_AWAITING",
-                Count = Math.Max(pendingWorkshops, 2),
-                Title = $"{Math.Max(pendingWorkshops, 2)} workshops awaiting publication",
+                Count = pendingWorkshops,
+                Title = $"{pendingWorkshops} workshop{(pendingWorkshops > 1 ? "s" : "")} awaiting publication",
                 Subtitle = "Review and publish →",
                 ActionUrl = "/admin_portal/workshops",
                 Severity = "WARNING"
-            },
-            new AdminPriorityItemDto
+            });
+        }
+
+        if (failedPayments > 0)
+        {
+            items.Add(new AdminPriorityItemDto
             {
                 Id = "prio_payments",
                 Type = "FAILED_PAYMENTS",
-                Count = Math.Max(failedPayments, 3),
-                Title = $"{Math.Max(failedPayments, 3)} failed payments",
+                Count = failedPayments,
+                Title = $"{failedPayments} failed payment{(failedPayments > 1 ? "s" : "")}",
                 Subtitle = "Check and follow up →",
                 ActionUrl = "/admin_portal/payments",
                 Severity = "DANGER"
-            },
-            new AdminPriorityItemDto
+            });
+        }
+
+        if (unreadMessages > 0)
+        {
+            items.Add(new AdminPriorityItemDto
             {
                 Id = "prio_messages",
                 Type = "UNREAD_MESSAGES",
-                Count = Math.Max(unreadMessages, 3),
-                Title = $"{Math.Max(unreadMessages, 3)} unread contact messages",
+                Count = unreadMessages,
+                Title = $"{unreadMessages} unread contact message{(unreadMessages > 1 ? "s" : "")}",
                 Subtitle = "Respond to enquiries →",
                 ActionUrl = "/admin_portal/communications",
                 Severity = "WARNING"
-            },
-            new AdminPriorityItemDto
+            });
+        }
+
+        if (pendingVideos > 0)
+        {
+            items.Add(new AdminPriorityItemDto
             {
                 Id = "prio_media",
                 Type = "MEDIA_PENDING",
-                Count = Math.Max(pendingVideos, 1),
-                Title = $"{Math.Max(pendingVideos, 1)} media item pending review",
+                Count = pendingVideos,
+                Title = $"{pendingVideos} media item{(pendingVideos > 1 ? "s" : "")} pending review",
                 Subtitle = "Approve or reject →",
                 ActionUrl = "/admin_portal/videos",
                 Severity = "INFO"
-            },
-            new AdminPriorityItemDto
+            });
+        }
+
+        if (newUsersToday > 0)
+        {
+            items.Add(new AdminPriorityItemDto
             {
                 Id = "prio_users",
                 Type = "NEW_REGISTRATIONS",
-                Count = Math.Max(newUsersToday, 1),
-                Title = $"{Math.Max(newUsersToday, 1)} new user registration",
+                Count = newUsersToday,
+                Title = $"{newUsersToday} new user registration{(newUsersToday > 1 ? "s" : "")}",
                 Subtitle = "Review user details →",
                 ActionUrl = "/admin_portal/users",
                 Severity = "INFO"
-            }
-        };
+            });
+        }
 
         return new AdminDashboardPrioritiesDto
         {
@@ -886,69 +869,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         if (bookings.Count == 0)
         {
-            return new List<AdminRecentBookingDto>
-            {
-                new AdminRecentBookingDto
-                {
-                    BookingId = Guid.NewGuid(),
-                    CustomerNameMasked = "Aarav M.",
-                    WorkshopTitle = "Hip Hop Intensive",
-                    BookingDate = DateTime.UtcNow,
-                    FormattedDate = DateTime.UtcNow.ToString("dd MMM yyyy", CultureInfo.InvariantCulture),
-                    Amount = 2500m,
-                    FormattedAmount = "₹ 2,500",
-                    PaymentStatus = "Paid",
-                    BookingStatus = "Confirmed"
-                },
-                new AdminRecentBookingDto
-                {
-                    BookingId = Guid.NewGuid(),
-                    CustomerNameMasked = "Priya S.",
-                    WorkshopTitle = "Contemporary Flow",
-                    BookingDate = DateTime.UtcNow.AddDays(-1),
-                    FormattedDate = DateTime.UtcNow.AddDays(-1).ToString("dd MMM yyyy", CultureInfo.InvariantCulture),
-                    Amount = 1800m,
-                    FormattedAmount = "₹ 1,800",
-                    PaymentStatus = "Paid",
-                    BookingStatus = "Confirmed"
-                },
-                new AdminRecentBookingDto
-                {
-                    BookingId = Guid.NewGuid(),
-                    CustomerNameMasked = "Rohan K.",
-                    WorkshopTitle = "Kids Dance Camp",
-                    BookingDate = DateTime.UtcNow.AddDays(-1),
-                    FormattedDate = DateTime.UtcNow.AddDays(-1).ToString("dd MMM yyyy", CultureInfo.InvariantCulture),
-                    Amount = 3000m,
-                    FormattedAmount = "₹ 3,000",
-                    PaymentStatus = "Pending",
-                    BookingStatus = "Pending"
-                },
-                new AdminRecentBookingDto
-                {
-                    BookingId = Guid.NewGuid(),
-                    CustomerNameMasked = "Sneha I.",
-                    WorkshopTitle = "Bharatanatyam Basics",
-                    BookingDate = DateTime.UtcNow.AddDays(-2),
-                    FormattedDate = DateTime.UtcNow.AddDays(-2).ToString("dd MMM yyyy", CultureInfo.InvariantCulture),
-                    Amount = 2000m,
-                    FormattedAmount = "₹ 2,000",
-                    PaymentStatus = "Paid",
-                    BookingStatus = "Confirmed"
-                },
-                new AdminRecentBookingDto
-                {
-                    BookingId = Guid.NewGuid(),
-                    CustomerNameMasked = "Kunal D.",
-                    WorkshopTitle = "Advanced Choreography",
-                    BookingDate = DateTime.UtcNow.AddDays(-2),
-                    FormattedDate = DateTime.UtcNow.AddDays(-2).ToString("dd MMM yyyy", CultureInfo.InvariantCulture),
-                    Amount = 2800m,
-                    FormattedAmount = "₹ 2,800",
-                    PaymentStatus = "Failed",
-                    BookingStatus = "Cancelled"
-                }
-            };
+            return new List<AdminRecentBookingDto>();
         }
 
         return bookings.Select(b =>
@@ -956,7 +877,7 @@ public class AdminDashboardService : IAdminDashboardService
             var rawName = b.StudentProfile?.User?.FullName ?? "Student";
             var maskedName = MaskName(rawName);
             var statusStr = b.Status == WorkshopBookingStatus.Confirmed ? "Paid" : (b.Status == WorkshopBookingStatus.PendingPayment ? "Pending" : "Failed");
-            var amt = b.Workshop?.AdminApprovedPrice ?? b.Workshop?.Price ?? 2500m;
+            var amt = b.Workshop?.AdminApprovedPrice ?? b.Workshop?.Price ?? 0m;
 
             return new AdminRecentBookingDto
             {
@@ -980,68 +901,14 @@ public class AdminDashboardService : IAdminDashboardService
         var workshops = await _db.Workshops
             .AsNoTracking()
             .Include(w => w.TrainerProfile)
-            .Where(w => w.WorkshopDate >= now && w.Status != WorkshopStatus.Cancelled)
+            .Where(w => w.WorkshopDate >= now && w.Status != WorkshopStatus.Cancelled && w.Status != WorkshopStatus.Archived)
             .OrderBy(w => w.WorkshopDate)
             .Take(limit)
             .ToListAsync(cancellationToken);
 
         if (workshops.Count == 0)
         {
-            return new List<AdminUpcomingWorkshopDto>
-            {
-                new AdminUpcomingWorkshopDto
-                {
-                    WorkshopId = Guid.NewGuid(),
-                    Title = "Hip Hop Intensive",
-                    ThumbnailUrl = "/images/classes/hiphop.jpg",
-                    WorkshopDate = now.AddDays(4),
-                    FormattedDate = "Sat, 28 Jun 2025 · 10:00 AM",
-                    TrainerName = "Alex Rivera",
-                    Capacity = 40,
-                    BookedSeats = 32,
-                    OccupancyPercentage = 80.0,
-                    Status = "Scheduled"
-                },
-                new AdminUpcomingWorkshopDto
-                {
-                    WorkshopId = Guid.NewGuid(),
-                    Title = "Contemporary Flow",
-                    ThumbnailUrl = "/images/classes/contemporary.jpg",
-                    WorkshopDate = now.AddDays(5),
-                    FormattedDate = "Sun, 29 Jun 2025 · 11:00 AM",
-                    TrainerName = "Maya Sen",
-                    Capacity = 30,
-                    BookedSeats = 18,
-                    OccupancyPercentage = 60.0,
-                    Status = "Scheduled"
-                },
-                new AdminUpcomingWorkshopDto
-                {
-                    WorkshopId = Guid.NewGuid(),
-                    Title = "Kids Dance Camp",
-                    ThumbnailUrl = "/images/classes/kids.jpg",
-                    WorkshopDate = now.AddDays(11),
-                    FormattedDate = "Sat, 05 Jul 2025 · 09:00 AM",
-                    TrainerName = "Kavita Rao",
-                    Capacity = 20,
-                    BookedSeats = 12,
-                    OccupancyPercentage = 60.0,
-                    Status = "Scheduled"
-                },
-                new AdminUpcomingWorkshopDto
-                {
-                    WorkshopId = Guid.NewGuid(),
-                    Title = "Bollywood Beats",
-                    ThumbnailUrl = "/images/classes/bollywood.jpg",
-                    WorkshopDate = now.AddDays(12),
-                    FormattedDate = "Sun, 06 Jul 2025 · 05:00 PM",
-                    TrainerName = "Rohan Verma",
-                    Capacity = 30,
-                    BookedSeats = 25,
-                    OccupancyPercentage = 83.3,
-                    Status = "Scheduled"
-                }
-            };
+            return new List<AdminUpcomingWorkshopDto>();
         }
 
         var result = new List<AdminUpcomingWorkshopDto>();
@@ -1080,60 +947,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         if (actions.Count == 0)
         {
-            var now = DateTime.UtcNow;
-            return new List<AdminAuditActivityDto>
-            {
-                new AdminAuditActivityDto
-                {
-                    Id = Guid.NewGuid(),
-                    ActorNameMasked = "by admin@ethos.com",
-                    Action = "Workshop published: Contemporary Flow",
-                    EntityType = "WORKSHOP",
-                    Result = "SUCCESS",
-                    CreatedAt = now.AddMinutes(-27),
-                    FormattedTime = now.AddMinutes(-27).ToString("hh:mm tt", CultureInfo.InvariantCulture)
-                },
-                new AdminAuditActivityDto
-                {
-                    Id = Guid.NewGuid(),
-                    ActorNameMasked = "by system",
-                    Action = "Payment confirmed: ₹ 2,500",
-                    EntityType = "PAYMENT",
-                    Result = "SUCCESS",
-                    CreatedAt = now.AddMinutes(-54),
-                    FormattedTime = now.AddMinutes(-54).ToString("hh:mm tt", CultureInfo.InvariantCulture)
-                },
-                new AdminAuditActivityDto
-                {
-                    Id = Guid.NewGuid(),
-                    ActorNameMasked = "from neha.k@example.com",
-                    Action = "New message received",
-                    EntityType = "MESSAGE",
-                    Result = "SUCCESS",
-                    CreatedAt = now.AddHours(-1).AddMinutes(-22),
-                    FormattedTime = now.AddHours(-1).AddMinutes(-22).ToString("hh:mm tt", CultureInfo.InvariantCulture)
-                },
-                new AdminAuditActivityDto
-                {
-                    Id = Guid.NewGuid(),
-                    ActorNameMasked = "by admin@ethos.com",
-                    Action = "Media uploaded: workshop-banner.jpg",
-                    EntityType = "MEDIA",
-                    Result = "SUCCESS",
-                    CreatedAt = now.AddHours(-1).AddMinutes(-47),
-                    FormattedTime = now.AddHours(-1).AddMinutes(-47).ToString("hh:mm tt", CultureInfo.InvariantCulture)
-                },
-                new AdminAuditActivityDto
-                {
-                    Id = Guid.NewGuid(),
-                    ActorNameMasked = "by system",
-                    Action = "User registered: arav@abc.com",
-                    EntityType = "USER",
-                    Result = "SUCCESS",
-                    CreatedAt = now.AddHours(-2).AddMinutes(-12),
-                    FormattedTime = now.AddHours(-2).AddMinutes(-12).ToString("hh:mm tt", CultureInfo.InvariantCulture)
-                }
-            };
+            return new List<AdminAuditActivityDto>();
         }
 
         return actions.Select(a =>
@@ -1189,29 +1003,29 @@ public class AdminDashboardService : IAdminDashboardService
             {
                 Key = "database",
                 Name = "Database",
-                Status = dbHealthy ? "Operational" : "Degraded",
-                Description = dbHealthy ? "Active database connection verified" : "Database connection degraded"
+                Status = dbHealthy ? "Operational" : "Unavailable",
+                Description = dbHealthy ? "Active database connection verified" : "Database connection failed"
             },
             new AdminSubsystemHealthItem
             {
                 Key = "payment_provider",
                 Name = "Payment Provider",
-                Status = isPaymentConfigured ? "Operational" : "Operational",
-                Description = "Payment gateway and webhook listeners operational"
+                Status = isPaymentConfigured ? "Operational" : "Standby / Not Configured",
+                Description = isPaymentConfigured ? "Payment gateway credentials verified" : "Payment gateway credentials pending configuration"
             },
             new AdminSubsystemHealthItem
             {
                 Key = "whatsapp_provider",
                 Name = "WhatsApp Provider",
-                Status = isWhatsAppConfigured ? "Operational" : "Operational",
-                Description = isWhatsAppConfigured ? "Messaging gateway active" : "Messaging gateway active"
+                Status = isWhatsAppConfigured ? "Operational" : "Standby / Not Configured",
+                Description = isWhatsAppConfigured ? "Messaging gateway verified" : "Messaging gateway pending configuration"
             },
             new AdminSubsystemHealthItem
             {
                 Key = "storage",
                 Name = "Storage",
-                Status = isStorageConfigured ? "Operational" : "Operational",
-                Description = "Media asset storage and CDN delivery operational"
+                Status = isStorageConfigured ? "Operational" : "Standby / Not Configured",
+                Description = isStorageConfigured ? "Media storage bucket verified" : "Media storage bucket pending configuration"
             },
             new AdminSubsystemHealthItem
             {
@@ -1249,9 +1063,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var growth = lastMonthRev > 0
             ? Math.Round(((double)(thisMonthRev - lastMonthRev) / (double)lastMonthRev) * 100.0, 1)
-            : 18.0;
-
-        var currentTotal = thisMonthRev > 0 ? thisMonthRev : 324580m;
+            : 0.0;
 
         // 4 weekly buckets for current month
         var w1End = startOfThisMonth.AddDays(7);
@@ -1263,14 +1075,6 @@ public class AdminDashboardService : IAdminDashboardService
         var w3 = await _db.PaymentTransactions.Where(p => p.Status == PaymentStatus.Paid && p.PaidAt >= w2End && p.PaidAt < w3End).SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
         var w4 = await _db.PaymentTransactions.Where(p => p.Status == PaymentStatus.Paid && p.PaidAt >= w3End).SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
-        if (w1 == 0 && w2 == 0 && w3 == 0 && w4 == 0)
-        {
-            w1 = 45000m;
-            w2 = 62000m;
-            w3 = 98000m;
-            w4 = 119580m;
-        }
-
         var weekly = new List<AdminWeeklyRevenueBucket>
         {
             new AdminWeeklyRevenueBucket { WeekLabel = "Week 1", RevenueAmount = w1 },
@@ -1281,9 +1085,9 @@ public class AdminDashboardService : IAdminDashboardService
 
         return new AdminRevenueOverviewDto
         {
-            CurrentMonthRevenue = currentTotal,
+            CurrentMonthRevenue = thisMonthRev,
             MonthGrowthPercent = growth,
-            FormattedCurrentMonthRevenue = $"₹ {currentTotal:N0}",
+            FormattedCurrentMonthRevenue = $"₹ {thisMonthRev:N0}",
             WeeklyBreakdown = weekly
         };
     }

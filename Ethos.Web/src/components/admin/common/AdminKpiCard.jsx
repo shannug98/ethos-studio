@@ -3,16 +3,20 @@ import "./AdminKpiCard.css";
 
 export default function AdminKpiCard({
   title,
+  label,
   value,
   subtitle,
+  sublabel,
   icon,
   trend,
   trendDirection = "up",
-  tone = "neutral", // neutral, success, warning, danger, info
+  tone = "neutral", // neutral, brand, success, warning, danger, info
   onClick,
   className = "",
 }) {
   const isClickable = typeof onClick === "function";
+  const displayTitle = title || label || "";
+  const displaySubtitle = subtitle || sublabel || "";
 
   return (
     <div
@@ -20,7 +24,7 @@ export default function AdminKpiCard({
       onClick={isClickable ? onClick : undefined}
       role={isClickable ? "button" : "region"}
       tabIndex={isClickable ? 0 : undefined}
-      aria-label={`${title}: ${value}`}
+      aria-label={`${displayTitle}: ${value}`}
       onKeyDown={
         isClickable
           ? (e) => {
@@ -33,7 +37,7 @@ export default function AdminKpiCard({
       }
     >
       <div className="admin-kpi-header">
-        <span className="admin-kpi-title">{title}</span>
+        <span className="admin-kpi-title">{displayTitle}</span>
         {icon && <span className="admin-kpi-icon" aria-hidden="true">{icon}</span>}
       </div>
 
@@ -41,14 +45,14 @@ export default function AdminKpiCard({
         <span className="admin-kpi-value">{value}</span>
       </div>
 
-      {(subtitle || trend) && (
+      {(displaySubtitle || trend) && (
         <div className="admin-kpi-footer">
           {trend && (
             <span className={`admin-kpi-trend trend-${trendDirection}`}>
               {trendDirection === "up" ? "↑" : trendDirection === "down" ? "↓" : "•"} {trend}
             </span>
           )}
-          {subtitle && <span className="admin-kpi-subtitle">{subtitle}</span>}
+          {displaySubtitle && <span className="admin-kpi-subtitle">{displaySubtitle}</span>}
         </div>
       )}
     </div>
