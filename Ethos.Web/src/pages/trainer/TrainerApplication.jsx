@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/authApi";
 import "../../styles/trainer/trainer-application.css";
 import trainerApplicationHero from "../../assets/trainer/trainer-application-hero.png";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/brand/ethos-emblem.png";
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;

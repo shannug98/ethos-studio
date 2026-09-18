@@ -17,36 +17,17 @@ public class AdminLoginRequest
     public string? DeviceName { get; set; }
 }
 
-public class AdminVerifyMfaRequest
-{
-    [Required]
-    [Phone]
-    public string Phone { get; set; } = null!;
-
-    [Required]
-    [StringLength(6, MinimumLength = 6)]
-    public string Otp { get; set; } = null!;
-
-    public string? DeviceCredential { get; set; }
-
-    [StringLength(100)]
-    public string? DeviceName { get; set; }
-
-    [StringLength(2000)]
-    public string? FingerprintTelemetry { get; set; }
-}
-
 public class AdminLoginResult
 {
     public bool Success { get; set; }
 
     public string Message { get; set; } = null!;
 
-    public bool OtpRequired { get; set; }
+    public AdminAuthResponse? AuthResponse { get; set; }
 
-    public string Phone { get; set; } = null!;
+    public string? RawDeviceCredential { get; set; }
 
-    public string? DevelopmentOtp { get; set; }
+    public string? RawSessionToken { get; set; }
 
     public string? ErrorCode { get; set; }
 
@@ -168,20 +149,11 @@ public class AdminTerminateSessionRequest
 public class AdminChangePasswordRequest
 {
     [Required]
-    public string NewPassword { get; set; } = null!;
+    public string CurrentPassword { get; set; } = null!;
 
     [Required]
-    [StringLength(6, MinimumLength = 6)]
-    public string Otp { get; set; } = null!;
-}
-
-public class AdminRequestOtpResponse
-{
-    public bool Success { get; set; }
-
-    public string Message { get; set; } = null!;
-
-    public string? DevelopmentOtp { get; set; }
+    [MinLength(12, ErrorMessage = "Password must be at least 12 characters long.")]
+    public string NewPassword { get; set; } = null!;
 }
 
 public class AdminForgotPasswordRequest
@@ -191,17 +163,14 @@ public class AdminForgotPasswordRequest
     public string Phone { get; set; } = null!;
 }
 
-public class AdminResetForgotPasswordRequest
+public class AdminResetPasswordWithTokenRequest
 {
     [Required]
-    [Phone]
-    public string Phone { get; set; } = null!;
+    public string Token { get; set; } = null!;
 
     [Required]
-    [StringLength(6, MinimumLength = 6)]
-    public string Otp { get; set; } = null!;
-
-    [Required]
+    [MinLength(12, ErrorMessage = "Password must be at least 12 characters long.")]
     public string NewPassword { get; set; } = null!;
 }
+
 

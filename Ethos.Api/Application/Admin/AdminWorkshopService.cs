@@ -244,10 +244,11 @@ public class AdminWorkshopService : IAdminWorkshopService
         try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
         catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
 
-        var startLocal = request.WorkshopDate.Date + request.StartTime;
+        var dateUnspecified = DateTime.SpecifyKind(request.WorkshopDate.Date, DateTimeKind.Unspecified);
+        var startLocal = dateUnspecified + request.StartTime;
         var endLocal = request.EndTime > request.StartTime
-            ? request.WorkshopDate.Date + request.EndTime
-            : request.WorkshopDate.Date.AddDays(1) + request.EndTime;
+            ? dateUnspecified + request.EndTime
+            : dateUnspecified.AddDays(1) + request.EndTime;
 
         var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
         var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
@@ -295,6 +296,28 @@ public class AdminWorkshopService : IAdminWorkshopService
         };
 
         _db.Workshops.Add(workshop);
+
+        // Save custom pricing tiers if provided by admin
+        if (request.PricingTiers != null && request.PricingTiers.Count > 0)
+        {
+            int tierNum = 1;
+            foreach (var item in request.PricingTiers.OrderBy(t => t.TierNumber))
+            {
+                var tierEntity = new WorkshopPricingTier
+                {
+                    Id = Guid.NewGuid(),
+                    WorkshopId = workshop.Id,
+                    TierNumber = tierNum++,
+                    TierName = string.IsNullOrWhiteSpace(item.TierName) ? $"Tier {tierNum}" : item.TierName.Trim(),
+                    MinTickets = item.MinTickets > 0 ? item.MinTickets : 1,
+                    MaxTickets = item.MaxTickets,
+                    Price = item.Price,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _db.WorkshopPricingTiers.Add(tierEntity);
+            }
+        }
 
         _auditService.AddAuditLog(
             adminUserId,
@@ -367,10 +390,11 @@ public class AdminWorkshopService : IAdminWorkshopService
         try { updateTz = TimeZoneInfo.FindSystemTimeZoneById(updateTzId); }
         catch { updateTz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
 
-        var upStartLocal = request.WorkshopDate.Date + request.StartTime;
+        var dateUnspecified = DateTime.SpecifyKind(request.WorkshopDate.Date, DateTimeKind.Unspecified);
+        var upStartLocal = dateUnspecified + request.StartTime;
         var upEndLocal = request.EndTime > request.StartTime
-            ? request.WorkshopDate.Date + request.EndTime
-            : request.WorkshopDate.Date.AddDays(1) + request.EndTime;
+            ? dateUnspecified + request.EndTime
+            : dateUnspecified.AddDays(1) + request.EndTime;
 
         workshop.Title = request.Title.Trim();
         workshop.Description = request.Description?.Trim();
@@ -416,6 +440,37 @@ public class AdminWorkshopService : IAdminWorkshopService
             workshop.PriceApprovedByUserId = adminUserId;
         }
 
+        // Save custom pricing tiers if provided by admin
+        if (request.PricingTiers != null && request.PricingTiers.Count > 0)
+        {
+            var existingTiers = await _db.WorkshopPricingTiers
+                .Where(t => t.WorkshopId == workshopId)
+                .ToListAsync(cancellationToken);
+
+            if (existingTiers.Count > 0)
+            {
+                _db.WorkshopPricingTiers.RemoveRange(existingTiers);
+            }
+
+            int tierNum = 1;
+            foreach (var item in request.PricingTiers.OrderBy(t => t.TierNumber))
+            {
+                var tierEntity = new WorkshopPricingTier
+                {
+                    Id = Guid.NewGuid(),
+                    WorkshopId = workshopId,
+                    TierNumber = tierNum++,
+                    TierName = string.IsNullOrWhiteSpace(item.TierName) ? $"Tier {tierNum}" : item.TierName.Trim(),
+                    MinTickets = item.MinTickets > 0 ? item.MinTickets : 1,
+                    MaxTickets = item.MaxTickets,
+                    Price = item.Price,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _db.WorkshopPricingTiers.Add(tierEntity);
+            }
+        }
+
         workshop.UpdatedAt = now;
 
         _auditService.AddAuditLog(
@@ -425,7 +480,15 @@ public class AdminWorkshopService : IAdminWorkshopService
             workshop.Id,
             $"Administrator updated workshop '{workshop.Title}' (Status: {workshop.Status}, Price: {workshop.Price} INR)");
 
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            throw new InvalidOperationException($"Failed to save workshop to database: {msg}");
+        }
 
         if (workshop.TrainerProfileId.HasValue && workshop.TrainerProfile == null)
         {
@@ -634,9 +697,9 @@ public class AdminWorkshopService : IAdminWorkshopService
         if (workshop == null)
             throw new ArgumentException("Workshop not found.");
 
-        if (request?.Tiers == null || request.Tiers.Count != 4)
+        if (request?.Tiers == null || request.Tiers.Count < 1)
         {
-            throw new ArgumentException("Exact 4 pricing tiers (Tier 1 to 4) must be provided.");
+            throw new ArgumentException("At least one pricing tier must be provided.");
         }
 
         foreach (var t in request.Tiers)
@@ -654,16 +717,17 @@ public class AdminWorkshopService : IAdminWorkshopService
             _db.WorkshopPricingTiers.RemoveRange(existingTiers);
         }
 
+        int tierCount = 1;
         foreach (var item in request.Tiers.OrderBy(t => t.TierNumber))
         {
             var tierEntity = new WorkshopPricingTier
             {
                 Id = Guid.NewGuid(),
                 WorkshopId = workshopId,
-                TierNumber = item.TierNumber,
-                TierName = string.IsNullOrWhiteSpace(item.TierName) ? $"Tier {item.TierNumber}" : item.TierName.Trim(),
-                MinTickets = item.TierNumber switch { 1 => 1, 2 => 11, 3 => 21, _ => 31 },
-                MaxTickets = item.TierNumber switch { 1 => 10, 2 => 20, 3 => 30, _ => null },
+                TierNumber = tierCount++,
+                TierName = string.IsNullOrWhiteSpace(item.TierName) ? $"Tier {tierCount}" : item.TierName.Trim(),
+                MinTickets = item.MinTickets > 0 ? item.MinTickets : 1,
+                MaxTickets = item.MaxTickets,
                 Price = item.Price,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -844,6 +908,16 @@ public class AdminWorkshopService : IAdminWorkshopService
     {
         var nowUtc = DateTime.UtcNow;
         var startUtc = w.StartUtc ?? ComputeStartUtc(w);
+        
+        bool hasCheckIns = w.Bookings != null && w.Bookings.Any(b => 
+            b.Status == WorkshopBookingStatus.Attended || 
+            (b.Tickets != null && b.Tickets.Any(t => t.CheckedInAt != null)));
+
+        if (hasCheckIns || w.Status == WorkshopStatus.Completed)
+        {
+            throw new InvalidOperationException("WORKSHOP_EDIT_LOCKED: This workshop is active/ongoing and attendee check-ins have occurred. Core details and schedules are permanently locked, even for administrators.");
+        }
+
         if (nowUtc >= startUtc)
         {
             throw new InvalidOperationException("WORKSHOP_ALREADY_STARTED: Workshop has already started or concluded. Modifications, unpublishing, and cancellation are permanently locked.");
@@ -864,6 +938,8 @@ public class AdminWorkshopService : IAdminWorkshopService
             WorkshopReference = $"WKS-{w.WorkshopDate.Year}-{w.Id.ToString()[..6].ToUpperInvariant()}",
             TrainerProfileId = w.TrainerProfileId ?? Guid.Empty,
             TrainerName = w.TrainerProfile?.FullName ?? "Ethos Trainer",
+            TrainerPhotoUrl = w.TrainerProfile?.ProfilePhotoUrl,
+            TrainerDanceStyles = w.TrainerProfile?.PrimaryDanceStyle,
             Title = w.Title,
             Description = w.Description,
             DanceStyle = w.DanceStyle,
@@ -876,7 +952,9 @@ public class AdminWorkshopService : IAdminWorkshopService
             AdminApprovedPrice = w.AdminApprovedPrice,
             Price = effectivePrice,
             Capacity = w.Capacity,
-            BookedCount = w.Bookings?.Count(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended) ?? 0,
+            BookedCount = w.Bookings?.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => b.Quantity) ?? 0,
+            AttendedCount = w.Bookings?.Count(b => b.Status == WorkshopBookingStatus.Attended) ?? 0,
+            TotalRevenue = w.Bookings?.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => b.TotalPrice) ?? 0,
             Status = w.Status.ToString(),
             ApprovalStatus = w.Status.ToString(),
             LifecyclePhase = phase,
@@ -1621,7 +1699,7 @@ public class AdminWorkshopService : IAdminWorkshopService
         var feedbacks = await _db.WorkshopFeedbacks
             .AsNoTracking()
             .Include(f => f.StudentProfile)
-                .ThenInclude(sp => sp.User)
+                .ThenInclude(sp => sp!.User)
             .Include(f => f.WorkshopBooking)
             .Where(f => (f.WorkshopId == workshopId || (f.WorkshopBooking != null && f.WorkshopBooking.WorkshopId == workshopId)) && f.IsValid)
             .OrderByDescending(f => f.SubmittedAt)

@@ -383,4 +383,109 @@ public class AdminBookingService : IAdminBookingService
             CreatedAt = enrollment.CreatedAt
         };
     }
+
+    public async Task UpdateWorkshopBookingContactAsync(
+        Guid bookingId,
+        Guid adminUserId,
+        string phone,
+        string? email,
+        string? name,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            throw new ArgumentException("WhatsApp Phone number is required.");
+
+        var booking = await _db.WorkshopBookings
+            .Include(b => b.StudentProfile)
+            .ThenInclude(s => s.User)
+            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+
+        if (booking == null)
+            throw new ArgumentException("Workshop booking not found.");
+
+        var oldPhone = booking.GuestPhone;
+        booking.GuestPhone = phone.Trim();
+        if (!string.IsNullOrWhiteSpace(email)) booking.GuestEmail = email.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(name)) booking.GuestName = name.Trim();
+
+        if (booking.StudentProfile?.User != null)
+        {
+            booking.StudentProfile.User.Phone = phone.Trim();
+            if (!string.IsNullOrWhiteSpace(email)) booking.StudentProfile.User.Email = email.Trim().ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(name)) booking.StudentProfile.User.FullName = name.Trim();
+        }
+
+        var tickets = await _db.WorkshopTickets
+            .Where(t => t.WorkshopBookingId == bookingId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var ticket in tickets)
+        {
+            ticket.AttendeePhone = phone.Trim();
+            if (!string.IsNullOrWhiteSpace(name)) ticket.AttendeeName = name.Trim();
+        }
+
+        _auditService.AddAuditLog(
+            adminUserId,
+            "WORKSHOP_BOOKING_CONTACT_UPDATED",
+            "WorkshopBooking",
+            booking.Id,
+            $"Updated contact details for booking {booking.Id}: phone changed from '{oldPhone}' to '{phone}'");
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<string> ResendWhatsAppTicketAsync(
+        Guid bookingId,
+        Guid adminUserId,
+        string? overridePhone,
+        CancellationToken cancellationToken)
+    {
+        var booking = await _db.WorkshopBookings
+            .Include(b => b.Workshop)
+            .Include(b => b.StudentProfile)
+            .ThenInclude(s => s.User)
+            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+
+        if (booking == null)
+            throw new ArgumentException("Workshop booking not found.");
+
+        var ticket = await _db.WorkshopTickets
+            .FirstOrDefaultAsync(t => t.WorkshopBookingId == bookingId, cancellationToken);
+
+        var recipientPhone = !string.IsNullOrWhiteSpace(overridePhone)
+            ? overridePhone.Trim()
+            : (!string.IsNullOrWhiteSpace(ticket?.AttendeePhone)
+                ? ticket.AttendeePhone
+                : booking.GuestPhone ?? booking.StudentProfile?.User?.Phone);
+
+        if (string.IsNullOrWhiteSpace(recipientPhone))
+            throw new InvalidOperationException("No valid recipient WhatsApp phone number available for resending.");
+
+        var resendKey = $"wapp_resend_{booking.Id}_{Guid.NewGuid():N}";
+        var outboxItem = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            WorkshopTicketId = ticket?.Id,
+            NotificationType = WhatsAppNotificationType.TicketPdf,
+            RecipientPhone = recipientPhone,
+            IdempotencyKey = resendKey,
+            Status = WhatsAppNotificationStatus.Pending,
+            Attempts = 0,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.WhatsAppNotifications.Add(outboxItem);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        _auditService.AddAuditLog(
+            adminUserId,
+            "WORKSHOP_TICKET_RESENT_WHATSAPP",
+            "WorkshopBooking",
+            booking.Id,
+            $"Enqueued ticket PDF WhatsApp resend to {recipientPhone} for booking {booking.Id}");
+
+        return recipientPhone;
+    }
 }

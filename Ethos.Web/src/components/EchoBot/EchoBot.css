@@ -653,9 +653,46 @@
   background: #eef3ff;
 }
 
-/* Floating Launcher */
+/* Floating Launcher (3-Stage: Closed Icon -> Preview Slide Bar -> Chat Panel) */
 
-.echo-launcher {
+.echo-launcher-closed {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid #d9dce2;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease;
+}
+
+.echo-launcher-closed:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.36);
+}
+
+.echo-launcher-preview-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: echoSlideInRight 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes echoSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(45px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.echo-launcher-preview {
   display: flex;
   width: 205px;
   min-height: 54px;
@@ -667,14 +704,33 @@
   background: #ffffff;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.28);
   cursor: pointer;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.echo-launcher:hover {
+.echo-launcher-preview:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+
+.echo-preview-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #d9dce2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #555555;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.echo-preview-close:hover {
+  background: #f3f4f6;
+  color: #111111;
 }
 
 .echo-launcher-avatar {

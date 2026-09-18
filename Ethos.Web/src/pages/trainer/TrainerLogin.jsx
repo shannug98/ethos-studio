@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/authApi";
 import { trainerApi } from "../../services/trainerApi";
 import trainerLoginHero from "../../assets/trainer/trainer-login-hero.png";
-import ethosLogo from "../../assets/logo.png";
+import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./TrainerLogin.css";
 
 export default function TrainerLogin() {

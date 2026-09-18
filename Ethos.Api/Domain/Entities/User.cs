@@ -25,9 +25,14 @@ public class User
     // Never store a plain-text password.
     public string? PasswordHash { get; set; }
 
-    // True only when the trainer is using an administrator-generated
-    // temporary password and must create their own password.
     public bool MustChangePassword { get; set; } = false;
+
+    // Password Security & Lockout Metadata
+    public int FailedLoginCount { get; set; } = 0;
+
+    public DateTime? LockoutEnd { get; set; }
+
+    public DateTime? PasswordChangedAt { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 

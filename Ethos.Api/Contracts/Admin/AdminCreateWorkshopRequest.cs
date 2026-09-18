@@ -68,6 +68,8 @@ public class AdminCreateWorkshopRequest
     public bool RequireReEntryVerification { get; set; } = false;
 
     public TimeSpan? ReEntryCooldown { get; set; }
+
+    public List<AdminWorkshopPricingTierItem>? PricingTiers { get; set; }
 }
 
 public class AdminUpdateWorkshopRequest
@@ -134,4 +136,6 @@ public class AdminUpdateWorkshopRequest
     public bool RequireReEntryVerification { get; set; } = false;
 
     public TimeSpan? ReEntryCooldown { get; set; }
+
+    public List<AdminWorkshopPricingTierItem>? PricingTiers { get; set; }
 }

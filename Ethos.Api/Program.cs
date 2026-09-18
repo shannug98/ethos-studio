@@ -28,6 +28,7 @@ using Ethos.Api.Domain.Payment;
 using Ethos.Api.Infrastructure.Authentication;
 using Ethos.Api.Infrastructure.Notifications;
 using Ethos.Api.Infrastructure.Persistence;
+using Ethos.Api.Infrastructure.BackgroundWorkers;
 using Ethos.Api.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -233,13 +234,12 @@ builder.Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 
-builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IStudentEligibilityService, StudentEligibilityService>();
-builder.Services.AddScoped<IStudentProfilePhotoStorageService, LocalStudentProfilePhotoStorageService>();
+builder.Services.AddScoped<IStudentProfilePhotoStorageService, R2StudentProfilePhotoStorageService>();
 builder.Services.AddScoped<IStudentProfileService, StudentProfileService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IDanceClassService, DanceClassService>();
@@ -249,15 +249,26 @@ builder.Services.AddScoped<IWorkshopPricingService, WorkshopPricingService>();
 builder.Services.AddScoped<IWorkshopTicketService, WorkshopTicketService>();
 builder.Services.AddScoped<IStudentFeedbackService, StudentFeedbackService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaymentFulfillmentService, PaymentFulfillmentService>();
 builder.Services.AddScoped<IExternalNotificationSender, LoggingExternalNotificationSender>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IStudentNotificationReminderService, StudentNotificationReminderService>();
 builder.Services.AddScoped<IStudentDashboardService, StudentDashboardService>();
 builder.Services.AddScoped<IEchoAssistantService, EchoAssistantService>();
 
+// MSG91 WhatsApp Outbox & Ticket PDF Engine
+builder.Services.Configure<Msg91Options>(
+    builder.Configuration.GetSection(Msg91Options.SectionName));
+builder.Services.AddHttpClient<IMsg91WhatsAppService, Msg91WhatsAppService>();
+builder.Services.AddScoped<ITicketPdfService, TicketPdfService>();
+builder.Services.AddScoped<IWhatsAppOutboxDispatcher, WhatsAppOutboxDispatcher>();
+builder.Services.AddHostedService<WhatsAppOutboxBackgroundWorker>();
+
 // Production Cloudflare R2 Media Services
 builder.Services.Configure<CloudflareR2Settings>(
     builder.Configuration.GetSection("CloudflareR2"));
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IMediaCacheService, MediaCacheService>();
 builder.Services.AddScoped<ICloudflareR2StorageService, CloudflareR2StorageService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IVideoService, VideoService>();
@@ -279,7 +290,7 @@ builder.Services.AddScoped<ITrainerTierService, TrainerTierService>();
 builder.Services.AddScoped<ITrainerUpgradeService, TrainerUpgradeService>();
 builder.Services.AddScoped<
     ITrainerProfilePhotoStorageService,
-    LocalTrainerProfilePhotoStorageService>();
+    R2TrainerProfilePhotoStorageService>();
 builder.Services.AddScoped<
     ITrainerGalleryStorageService,
     LocalTrainerGalleryStorageService>();
@@ -398,30 +409,6 @@ using (var scope = app.Services.CreateScope())
     if (db.Database.IsRelational())
     {
         db.Database.Migrate();
-
-        // Ensure studio_videos table exists in Neon PostgreSQL
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS studio_videos (
-                ""Id"" uuid NOT NULL PRIMARY KEY,
-                ""Title"" character varying(150) NOT NULL,
-                ""Description"" character varying(500),
-                ""Section"" character varying(50) NOT NULL,
-                ""ObjectKey"" character varying(500) NOT NULL,
-                ""PublicUrl"" character varying(1000) NOT NULL,
-                ""ThumbnailUrl"" character varying(1000),
-                ""DisplayOrder"" integer NOT NULL DEFAULT 0,
-                ""IsActive"" boolean NOT NULL DEFAULT TRUE,
-                ""DurationSeconds"" double precision,
-                ""FileSizeBytes"" bigint NOT NULL DEFAULT 0,
-                ""MimeType"" character varying(100) NOT NULL DEFAULT 'video/mp4',
-                ""UploadedByUserId"" uuid,
-                ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT ""FK_studio_videos_users_UploadedByUserId"" FOREIGN KEY (""UploadedByUserId"") REFERENCES users (""Id"") ON DELETE SET NULL
-            );
-            CREATE INDEX IF NOT EXISTS ""IX_studio_videos_Section_IsActive_DisplayOrder"" ON studio_videos (""Section"", ""IsActive"", ""DisplayOrder"");
-            CREATE INDEX IF NOT EXISTS ""IX_studio_videos_ObjectKey"" ON studio_videos (""ObjectKey"");
-        ");
     }
 
     Phase2SeedService
@@ -537,8 +524,19 @@ app.UseCors();
 app.UseRateLimiter();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
+
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.ExecuteSqlRaw("ALTER TABLE workshops ALTER COLUMN \"ImageUrl\" TYPE text;");
+    db.Database.ExecuteSqlRaw("ALTER TABLE workshops ALTER COLUMN \"LandscapeImageUrl\" TYPE text;");
+}
+catch
+{
+    // Silently continue if table/column does not exist yet or already altered
+}
 
 app.MapControllers();
 

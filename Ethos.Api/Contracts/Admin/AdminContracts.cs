@@ -244,6 +244,9 @@ public class AdminTrainerListResponse
 
 public class AdminCreateTrainerRequest
 {
+    public string? ProfilePhotoUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? DateOfBirth { get; set; }
     public string FullName { get; set; } = null!;
     public string Phone { get; set; } = null!;
     public string? Email { get; set; }
@@ -253,6 +256,28 @@ public class AdminCreateTrainerRequest
     public int? ExperienceYears { get; set; }
     public string? Bio { get; set; }
     public Guid? TierId { get; set; }
+}
+
+
+public class AdminUpdateTrainerRequest
+{
+    public string FullName { get; set; } = null!;
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? City { get; set; }
+    public string? PrimaryDanceStyle { get; set; }
+    public string? SecondaryDanceStyles { get; set; }
+    public int? ExperienceYears { get; set; }
+    public string? Bio { get; set; }
+    public string? ProfilePhotoUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? DateOfBirth { get; set; }
+}
+
+public class AdminDeleteTrainerResult
+{
+    public string Action { get; set; } = string.Empty; // "Deleted" | "Archived"
+    public string Message { get; set; } = string.Empty;
 }
 
 public class AdminTrainerSummaryStatsResponse
@@ -1312,6 +1337,18 @@ public sealed class AdminDailyActivityItem
     public string? TraceId { get; set; }
 
     public DateTime Timestamp { get; set; }
+}
+
+public class AdminUpdateBookingContactRequest
+{
+    public string Phone { get; set; } = null!;
+    public string? Email { get; set; }
+    public string? FullName { get; set; }
+}
+
+public class AdminResendWhatsAppRequest
+{
+    public string? Phone { get; set; }
 }
 
 

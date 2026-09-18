@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoImg from "../assets/logo.png";
+import logoImg from "../assets/brand/ethos-emblem.png";
 import "../styles/brand-intro.css";
 
 function BrandIntro() {

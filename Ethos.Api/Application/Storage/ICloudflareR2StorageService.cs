@@ -23,4 +23,6 @@ public interface ICloudflareR2StorageService
     string GetPublicUrl(string objectKey);
 
     string GeneratePreSignedGetUrl(string objectKey, TimeSpan duration);
+
+    Task<(Stream Stream, string ContentType)?> GetObjectStreamAsync(string objectKey, CancellationToken cancellationToken = default);
 }

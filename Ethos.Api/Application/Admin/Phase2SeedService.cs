@@ -32,12 +32,7 @@ public static class Phase2SeedService
 
         // 2. Ensure Authorized Partner Admin Users (8019013757 & 8341701113) have ADMIN role
         var bootstrapPassword = configuration?["Admin:BootstrapPassword"]
-            ?? Environment.GetEnvironmentVariable("ETHOS_ADMIN_BOOTSTRAP_PASSWORD")
-            ?? (isDevelopment ? "EthosAdmin#Dev2026!" : null);
-
-        var passwordHash = !string.IsNullOrWhiteSpace(bootstrapPassword) && passwordService != null
-            ? passwordService.HashPassword(bootstrapPassword)
-            : null;
+            ?? Environment.GetEnvironmentVariable("ETHOS_ADMIN_BOOTSTRAP_PASSWORD");
 
         var authorizedAdmins = new (string Phone, string CustomerCode, string FullName)[]
         {
@@ -53,13 +48,23 @@ public static class Phase2SeedService
 
             if (adminUser == null)
             {
+                if (string.IsNullOrWhiteSpace(bootstrapPassword))
+                {
+                    throw new InvalidOperationException(
+                        $"Admin initialization failed for {phone}: ETHOS_ADMIN_BOOTSTRAP_PASSWORD environment variable or Admin:BootstrapPassword configuration is required to initialize an uninitialized environment.");
+                }
+
+                var initialHash = passwordService != null
+                    ? passwordService.HashPassword(bootstrapPassword)
+                    : new Microsoft.AspNetCore.Identity.PasswordHasher<User>().HashPassword(null!, bootstrapPassword);
+
                 adminUser = new User
                 {
                     Id = Guid.NewGuid(),
                     CustomerCode = customerCode,
                     FullName = fullName,
                     Phone = phone,
-                    PasswordHash = passwordHash,
+                    PasswordHash = initialHash,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -79,10 +84,23 @@ public static class Phase2SeedService
                 adminUser.IsActive = true;
                 adminUser.CustomerCode = customerCode;
                 adminUser.FullName = fullName;
-                if (!string.IsNullOrWhiteSpace(passwordHash))
+
+                // Only set PasswordHash if it was previously empty/uninitialized
+                if (string.IsNullOrWhiteSpace(adminUser.PasswordHash))
                 {
-                    adminUser.PasswordHash = passwordHash;
+                    if (string.IsNullOrWhiteSpace(bootstrapPassword))
+                    {
+                        throw new InvalidOperationException(
+                            $"Admin initialization failed for {phone}: ETHOS_ADMIN_BOOTSTRAP_PASSWORD environment variable or Admin:BootstrapPassword configuration is required to set an initial password for uninitialized admin account.");
+                    }
+
+                    var initialHash = passwordService != null
+                        ? passwordService.HashPassword(bootstrapPassword)
+                        : new Microsoft.AspNetCore.Identity.PasswordHasher<User>().HashPassword(null!, bootstrapPassword);
+
+                    adminUser.PasswordHash = initialHash;
                 }
+
                 if (!adminUser.UserRoles.Any(ur => ur.RoleId == adminRole.Id))
                 {
                     db.UserRoles.Add(new UserRole

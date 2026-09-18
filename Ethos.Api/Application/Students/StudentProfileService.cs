@@ -204,10 +204,9 @@ public class StudentProfileService : IStudentProfileService
 
         var oldPhotoPath = profile.ProfilePhotoUrl;
 
-        var relativeSavedPath = await _photoStorage.SaveAsync(userId, file, cancellationToken);
-        var fileName = Path.GetFileName(relativeSavedPath);
+        var photoUrl = await _photoStorage.SaveAsync(userId, file, cancellationToken);
 
-        profile.ProfilePhotoUrl = $"/uploads/student-profile-photos/{userId}/{fileName}";
+        profile.ProfilePhotoUrl = photoUrl;
         profile.UpdatedAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -225,12 +224,11 @@ public class StudentProfileService : IStudentProfileService
         }, cancellationToken);
 
         // Best-effort cleanup of old photo
-        if (!string.IsNullOrWhiteSpace(oldPhotoPath) && oldPhotoPath.StartsWith("/uploads/student-profile-photos/"))
+        if (!string.IsNullOrWhiteSpace(oldPhotoPath))
         {
             try
             {
-                var relativeStoragePath = oldPhotoPath.Replace("/uploads/student-profile-photos/", "App_Data/uploads/student-profile-photos/");
-                await _photoStorage.DeleteAsync(relativeStoragePath, cancellationToken);
+                await _photoStorage.DeleteAsync(oldPhotoPath, cancellationToken);
             }
             catch
             {

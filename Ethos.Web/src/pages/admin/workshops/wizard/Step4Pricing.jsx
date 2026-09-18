@@ -1,69 +1,215 @@
 import React from "react";
-import { Users, IndianRupee, Sparkles, GraduationCap, AlertCircle, TrendingUp } from "lucide-react";
+import { Users, IndianRupee, Plus, Trash2, GraduationCap, Sparkles, Layers, Sliders } from "lucide-react";
 
-export const AUTHORITATIVE_TIERS = [
-  { tier: 1, range: "1 – 10 Bookings", price: 500, label: "Early Bird Tier" },
-  { tier: 2, range: "11 – 20 Bookings", price: 600, label: "Standard Tier" },
-  { tier: 3, range: "21 – 30 Bookings", price: 700, label: "Peak Tier" },
-  { tier: 4, range: "31+ Bookings", price: 800, label: "Final Batch Tier" },
+export const DEFAULT_TIERS = [
+  { tierNumber: 1, tierName: "Early Bird Tier", minTickets: 1, maxTickets: 10, price: 500 },
+  { tierNumber: 2, tierName: "Standard Tier", minTickets: 11, maxTickets: 20, price: 600 },
+  { tierNumber: 3, tierName: "Peak Tier", minTickets: 21, maxTickets: 30, price: 700 },
+  { tierNumber: 4, tierName: "Final Batch Tier", minTickets: 31, maxTickets: null, price: 800 },
 ];
 
 export default function Step4Pricing({ form, onChange, errors }) {
+  // Ensure form.pricingTiers is populated
+  const tiers = Array.isArray(form.pricingTiers) && form.pricingTiers.length > 0
+    ? form.pricingTiers
+    : DEFAULT_TIERS;
+
+  const updateTiers = (newTiers) => {
+    onChange("pricingTiers", newTiers);
+    // Sync base workshop price with Tier 1
+    if (newTiers.length > 0 && newTiers[0].price != null) {
+      onChange("price", Number(newTiers[0].price) || 500);
+    }
+  };
+
+  const handleTierChange = (index, field, value) => {
+    const updated = tiers.map((t, idx) => {
+      if (idx !== index) return t;
+      return { ...t, [field]: value };
+    });
+    updateTiers(updated);
+  };
+
+  const handleAddTier = () => {
+    const lastTier = tiers[tiers.length - 1];
+    const prevMax = lastTier ? (lastTier.maxTickets || 30) : 0;
+    const newMin = prevMax + 1;
+    const newTier = {
+      tierNumber: tiers.length + 1,
+      tierName: `Tier ${tiers.length + 1}`,
+      minTickets: newMin,
+      maxTickets: newMin + 9,
+      price: lastTier ? Number(lastTier.price) + 100 : 500,
+    };
+    updateTiers([...tiers, newTier]);
+  };
+
+  const handleRemoveTier = (index) => {
+    if (tiers.length <= 1) return;
+    const filtered = tiers.filter((_, idx) => idx !== index);
+    // Re-index tierNumbers
+    const reindexed = filtered.map((t, idx) => ({ ...t, tierNumber: idx + 1 }));
+    updateTiers(reindexed);
+  };
+
+  // Preset Handlers
+  const applyPreset = (presetType) => {
+    const capacity = form.capacity || 40;
+    if (presetType === "FLAT") {
+      const baseP = form.price || 500;
+      updateTiers([
+        { tierNumber: 1, tierName: "Standard Admission", minTickets: 1, maxTickets: null, price: baseP }
+      ]);
+    } else if (presetType === "EARLY_BIRD") {
+      const baseP = form.price || 400;
+      updateTiers([
+        { tierNumber: 1, tierName: "Early Bird Tier", minTickets: 1, maxTickets: 15, price: baseP },
+        { tierNumber: 2, tierName: "Regular Admission", minTickets: 16, maxTickets: null, price: baseP + 150 }
+      ]);
+    } else if (presetType === "STANDARD_4") {
+      const baseP = form.price || 500;
+      updateTiers([
+        { tierNumber: 1, tierName: "Early Bird Tier", minTickets: 1, maxTickets: 10, price: baseP },
+        { tierNumber: 2, tierName: "Standard Tier", minTickets: 11, maxTickets: 20, price: baseP + 100 },
+        { tierNumber: 3, tierName: "Peak Tier", minTickets: 21, maxTickets: 30, price: baseP + 200 },
+        { tierNumber: 4, tierName: "Final Batch Tier", minTickets: 31, maxTickets: null, price: baseP + 300 }
+      ]);
+    }
+  };
+
+  const startingPrice = tiers.length > 0 ? (tiers[0].price || form.price || 500) : 500;
+
   return (
     <div className="wizard-step-panel">
       <div className="wizard-section-header">
-        <h2 className="wizard-section-title">Tickets & Dynamic Pricing</h2>
+        <h2 className="wizard-section-title">Tickets & Custom Dynamic Pricing</h2>
         <p className="wizard-section-desc">
-          Ethos implements a server-authoritative 4-tier progressive pricing model. Ticket prices automatically adjust based exclusively on confirmed bookings.
+          Customize pricing tiers, ticket prices, and seat ranges per tier for this workshop. Ticket prices adjust dynamically based on confirmed bookings.
         </p>
       </div>
 
-      {/* Authoritative 4-Tier Pricing Grid */}
+      {/* Preset Quick Actions */}
+      <div className="preset-bar-card">
+        <div className="preset-bar-label">
+          <Sliders size={16} />
+          <span>Quick Tier Presets:</span>
+        </div>
+        <div className="preset-btn-group">
+          <button type="button" className="preset-chip-btn" onClick={() => applyPreset("STANDARD_4")}>
+            ⚡ Standard 4-Tier Progressive
+          </button>
+          <button type="button" className="preset-chip-btn" onClick={() => applyPreset("EARLY_BIRD")}>
+            🌟 Early Bird + Regular (2 Tiers)
+          </button>
+          <button type="button" className="preset-chip-btn" onClick={() => applyPreset("FLAT")}>
+            🏷️ Single Flat Price
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Editable Tier Pricing Grid */}
       <div className="pricing-tiers-card">
         <div className="pricing-tiers-header">
           <div>
-            <h3 className="pricing-card-title">Authoritative 4-Tier Price Structure</h3>
+            <h3 className="pricing-card-title">Configured Pricing Structure ({tiers.length} Tiers)</h3>
             <p className="pricing-card-sub">
-              Starting price is ₹500. As registrations grow, each subsequent batch of 10 attendees scales automatically.
+              Admin customizable. Edit prices, seat limits, and names for each pricing phase.
             </p>
           </div>
           <div className="base-price-badge">
             <span className="base-label">Starting Price</span>
-            <span className="base-amount">₹500</span>
+            <span className="base-amount">₹{startingPrice}</span>
           </div>
         </div>
 
         <div className="tiers-table-wrap">
-          <table className="tiers-table">
+          <table className="tiers-table editable-tiers-table">
             <thead>
               <tr>
-                <th>Tier</th>
-                <th>Booking Range</th>
-                <th>Price Per Ticket</th>
-                <th>Tier Classification</th>
+                <th style={{ width: "90px" }}>Tier</th>
+                <th>Classification Name</th>
+                <th style={{ width: "130px" }}>Min Seat</th>
+                <th style={{ width: "130px" }}>Max Seat</th>
+                <th style={{ width: "150px" }}>Price Per Ticket</th>
+                <th style={{ width: "60px" }}></th>
               </tr>
             </thead>
             <tbody>
-              {AUTHORITATIVE_TIERS.map((t) => (
-                <tr key={t.tier} className={t.tier === 1 ? "tier-row-active" : ""}>
+              {tiers.map((t, idx) => (
+                <tr key={idx} className={idx === 0 ? "tier-row-active" : ""}>
                   <td>
-                    <span className="tier-number-badge">Tier {t.tier}</span>
-                  </td>
-                  <td className="tier-range-cell">{t.range}</td>
-                  <td className="tier-price-cell">
-                    <span className="rupee-sym">₹</span>{t.price}
+                    <span className="tier-number-badge">Tier {idx + 1}</span>
                   </td>
                   <td>
-                    <span className={`tier-class-pill tier-${t.tier}`}>{t.label}</span>
+                    <input
+                      type="text"
+                      className="tier-input-field"
+                      placeholder="Tier Name (e.g. Early Bird)"
+                      value={t.tierName || ""}
+                      onChange={(e) => handleTierChange(idx, "tierName", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="tier-input-field text-center"
+                      min={1}
+                      value={t.minTickets ?? 1}
+                      onChange={(e) => handleTierChange(idx, "minTickets", parseInt(e.target.value, 10) || 1)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="tier-input-field text-center"
+                      placeholder="Unlimited (+)"
+                      value={t.maxTickets ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        handleTierChange(idx, "maxTickets", val === "" ? null : parseInt(val, 10) || null);
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <div className="tier-price-input-wrap">
+                      <span className="tier-rupee">₹</span>
+                      <input
+                        type="number"
+                        className="tier-input-field price-input"
+                        min={0}
+                        placeholder="500"
+                        value={t.price ?? ""}
+                        onChange={(e) => handleTierChange(idx, "price", parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    {tiers.length > 1 && (
+                      <button
+                        type="button"
+                        className="tier-delete-btn"
+                        title="Remove Tier"
+                        onClick={() => handleRemoveTier(idx)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <div className="add-tier-footer-row">
+          <button type="button" className="btn-add-tier" onClick={handleAddTier}>
+            <Plus size={15} />
+            <span>Add Pricing Tier</span>
+          </button>
+        </div>
       </div>
 
-      {/* Workshop Total Capacity */}
+      {/* Workshop Total Capacity & Student Discount Notice */}
       <div className="wizard-form-grid-2">
         <div className="wizard-form-group">
           <label className="wizard-label">
@@ -75,9 +221,9 @@ export default function Step4Pricing({ form, onChange, errors }) {
               type="number"
               className={`wizard-input ${errors.capacity ? "has-error" : ""}`}
               min={5}
-              max={500}
+              max={5000}
               placeholder="e.g. 50"
-              value={form.capacity}
+              value={form.capacity || ""}
               onChange={(e) => onChange("capacity", parseInt(e.target.value, 10) || "")}
             />
           </div>

@@ -20,6 +20,7 @@ import {
   Lock,
   ChevronRight,
   Filter,
+  MoreHorizontal,
 } from "lucide-react";
 import { adminApi } from "../../services/adminApi";
 import AdminWorkshopFormModal from "../../components/admin/AdminWorkshopFormModal";
@@ -89,6 +90,45 @@ export default function AdminWorkshops() {
 
   const [revealedContacts, setRevealedContacts] = useState({});
   const [copiedFeedbackLinks, setCopiedFeedbackLinks] = useState({});
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleOutsideClick = () => setOpenActionMenuId(null);
+    if (openActionMenuId) {
+      document.addEventListener("click", handleOutsideClick);
+      return () => document.removeEventListener("click", handleOutsideClick);
+    }
+  }, [openActionMenuId]);
+
+  const formatWorkshopDate = (dateStr) => {
+    if (!dateStr) return "TBD";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr.slice(0, 10);
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    } catch {
+      return dateStr.slice(0, 10);
+    }
+  };
+
+  const formatWorkshopDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return "2 hours";
+    try {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
+      const startMins = sh * 60 + sm;
+      const endMins = eh * 60 + em;
+      const diff = endMins - startMins;
+      if (diff <= 0) return "2 hours";
+      const hours = Math.floor(diff / 60);
+      const mins = diff % 60;
+      if (mins === 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
+      if (hours === 0) return `${mins} mins`;
+      return `${hours}h ${mins}m`;
+    } catch {
+      return "2 hours";
+    }
+  };
 
   const maskPhone = (phone) => {
     if (!phone) return "—";
@@ -620,13 +660,15 @@ export default function AdminWorkshops() {
             <div className="workshops-cards-grid">
               {filteredWorkshops.map((w) => {
                 const phase = w.lifecyclePhase || "Upcoming";
-                const approval = w.approvalStatus || w.status || "Approved";
                 const isLocked = isWorkshopLocked(w);
-                const capInfo = getCapacityStatus(w.bookedCount || 0, w.capacity || 50);
+                const bookings = w.bookedCount || 0;
+                const revenue = w.totalRevenue != null ? Number(w.totalRevenue) : bookings * (w.price || 0);
+                const formattedRevenue = revenue.toLocaleString("en-IN");
+                const phaseClean = phase === "PendingApproval" ? "Pending Review" : phase;
 
                 return (
                   <div key={w.id} className="workshop-feature-card">
-                    {/* Card Media Header */}
+                    {/* Card Media Header - Landscape Banner */}
                     <div
                       className="card-media-wrap"
                       onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
@@ -640,121 +682,150 @@ export default function AdminWorkshops() {
                         </div>
                       )}
 
-                      {/* Overlaid Badges */}
-                      <div className="card-badges-overlay">
-                        <span className={getPhaseBadgeClass(phase)}>{phase}</span>
-                        {approval !== "Approved" && (
-                          <span className={getApprovalBadgeClass(approval)}>
-                            {approval === "PendingApproval" ? "Pending Review" : approval}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Starting Price Pill */}
-                      <div className="card-price-overlay">
-                        <span className="price-prefix">From</span>
-                        <span className="price-val">₹{w.price || 500}</span>
+                      {/* Status Pill Badge (Top-Left matching Img 3) */}
+                      <div className="card-status-pill-badge">
+                        <span className={`status-pill-dot dot-${phase.toLowerCase().replace(/\s+/g, "-")}`} />
+                        <span className="status-pill-text">{phaseClean}</span>
                       </div>
                     </div>
 
                     {/* Card Body */}
                     <div className="card-body-content">
-                      <div className="card-tags-row">
-                        <span className="style-tag">{w.danceStyle}</span>
-                        <span className="level-tag">{w.level || "Open Level"}</span>
-                      </div>
+                      {/* Title + Action Menu Header */}
+                      <div className="card-header-row">
+                        <h3
+                          className="card-title-modern"
+                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
+                          title={w.title}
+                        >
+                          {w.title}
+                        </h3>
 
-                      <h3
-                        className="card-title"
-                        onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
-                        title={w.title}
-                      >
-                        {w.title}
-                      </h3>
-
-                      <div className="card-instructor">
-                        <span className="instructor-lbl">Trainer:</span>
-                        <span className="instructor-val">{w.trainerName || "Ethos Faculty"}</span>
-                      </div>
-
-                      <div className="card-meta-list">
-                        <div className="card-meta-item">
-                          <Calendar size={13} />
-                          <span>{w.workshopDate?.slice(0, 10)}</span>
-                        </div>
-                        <div className="card-meta-item">
-                          <Clock size={13} />
-                          <span>
-                            {w.startTime?.slice(0, 5)} – {w.endTime?.slice(0, 5)} IST
-                          </span>
-                        </div>
-                        <div className="card-meta-item venue-item">
-                          <MapPin size={13} />
-                          <span title={w.venueAddress || w.venue}>
-                            {w.venue}
-                            {w.city ? `, ${w.city}` : ""}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Capacity Bar */}
-                      <div className="card-capacity-box">
-                        <div className="capacity-label-row">
-                          <span className="cap-lbl">Registrations</span>
-                          <span className="cap-val" style={{ color: capInfo.color }}>
-                            {w.bookedCount || 0} / {w.capacity || 50} ({capInfo.label})
-                          </span>
-                        </div>
-                        <div className="capacity-progress-track">
-                          <div
-                            className="capacity-progress-fill"
-                            style={{
-                              width: `${Math.min(100, capInfo.pct)}%`,
-                              background: capInfo.color,
+                        <div className="card-menu-anchor">
+                          <button
+                            type="button"
+                            className="btn-card-more-menu"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionMenuId(openActionMenuId === w.id ? null : w.id);
                             }}
-                          />
+                            title="Options"
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+
+                          {openActionMenuId === w.id && (
+                            <div className="card-menu-dropdown" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className="menu-dropdown-item"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  navigate(`/admin_portal/workshops/${w.id}/overview`);
+                                }}
+                              >
+                                <ExternalLink size={14} />
+                                <span>Overview & Roster</span>
+                              </button>
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  className="menu-dropdown-item"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    navigate(`/admin_portal/workshops/${w.id}/wizard`);
+                                  }}
+                                >
+                                  <Edit size={14} />
+                                  <span>Edit Workshop</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="menu-dropdown-item"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  navigate(`/admin_portal/workshops/${w.id}/scanner`);
+                                }}
+                              >
+                                <QrCode size={14} />
+                                <span>Check-in Scanner</span>
+                              </button>
+
+                              {phase !== "Completed" && phase !== "Cancelled" && (
+                                <button
+                                  type="button"
+                                  className="menu-dropdown-item menu-dropdown-danger"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionModal({
+                                      open: true,
+                                      type: "cancel",
+                                      workshop: w,
+                                      reason: "",
+                                    });
+                                  }}
+                                >
+                                  <XCircle size={14} />
+                                  <span>Cancel Workshop</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Card Action Buttons */}
-                      <div className="card-action-bar">
+                      {/* Venue Row */}
+                      <div className="card-venue-row">
+                        <MapPin size={14} className="card-venue-pin" />
+                        <span title={w.venueAddress || w.venue}>
+                          {w.venue || "Skyhy Super Club"}{w.city ? `, ${w.city}` : ""}
+                        </span>
+                      </div>
+
+                      {/* Meta Chips Strip: Date | Trainer | Duration */}
+                      <div className="card-meta-chips-strip">
+                        <div className="meta-chip-item">
+                          <Calendar size={14} />
+                          <span>{formatWorkshopDate(w.workshopDate)}</span>
+                        </div>
+                        <div className="meta-chip-divider" />
+                        <div className="meta-chip-item">
+                          <Users size={14} />
+                          <span title={w.trainerName}>{w.trainerName || "Multiple"}</span>
+                        </div>
+                        <div className="meta-chip-divider" />
+                        <div className="meta-chip-item">
+                          <Clock size={14} />
+                          <span>{formatWorkshopDuration(w.startTime, w.endTime)}</span>
+                        </div>
+                      </div>
+
+                      {/* Performance Bar: Bookings & Revenue */}
+                      <div className="card-performance-pill">
+                        <span className="perf-metric">
+                          Bookings: <strong>{bookings}</strong>
+                        </span>
+                        <span className="perf-dot">•</span>
+                        <span className="perf-metric">
+                          Revenue: <strong>₹{formattedRevenue}</strong>
+                        </span>
+                      </div>
+
+                      {/* Bottom Row: Starting Price + View Details Button */}
+                      <div className="card-footer-action-row">
+                        <div className="card-price-badge">
+                          <span>₹{w.price || 500}</span>
+                        </div>
+
                         <button
                           type="button"
-                          className="btn-card-primary"
+                          className="btn-card-view-details"
                           onClick={() => navigate(`/admin_portal/workshops/${w.id}/overview`)}
                         >
-                          <span>Manage</span>
-                          <ChevronRight size={14} />
+                          <span>View Details</span>
+                          <ChevronRight size={16} />
                         </button>
-
-                        <button
-                          type="button"
-                          className="btn-card-scanner"
-                          onClick={() => navigate(`/admin_portal/workshops/${w.id}/scanner`)}
-                          title="Open Workshop QR Check-in Scanner (Ticket Validation)"
-                        >
-                          <QrCode size={15} />
-                        </button>
-
-                        {isLocked ? (
-                          <button
-                            type="button"
-                            className="btn-card-edit locked"
-                            disabled
-                            title="Modifications locked: workshop has already started"
-                          >
-                            <Lock size={14} />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn-card-edit"
-                            onClick={() => navigate(`/admin_portal/workshops/${w.id}/wizard`)}
-                            title="Edit Workshop in Multi-Step Wizard"
-                          >
-                            <Edit size={14} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>

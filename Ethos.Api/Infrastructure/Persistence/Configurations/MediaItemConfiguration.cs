@@ -12,6 +12,42 @@ public class MediaItemConfiguration : IEntityTypeConfiguration<MediaItem>
 
         builder.HasKey(m => m.Id);
 
+        builder.Property(m => m.Title)
+            .HasMaxLength(200)
+            .HasDefaultValue(string.Empty);
+
+        builder.Property(m => m.Caption)
+            .HasMaxLength(500)
+            .HasDefaultValue(string.Empty);
+
+        builder.Property(m => m.AltText)
+            .HasMaxLength(300)
+            .HasDefaultValue(string.Empty);
+
+        builder.Property(m => m.FocalPoint)
+            .HasMaxLength(50)
+            .HasDefaultValue("center");
+
+        builder.Property(m => m.Category)
+            .HasMaxLength(100)
+            .HasDefaultValue("General");
+
+        builder.Property(m => m.LayoutType)
+            .HasMaxLength(50)
+            .HasDefaultValue("Square");
+
+        builder.Property(m => m.IsArchived)
+            .HasDefaultValue(false);
+
+        builder.Property(m => m.TargetUrl)
+            .HasMaxLength(500);
+
+        builder.Property(m => m.OptimizedUrl)
+            .HasMaxLength(1000);
+
+        builder.Property(m => m.ThumbnailUrl)
+            .HasMaxLength(1000);
+
         builder.Property(m => m.ObjectKey)
             .IsRequired()
             .HasMaxLength(500);
@@ -27,11 +63,8 @@ public class MediaItemConfiguration : IEntityTypeConfiguration<MediaItem>
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(m => m.Section)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.HasIndex(m => m.Section);
+        builder.HasIndex(m => m.Category);
+        builder.HasIndex(m => m.IsArchived);
 
         builder.Property(m => m.MimeType)
             .IsRequired()
@@ -55,6 +88,11 @@ public class MediaItemConfiguration : IEntityTypeConfiguration<MediaItem>
         builder.HasOne(m => m.UploadedByUser)
             .WithMany()
             .HasForeignKey(m => m.UploadedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(m => m.Workshop)
+            .WithMany()
+            .HasForeignKey(m => m.WorkshopId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

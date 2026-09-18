@@ -1,24 +1,47 @@
 import React, { useState, useEffect, useRef } from "react";
-import { adminApi } from "../../services/adminApi";
+import { publicApi } from "../../services/publicApi";
+import { getMediaUrl } from "../../utils/mediaUrl";
+import visualReel from "../../assets/gallery/ethos-visual-reel.mp4";
+import heroVideo from "../../assets/hero/hero-video.mp4";
 import "./ShortDanceVideos.css";
 
+const DEFAULT_SHORT_VIDEOS = [
+  {
+    id: "default-reel-1",
+    title: "Contemporary Routine Reel",
+    description: "Flow, control and musicality in our advanced routine session.",
+    publicUrl: visualReel,
+  },
+  {
+    id: "default-reel-2",
+    title: "Urban Showcase Reel",
+    description: "High energy routines, footwork and student combinations.",
+    publicUrl: heroVideo,
+  },
+];
+
 export default function ShortDanceVideos() {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [videos, setVideos] = useState(DEFAULT_SHORT_VIDEOS);
+  const [loading, setLoading] = useState(false);
   const [activeModalVideo, setActiveModalVideo] = useState(null);
   const [mutedStates, setMutedStates] = useState({});
 
   useEffect(() => {
     let isMounted = true;
-    adminApi
-      .getPublicVideos("ShortVideos")
+    publicApi
+      .getPublicMedia({ section: "HomepageReels" })
       .then((data) => {
-        if (isMounted && Array.isArray(data)) {
-          setVideos(data);
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          const formattedData = data.map((d) => ({
+            ...d,
+            publicUrl: getMediaUrl(d.publicUrl, d.id),
+          }));
+          // Prepend cloud reels to default studio reels
+          setVideos([...formattedData, ...DEFAULT_SHORT_VIDEOS]);
         }
       })
       .catch((err) => {
-        console.warn("[ShortDanceVideos] Unable to fetch short videos:", err);
+        console.warn("[ShortDanceVideos] Unable to fetch HomepageReels:", err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -28,11 +51,6 @@ export default function ShortDanceVideos() {
       isMounted = false;
     };
   }, []);
-
-  // If loading or no videos yet, return null (seamless when empty)
-  if (loading || videos.length === 0) {
-    return null;
-  }
 
   const toggleMute = (id, e) => {
     e.stopPropagation();

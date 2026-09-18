@@ -26,8 +26,8 @@ export default function Step2Photos({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size exceeds 5MB limit. Please choose a smaller image.");
+    if (file.size > 35 * 1024 * 1024) {
+      alert("File size exceeds 35MB limit. Please choose a smaller image.");
       return;
     }
 

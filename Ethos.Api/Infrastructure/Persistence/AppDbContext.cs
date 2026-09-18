@@ -16,8 +16,6 @@ public class AppDbContext : DbContext
 
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
-    public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
-
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
 
     public DbSet<TrainerProfile> TrainerProfiles => Set<TrainerProfile>();
@@ -105,7 +103,15 @@ public class AppDbContext : DbContext
 
     public DbSet<MediaItem> MediaItems => Set<MediaItem>();
 
+    public DbSet<MediaPlacement> MediaPlacements => Set<MediaPlacement>();
+
     public DbSet<StudioVideo> StudioVideos => Set<StudioVideo>();
+
+    public DbSet<WhatsAppNotification> WhatsAppNotifications => Set<WhatsAppNotification>();
+
+    public DbSet<TicketPdf> TicketPdfs => Set<TicketPdf>();
+
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

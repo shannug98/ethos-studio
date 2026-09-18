@@ -269,11 +269,17 @@ public class AdminDeviceService : IAdminDeviceService
 
         // 2. Unrecognized or no credential: Enter Atomic Device Registration
         // Using PostgreSQL transaction and advisory lock to strictly guarantee maximum 2 devices
-        using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        var isRelational = _db.Database.IsRelational();
+        using var transaction = isRelational
+            ? await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken)
+            : null;
         try
         {
-            // Acquire exclusive transaction advisory lock (key 182001)
-            await _db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(182001);", cancellationToken);
+            if (isRelational)
+            {
+                // Acquire exclusive transaction advisory lock (key 182001)
+                await _db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(182001);", cancellationToken);
+            }
 
             var activeDeviceCount = await _db.AdminSessions
                 .Where(s =>
@@ -288,7 +294,10 @@ public class AdminDeviceService : IAdminDeviceService
 
             if (activeDeviceCount >= 2)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
                 _logger.LogWarning("Admin device limit exceeded for user {UserId}. Active: {Count}/2. Blocked new device from IP {IpAddress}", userId, activeDeviceCount, ipAddress);
 
                 await RecordSecurityEventAsync(
@@ -331,7 +340,10 @@ public class AdminDeviceService : IAdminDeviceService
 
             _db.AdminDevices.Add(newDevice);
             await _db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
 
             _logger.LogInformation("Successfully registered new admin device {DeviceId} ({DeviceName}) for user {UserId}", newDevice.Id, sanitizedName, userId);
 
@@ -353,7 +365,10 @@ public class AdminDeviceService : IAdminDeviceService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
             _logger.LogError(ex, "Error occurred during atomic device registration");
             throw;
         }

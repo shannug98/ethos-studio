@@ -1634,3 +1634,650 @@ input:checked + .slider-toggle:before {
 .wizard-btn-next.primary-glow {
   box-shadow: 0 0 15px rgba(255, 85, 0, 0.4);
 }
+
+
+.trainer-actions-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trainer-change-link-btn {
+  background: #E8F2FF;
+  border: 1px solid #BFDBFE;
+  color: #185ABD;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.trainer-change-link-btn:hover {
+  background: #185ABD;
+  color: #FFFFFF;
+}
+
+/* Step 3: Venue & Schedule Styled Cards */
+.selected-venue-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 14px;
+}
+
+.venue-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.venue-name-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.venue-icon {
+  color: #FF5500;
+  font-size: 18px;
+}
+
+.venue-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #172033;
+}
+
+.venue-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.venue-preview-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #147A45;
+  background: #E7F8EF;
+  border: 1px solid #BBF7D0;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.venue-map-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #0284C7;
+  text-decoration: none;
+  padding: 4px 10px;
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 6px;
+}
+
+.venue-map-link-btn:hover {
+  background: #E0F2FE;
+}
+
+.venue-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #526078;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.venue-change-btn:hover {
+  background: #F1F5F9;
+  color: #172033;
+}
+
+.venue-address-text {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.venue-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.venue-pill,
+.coord-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.schedule-summary-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 20px;
+}
+
+.summary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.4px;
+}
+
+.summary-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+/* Step 4: Editable Pricing Tiers & Presets */
+.preset-bar-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.preset-chip-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #475569;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-chip-btn:hover {
+  background: #FF5500;
+  color: #FFFFFF;
+  border-color: #FF5500;
+}
+
+.editable-tiers-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.editable-tiers-table th {
+  background: #F8FAFC;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #E2E8F0;
+  text-align: left;
+}
+
+.editable-tiers-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  vertical-align: middle;
+}
+
+.editable-tiers-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tier-input-field {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.tier-input-field:focus {
+  outline: none;
+  border-color: #FF5500;
+  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+}
+
+.tier-price-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.tier-price-input-wrap .tier-input-field {
+  padding-left: 24px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.btn-add-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #FF5500;
+  background: #FFF3D6;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-tier:hover {
+  background: #FF5500;
+  color: #FFFFFF;
+  border-color: #FF5500;
+}
+
+.tier-delete-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tier-delete-btn:hover {
+  color: #EF4444;
+  background: #FEE2E2;
+}
+
+.starting-price-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.starting-price-badge {
+  background: #FFF3D6;
+  border: 1px solid #FDE68A;
+  padding: 6px 14px;
+  border-radius: 8px;
+  text-align: right;
+}
+
+/* Step 3: Venue & Location Form Cards & Search Inputs */
+.form-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.form-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.form-card-icon {
+  color: #FF5500;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.form-card-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #172033;
+}
+
+.form-card-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.venue-search-container {
+  position: relative;
+  width: 100%;
+}
+
+.venue-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.venue-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.venue-search-input {
+  width: 100%;
+  padding: 11px 16px 11px 42px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1E293B;
+  background: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.venue-search-input::placeholder {
+  color: #94A3B8;
+}
+
+.venue-search-input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: #FF5500;
+  box-shadow: 0 0 0 3.5px rgba(255, 85, 0, 0.15);
+}
+
+.venue-searching-spinner {
+  position: absolute;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #E2E8F0;
+  border-top-color: #FF5500;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.venue-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.venue-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FFF3D6;
+  border-bottom: 1px solid #FDE68A;
+  color: #8A5700;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.venue-dropdown-group {
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.venue-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #F8FAFC;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748B;
+}
+
+.group-count-badge {
+  background: #E2E8F0;
+  color: #334155;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.venue-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #F8FAFC;
+}
+
+.venue-dropdown-item:hover {
+  background: #F1F5F9;
+}
+
+.ethos-logo-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #FF5500;
+  background: #FFF3D6;
+  border: 1px solid #FDE68A;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pin-icon {
+  color: #64748B;
+}
+
+.item-primary-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.item-secondary-text {
+  font-size: 11.5px;
+  color: #64748B;
+}
+
+.venue-no-results {
+  padding: 18px;
+  text-align: center;
+  color: #64748B;
+  font-size: 13px;
+}
+
+.enter-manual-link-btn,
+.venue-manual-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #FF5500;
+  background: #FFF3D6;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+
+.enter-manual-link-btn:hover,
+.venue-manual-trigger-btn:hover {
+  background: #FF5500;
+  color: #FFFFFF;
+  border-color: #FF5500;
+}
+
+.manual-toggle-row {
+  margin-top: 10px;
+}
+
+.manual-toggle-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  background: #F1F5F9;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manual-toggle-link:hover {
+  background: #FF5500;
+  color: #FFFFFF;
+  border-color: #FF5500;
+}
+
+.manual-venue-form-box {
+  background: #F8FAFC;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 14px;
+}
+
+.manual-form-title {
+  margin: 0 0 14px 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: #1E293B;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.form-label .req {
+  color: #EF4444;
+}
+
+.form-input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E293B;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #FF5500;
+  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+}
+
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-left-icon {
+  position: absolute;
+  left: 10px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.with-left-icon {
+  padding-left: 34px;
+}
+
+

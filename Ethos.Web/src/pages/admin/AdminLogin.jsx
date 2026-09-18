@@ -8,18 +8,18 @@ import {
   clearAdminDeviceCredential,
 } from "../../services/adminApi";
 import { formatAdminLastActive } from "../../utils/adminFormatters";
-import ethosLogo from "../../assets/logo.png";
+import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./AdminLogin.css";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
 
-  // Steps: 'CREDENTIALS' | 'MFA' | 'FORGOT_REQUEST' | 'FORGOT_RESET'
+  // Steps: 'CREDENTIALS' | 'FORGOT_REQUEST' | 'FORGOT_RESET'
   const [step, setStep] = useState("CREDENTIALS");
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   // Forgot password specific state
@@ -30,9 +30,8 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   // Structured error: { title: string, message: string } | null
   const [error, setError] = useState(null);
-  const [devOtpHint, setDevOtpHint] = useState("");
 
-  // Hotstar-style session limit remote logout state
+  // Session limit remote logout state
   const [rawBlockedSessions, setRawBlockedSessions] = useState([]);
   const [terminatingSessionId, setTerminatingSessionId] = useState(null);
   const [actionSuccess, setActionSuccess] = useState("");
@@ -46,10 +45,9 @@ export default function AdminLogin() {
     return true;
   });
 
-  const handleForgotRequestOtp = async (e) => {
+  const handleForgotRequestToken = async (e) => {
     if (e) e.preventDefault();
     setError(null);
-    setDevOtpHint("");
     setActionSuccess("");
 
     const cleanPhone = phone.replace(/\D/g, "");
@@ -63,12 +61,9 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const res = await adminApi.requestForgotPasswordOtp(cleanPhone);
+      const res = await adminApi.requestForgotPassword(cleanPhone);
       setStep("FORGOT_RESET");
-      setActionSuccess(res.message || "If the number belongs to an authorized administrator, an OTP has been generated.");
-      if (res.developmentOtp) {
-        setDevOtpHint(`Development Reset OTP: ${res.developmentOtp}`);
-      }
+      setActionSuccess(res.message || "If the number belongs to an authorized administrator, password reset instructions have been dispatched.");
     } catch (err) {
       setError({
         title: "Request Failed",
@@ -83,13 +78,12 @@ export default function AdminLogin() {
     if (e) e.preventDefault();
     setError(null);
 
-    const cleanPhone = phone.replace(/\D/g, "");
-    const cleanOtp = otp.trim();
+    const cleanToken = resetToken.trim();
 
-    if (!cleanOtp || cleanOtp.length !== 6) {
+    if (!cleanToken) {
       setError({
-        title: "Invalid Code",
-        message: "Please enter the 6-digit verification code.",
+        title: "Reset Token Required",
+        message: "Please enter the password reset token.",
       });
       return;
     }
@@ -112,14 +106,13 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const res = await adminApi.resetForgotPassword(cleanPhone, cleanOtp, forgotNewPassword);
+      const res = await adminApi.resetForgotPassword(cleanToken, forgotNewPassword);
       setActionSuccess(res.message || "Administrative password reset successfully. Please log in with your new password.");
       setStep("CREDENTIALS");
       setPassword("");
-      setOtp("");
+      setResetToken("");
       setForgotNewPassword("");
       setForgotConfirmPassword("");
-      setDevOtpHint("");
     } catch (err) {
       setError({
         title: "Password Reset Failed",
@@ -133,7 +126,6 @@ export default function AdminLogin() {
   const handleCredentialsSubmit = async (e) => {
     if (e) e.preventDefault();
     setError(null);
-    setDevOtpHint("");
     setActionSuccess("");
 
     const cleanPhone = phone.replace(/\D/g, "");
@@ -155,23 +147,25 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const res = await adminApi.login(cleanPhone, password);
-      if (res.otpRequired) {
-        setRawBlockedSessions([]);
-        setStep("MFA");
-        if (res.developmentOtp) {
-          setDevOtpHint(`Development MFA Code: ${res.developmentOtp}`);
+      const deviceName = `${navigator.userAgent.includes("Mac") ? "Mac" : navigator.userAgent.includes("Win") ? "Windows" : "Device"} - ${navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Safari") ? "Safari" : "Browser"}`;
+      const res = await adminApi.login(cleanPhone, password, deviceName);
+
+      if (res.accessToken) {
+        setAdminToken(res.accessToken);
+        setAdminUser(res.user);
+        if (res.deviceCredential) {
+          setAdminDeviceCredential(res.deviceCredential);
         }
+        navigate("/admin_portal/dashboard", { replace: true });
       } else {
         setError({
           title: "Authentication Failed",
-          message: res.message || "Authentication failed.",
+          message: res.message || "Invalid administrative credentials.",
         });
       }
     } catch (err) {
       if (err.status === 403) {
         if (err.code === "DEVICE_REVOKED" || err.message?.toLowerCase().includes("revoked")) {
-          // Clear revoked credential so browser doesn't get stuck
           clearAdminDeviceCredential();
           setError({
             title: "This device authorization has been revoked.",
@@ -217,16 +211,18 @@ export default function AdminLogin() {
     try {
       const cleanPhone = phone.replace(/\D/g, "");
       await adminApi.terminateSession(cleanPhone, password, sessionId);
-      setActionSuccess("Device logged out successfully! Requesting MFA verification code...");
+      setActionSuccess("Device logged out successfully! Proceeding with login...");
       setRawBlockedSessions([]);
 
-      // Auto-trigger login to transition smoothly to MFA step
-      const res = await adminApi.login(cleanPhone, password);
-      if (res.otpRequired) {
-        setStep("MFA");
-        if (res.developmentOtp) {
-          setDevOtpHint(`Development MFA Code: ${res.developmentOtp}`);
+      const deviceName = `${navigator.userAgent.includes("Mac") ? "Mac" : navigator.userAgent.includes("Win") ? "Windows" : "Device"} - ${navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Safari") ? "Safari" : "Browser"}`;
+      const res = await adminApi.login(cleanPhone, password, deviceName);
+      if (res.accessToken) {
+        setAdminToken(res.accessToken);
+        setAdminUser(res.user);
+        if (res.deviceCredential) {
+          setAdminDeviceCredential(res.deviceCredential);
         }
+        navigate("/admin_portal/dashboard", { replace: true });
       }
     } catch (err) {
       setError({
@@ -238,85 +234,10 @@ export default function AdminLogin() {
     }
   };
 
-  const handleMfaSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-
-    const cleanOtp = otp.trim();
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      setError({
-        title: "Invalid Code",
-        message: "Please enter the 6-digit MFA code.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const deviceName = `${navigator.userAgent.includes("Mac") ? "Mac" : navigator.userAgent.includes("Win") ? "Windows" : "Device"} - ${navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Safari") ? "Safari" : "Browser"}`;
-      const fingerprint = `${navigator.platform || "web"}|${screen.width}x${screen.height}|${Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"}`;
-
-      const res = await adminApi.verifyMfa(cleanPhone, cleanOtp, deviceName, fingerprint);
-
-      if (res.accessToken) {
-        setAdminToken(res.accessToken);
-        setAdminUser(res.user);
-        if (res.deviceCredential) {
-          setAdminDeviceCredential(res.deviceCredential);
-        }
-        navigate("/admin_portal/dashboard", { replace: true });
-      } else {
-        setError({
-          title: "Verification Failed",
-          message: "Invalid or expired verification code.",
-        });
-      }
-    } catch (err) {
-      if (err.status === 403) {
-        if (err.code === "DEVICE_REVOKED" || err.message?.toLowerCase().includes("revoked")) {
-          clearAdminDeviceCredential();
-          setError({
-            title: "This device authorization has been revoked.",
-            message: "Please use an approved device or ask an administrator to authorize this device again.",
-          });
-          setStep("CREDENTIALS");
-        } else if (
-          err.code === "DEVICE_AUTHORIZATION_BLOCKED" ||
-          err.message?.toLowerCase().includes("approved") ||
-          err.message?.toLowerCase().includes("active")
-        ) {
-          setError({
-            title: "Both approved device sessions are currently active.",
-            message: "Please sign out from one approved device to continue.",
-          });
-          if (Array.isArray(err.data?.activeSessions)) {
-            setRawBlockedSessions(err.data.activeSessions);
-          }
-          setStep("CREDENTIALS");
-        } else {
-          setError({
-            title: "Access Denied",
-            message: err.message || "Device authorization failed.",
-          });
-          setStep("CREDENTIALS");
-        }
-      } else {
-        setError({
-          title: "Verification Failed",
-          message: err.message || "Invalid or expired verification code.",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleReset = () => {
     setStep("CREDENTIALS");
-    setOtp("");
+    setResetToken("");
     setError(null);
-    setDevOtpHint("");
     setRawBlockedSessions([]);
     setActionSuccess("");
   };
@@ -335,16 +256,14 @@ export default function AdminLogin() {
       <section className="admin-login-card">
         <h2>
           {step === "CREDENTIALS" && "Welcome back"}
-          {step === "MFA" && "MFA Verification"}
           {step === "FORGOT_REQUEST" && "Forgot Administrative Password"}
           {step === "FORGOT_RESET" && "Set New Administrative Password"}
         </h2>
 
         <p className="description">
           {step === "CREDENTIALS" && "Sign in to manage studio operations, users, payments, trainers, students, and system telemetry."}
-          {step === "MFA" && "Enter the 6-digit MFA security code generated for your authorized administrative session."}
-          {step === "FORGOT_REQUEST" && "Enter your registered administrative mobile number. If authorized, a secure verification code will be dispatched."}
-          {step === "FORGOT_RESET" && "Enter the 6-digit verification code sent to your mobile device and set your new administrative password."}
+          {step === "FORGOT_REQUEST" && "Enter your registered administrative mobile number. Password reset instructions will be dispatched if authorized."}
+          {step === "FORGOT_RESET" && "Enter your reset token and set your new administrative password."}
         </p>
 
         {error && (
@@ -364,14 +283,7 @@ export default function AdminLogin() {
           </div>
         )}
 
-        {devOtpHint && (
-          <div className="admin-login-dev-hint" role="status">
-            <span aria-hidden="true">🔑</span>
-            <span>{devOtpHint}</span>
-          </div>
-        )}
-
-        {/* Hotstar-style Session Limit Section: Display ONLY when 2 active sessions exist */}
+        {/* Hotstar-style Session Limit Section */}
         {step === "CREDENTIALS" && activeBlockedSessions.length > 0 && (
           <div className="login-session-limit-section">
             <div className="login-session-limit-header">
@@ -457,7 +369,6 @@ export default function AdminLogin() {
                   onClick={() => {
                     setError(null);
                     setActionSuccess("");
-                    setDevOtpHint("");
                     setStep("FORGOT_REQUEST");
                   }}
                 >
@@ -471,51 +382,13 @@ export default function AdminLogin() {
               className="admin-login-submit"
               disabled={loading}
             >
-              {loading ? "Authenticating..." : "Continue to Verification"}
-            </button>
-          </form>
-        )}
-
-        {step === "MFA" && (
-          <form onSubmit={handleMfaSubmit}>
-            <div className="admin-login-field">
-              <label htmlFor="admin-otp">6-Digit Verification Code</label>
-              <input
-                id="admin-otp"
-                name="otp"
-                type="text"
-                className="admin-login-input admin-login-otp-input"
-                placeholder="000000"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                autoFocus
-                disabled={loading}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="admin-login-submit"
-              disabled={loading}
-            >
-              {loading ? "Verifying..." : "Verify & Access Command Center"}
-            </button>
-
-            <button
-              type="button"
-              className="admin-back-btn"
-              onClick={handleReset}
-              disabled={loading}
-            >
-              ← Back to Credentials
+              {loading ? "Authenticating..." : "Sign In to Admin Portal"}
             </button>
           </form>
         )}
 
         {step === "FORGOT_REQUEST" && (
-          <form onSubmit={handleForgotRequestOtp}>
+          <form onSubmit={handleForgotRequestToken}>
             <div className="admin-login-field">
               <label htmlFor="forgot-phone">Registered Admin Mobile Number</label>
               <div className="admin-phone-group">
@@ -542,7 +415,7 @@ export default function AdminLogin() {
               className="admin-login-submit"
               disabled={loading}
             >
-              {loading ? "Requesting OTP..." : "Send Reset Verification Code"}
+              {loading ? "Requesting..." : "Send Password Reset Instructions"}
             </button>
 
             <button
@@ -559,27 +432,15 @@ export default function AdminLogin() {
         {step === "FORGOT_RESET" && (
           <form onSubmit={handleForgotResetSubmit}>
             <div className="admin-login-field">
-              <label htmlFor="reset-phone">Admin Mobile</label>
+              <label htmlFor="reset-token">Password Reset Token</label>
               <input
-                id="reset-phone"
+                id="reset-token"
+                name="resetToken"
                 type="text"
                 className="admin-login-input"
-                value={`+91 ${phone}`}
-                disabled
-              />
-            </div>
-
-            <div className="admin-login-field">
-              <label htmlFor="reset-otp">6-Digit Verification Code</label>
-              <input
-                id="reset-otp"
-                name="otp"
-                type="text"
-                className="admin-login-input admin-login-otp-input"
-                placeholder="000000"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="Enter reset token"
+                value={resetToken}
+                onChange={(e) => setResetToken(e.target.value)}
                 autoFocus
                 disabled={loading}
                 required
@@ -654,3 +515,4 @@ export default function AdminLogin() {
     </div>
   );
 }
+

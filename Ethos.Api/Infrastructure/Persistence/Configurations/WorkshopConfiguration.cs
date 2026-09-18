@@ -57,10 +57,10 @@ public class WorkshopConfiguration : IEntityTypeConfiguration<Workshop>
             .IsRequired();
 
         builder.Property(x => x.ImageUrl)
-            .HasMaxLength(500);
+            .HasColumnType("text");
 
         builder.Property(x => x.LandscapeImageUrl)
-            .HasMaxLength(500);
+            .HasColumnType("text");
 
         builder.Property(x => x.City)
             .HasMaxLength(100);

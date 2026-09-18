@@ -199,7 +199,7 @@
 .admin-payments-container .tab-btn,
 .admin-classes-container .tab-btn,
 .admin-workshops-container .tab-btn,
-.admin-workshops-container button,
+.admin-workshops-container button:not(.ratio-pill):not(.cropper-btn-subtle):not(.cropper-btn-cancel):not(.cropper-btn-apply):not(.cropper-close-btn),
 .admin-bookings-container .tab-btn {
   border: 0 !important;
   border-radius: 8px !important;
@@ -216,7 +216,7 @@
 .admin-payments-container .tab-btn:hover,
 .admin-classes-container .tab-btn:hover,
 .admin-workshops-container .tab-btn:hover,
-.admin-workshops-container button:hover,
+.admin-workshops-container button:not(.ratio-pill):not(.cropper-btn-subtle):not(.cropper-btn-cancel):not(.cropper-btn-apply):not(.cropper-close-btn):hover,
 .admin-bookings-container .tab-btn:hover {
   background: #ffffff !important;
   color: var(--ethos-admin-text) !important;
@@ -227,7 +227,7 @@
 .admin-payments-container .tab-btn.active,
 .admin-classes-container .tab-btn.active,
 .admin-workshops-container .tab-btn.active,
-.admin-workshops-container button.active,
+.admin-workshops-container button:not(.ratio-pill):not(.cropper-btn-subtle):not(.cropper-btn-cancel):not(.cropper-btn-apply):not(.cropper-close-btn).active,
 .admin-bookings-container .tab-btn.active {
   background: var(--ethos-admin-primary) !important;
   color: #ffffff !important;

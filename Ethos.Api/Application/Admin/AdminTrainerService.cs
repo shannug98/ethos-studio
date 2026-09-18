@@ -253,7 +253,8 @@ public class AdminTrainerService : IAdminTrainerService
                 AdminApprovedPrice = w.AdminApprovedPrice,
                 Price = w.AdminApprovedPrice ?? w.TrainerProposedPrice ?? w.Price,
                 Capacity = w.Capacity,
-                BookedCount = w.Bookings.Count(b => b.Status == WorkshopBookingStatus.Confirmed),
+                BookedCount = w.Bookings.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => (int?)b.Quantity) ?? 0,
+                TotalRevenue = w.Bookings.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => (decimal?)b.TotalPrice) ?? 0,
                 Status = w.Status.ToString(),
                 ImageUrl = w.ImageUrl,
                 CreatedAt = w.CreatedAt
@@ -276,7 +277,7 @@ public class AdminTrainerService : IAdminTrainerService
             .AsNoTracking()
             .Include(f => f.Workshop)
             .Include(f => f.StudentProfile)
-                .ThenInclude(s => s.User)
+                .ThenInclude(s => s!.User)
             .Where(f => f.Workshop.TrainerProfileId == t.Id)
             .OrderByDescending(f => f.SubmittedAt)
             .Select(f => new TrainerWorkshopFeedbackResponse
@@ -662,6 +663,7 @@ public class AdminTrainerService : IAdminTrainerService
             SecondaryDanceStyles = request.SecondaryDanceStyles?.Trim(),
             ExperienceYears = request.ExperienceYears,
             Bio = request.Bio?.Trim(),
+            ProfilePhotoUrl = request.ProfilePhotoUrl?.Trim(),
             CurrentTierId = tierId,
             Status = TrainerStatus.Active,
             ApprovedAt = DateTime.UtcNow,
@@ -695,6 +697,163 @@ public class AdminTrainerService : IAdminTrainerService
             SecondaryDanceStyles = trainer.SecondaryDanceStyles,
             ApprovedAt = trainer.ApprovedAt,
             CreatedAt = trainer.CreatedAt
+        };
+    }
+
+    public async Task<AdminTrainerListResponse> UpdateTrainerAsync(
+        Guid trainerId,
+        AdminUpdateTrainerRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var trainer = await _db.TrainerProfiles
+            .Include(tp => tp.User)
+            .Include(tp => tp.CurrentTier)
+            .FirstOrDefaultAsync(tp => tp.Id == trainerId, cancellationToken);
+
+        if (trainer == null)
+            throw new KeyNotFoundException("Trainer profile not found.");
+
+        trainer.FullName = request.FullName.Trim();
+        trainer.PrimaryDanceStyle = request.PrimaryDanceStyle?.Trim();
+        trainer.SecondaryDanceStyles = request.SecondaryDanceStyles?.Trim();
+        trainer.ExperienceYears = request.ExperienceYears;
+        trainer.City = request.City?.Trim();
+        trainer.Bio = request.Bio?.Trim();
+        trainer.ProfilePhotoUrl = request.ProfilePhotoUrl?.Trim();
+        trainer.Status = request.IsActive ? TrainerStatus.Active : TrainerStatus.Suspended;
+        trainer.UpdatedAt = DateTime.UtcNow;
+
+        if (trainer.User != null)
+        {
+            trainer.User.FullName = request.FullName.Trim();
+            if (!string.IsNullOrWhiteSpace(request.Email)) trainer.User.Email = request.Email.Trim();
+            trainer.User.IsActive = request.IsActive;
+            trainer.User.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogActionAsync(
+            adminUserId,
+            "TRAINER_UPDATED",
+            "TRAINER",
+            "TrainerProfile",
+            trainer.Id,
+            reason: $"Trainer {trainer.FullName} ({trainer.TrainerCode}) updated by admin.",
+            cancellationToken: cancellationToken);
+
+        return new AdminTrainerListResponse
+        {
+            TrainerId = trainer.Id,
+            UserId = trainer.UserId,
+            TrainerCode = trainer.TrainerCode,
+            FullName = trainer.FullName,
+            Phone = trainer.User?.Phone ?? "",
+            Email = trainer.User?.Email,
+            City = trainer.City,
+            Status = trainer.Status.ToString(),
+            TierName = trainer.CurrentTier?.Name ?? "General",
+            ProfilePhotoUrl = trainer.ProfilePhotoUrl,
+            PrimaryDanceStyle = trainer.PrimaryDanceStyle,
+            SecondaryDanceStyles = trainer.SecondaryDanceStyles,
+            ApprovedAt = trainer.ApprovedAt,
+            CreatedAt = trainer.CreatedAt
+        };
+    }
+
+    public async Task<bool> ToggleTrainerStatusAsync(
+        Guid trainerId,
+        bool isActive,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var trainer = await _db.TrainerProfiles
+            .Include(tp => tp.User)
+            .FirstOrDefaultAsync(tp => tp.Id == trainerId, cancellationToken);
+
+        if (trainer == null)
+            throw new KeyNotFoundException("Trainer profile not found.");
+
+        trainer.Status = isActive ? TrainerStatus.Active : TrainerStatus.Suspended;
+        trainer.UpdatedAt = DateTime.UtcNow;
+        if (trainer.User != null)
+        {
+            trainer.User.IsActive = isActive;
+            trainer.User.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogActionAsync(
+            adminUserId,
+            isActive ? "TRAINER_ACTIVATED" : "TRAINER_DEACTIVATED",
+            "TRAINER",
+            "TrainerProfile",
+            trainer.Id,
+            reason: $"Trainer {trainer.FullName} status set to {(isActive ? "Active" : "Suspended")}.",
+            cancellationToken: cancellationToken);
+
+        return true;
+    }
+
+    public async Task<AdminDeleteTrainerResult> DeleteOrArchiveTrainerAsync(
+        Guid trainerId,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var trainer = await _db.TrainerProfiles
+            .Include(tp => tp.User)
+            .FirstOrDefaultAsync(tp => tp.Id == trainerId, cancellationToken);
+
+        if (trainer == null)
+            throw new KeyNotFoundException("Trainer profile not found.");
+
+        var hasWorkshops = await _db.Workshops.AnyAsync(w => w.TrainerProfileId == trainerId, cancellationToken);
+
+        if (hasWorkshops)
+        {
+            trainer.Status = TrainerStatus.Suspended;
+            trainer.UpdatedAt = DateTime.UtcNow;
+            if (trainer.User != null)
+            {
+                trainer.User.IsActive = false;
+                trainer.User.UpdatedAt = DateTime.UtcNow;
+            }
+            await _db.SaveChangesAsync(cancellationToken);
+
+            await _auditService.LogActionAsync(
+                adminUserId,
+                "TRAINER_ARCHIVED",
+                "TRAINER",
+                "TrainerProfile",
+                trainer.Id,
+                reason: $"Trainer {trainer.FullName} is assigned to historical workshops; deactivated and archived.",
+                cancellationToken: cancellationToken);
+
+            return new AdminDeleteTrainerResult
+            {
+                Action = "Archived",
+                Message = $"Trainer {trainer.FullName} is assigned to historical workshop records. The profile was safely archived and deactivated."
+            };
+        }
+
+        _db.TrainerProfiles.Remove(trainer);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditService.LogActionAsync(
+            adminUserId,
+            "TRAINER_DELETED",
+            "TRAINER",
+            "TrainerProfile",
+            trainerId,
+            reason: $"Trainer {trainer.FullName} ({trainer.TrainerCode}) permanently deleted.",
+            cancellationToken: cancellationToken);
+
+        return new AdminDeleteTrainerResult
+        {
+            Action = "Deleted",
+            Message = $"Trainer {trainer.FullName} was permanently deleted."
         };
     }
 }

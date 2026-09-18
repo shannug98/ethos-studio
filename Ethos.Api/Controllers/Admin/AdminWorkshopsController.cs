@@ -78,6 +78,15 @@ public class AdminWorkshopsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return BadRequest(new { message = msg });
+        }
     }
 
     [HttpPut("workshops/{id:guid}")]
@@ -100,7 +109,12 @@ public class AdminWorkshopsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { code = "WORKSHOP_ALREADY_STARTED", message = ex.Message });
+            return BadRequest(new { code = "WORKSHOP_INVALID_OPERATION", message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return BadRequest(new { message = msg });
         }
     }
 

@@ -875,10 +875,31 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AltText")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasDefaultValue("");
+
                     b.Property<string>("ApprovalStatus")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Caption")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("General");
 
                     b.Property<string>("Checksum")
                         .HasMaxLength(128)
@@ -893,11 +914,30 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<long>("FileSizeBytes")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("FocalPoint")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("center");
+
                     b.Property<int?>("Height")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsArchived")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LayoutType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Square");
 
                     b.Property<string>("MediaType")
                         .IsRequired()
@@ -914,6 +954,10 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("OptimizedUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -927,13 +971,23 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("Section")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<string>("TargetUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ThumbnailObjectKey")
                         .HasColumnType("text");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasDefaultValue("");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -949,16 +1003,76 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<int?>("Width")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("IsArchived");
 
                     b.HasIndex("ObjectKey")
                         .IsUnique();
 
-                    b.HasIndex("Section");
-
                     b.HasIndex("UploadedByUserId");
 
+                    b.HasIndex("WorkshopId");
+
                     b.ToTable("media_items", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.MediaPlacement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsFeatured")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("MediaItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("VisibleFromUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VisibleUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsPublished")
+                        .HasDatabaseName("ix_media_placements_is_published");
+
+                    b.HasIndex("Section")
+                        .HasDatabaseName("ix_media_placements_section");
+
+                    b.HasIndex("MediaItemId", "Section")
+                        .IsUnique()
+                        .HasDatabaseName("ix_media_placements_item_section");
+
+                    b.ToTable("media_placements", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Notification", b =>
@@ -1041,44 +1155,6 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("notification_recipients", (string)null);
                 });
 
-            modelBuilder.Entity("Ethos.Api.Domain.Entities.OtpVerification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("OtpHash")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<int>("Purpose")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Phone", "CreatedAt");
-
-                    b.ToTable("otp_verifications", (string)null);
-                });
-
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Package", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1126,6 +1202,42 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("packages", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("CreatedByIpHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("password_reset_tokens", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.PaymentEvent", b =>
@@ -1537,6 +1649,39 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("Section", "IsActive", "DisplayOrder");
 
                     b.ToTable("studio_videos", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.TicketPdf", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId")
+                        .IsUnique();
+
+                    b.ToTable("ticket_pdfs", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.TrainerApplication", b =>
@@ -2037,6 +2182,11 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -2048,8 +2198,16 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("timestamptz");
+
                     b.Property<bool>("MustChangePassword")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("PasswordChangedAt")
+                        .HasColumnType("timestamptz");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
@@ -2099,6 +2257,81 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("user_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WhatsAppNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("LockedByWorkerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("NotificationType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ProviderRequestId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("WorkshopTicketId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("WorkshopTicketId");
+
+                    b.HasIndex("Status", "NextAttemptAt", "LeaseExpiresAt");
+
+                    b.ToTable("whatsapp_notifications", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Workshop", b =>
@@ -2156,12 +2389,10 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("LandscapeImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
@@ -2358,7 +2589,7 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamptz");
 
                     b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("timestamptz");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("GuestEmail")
                         .HasMaxLength(200)
@@ -2372,6 +2603,11 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<Guid?>("PaymentTransactionId")
                         .HasColumnType("uuid");
 
@@ -2382,6 +2618,9 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
+
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("timestamptz");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -2398,10 +2637,12 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
                     b.HasIndex("StudentProfileId");
 
-                    b.HasIndex("WorkshopId", "StudentProfileId")
-                        .IsUnique();
+                    b.HasIndex("WorkshopId", "StudentProfileId");
 
                     b.ToTable("workshop_bookings", (string)null);
                 });
@@ -2873,7 +3114,25 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("UploadedByUser");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.MediaPlacement", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.MediaItem", "MediaItem")
+                        .WithMany("Placements")
+                        .HasForeignKey("MediaItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MediaItem");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.NotificationRecipient", b =>
@@ -2891,6 +3150,17 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Notification");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -2979,6 +3249,17 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.TicketPdf", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopTicket", "WorkshopTicket")
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkshopTicket");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.TrainerApplication", b =>
@@ -3171,6 +3452,24 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WhatsAppNotification", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopBooking", "WorkshopBooking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopTicket", "WorkshopTicket")
+                        .WithMany()
+                        .HasForeignKey("WorkshopTicketId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("WorkshopBooking");
+
+                    b.Navigation("WorkshopTicket");
+                });
+
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Workshop", b =>
                 {
                     b.HasOne("Ethos.Api.Domain.Entities.TrainerProfile", "TrainerProfile")
@@ -3356,6 +3655,11 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Incident", b =>
                 {
                     b.Navigation("Updates");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.MediaItem", b =>
+                {
+                    b.Navigation("Placements");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Notification", b =>

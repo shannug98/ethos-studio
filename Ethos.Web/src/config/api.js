@@ -10,16 +10,17 @@
 
 const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-const isLocalhost =
+const isDevOrLocal =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" ||
    window.location.hostname === "127.0.0.1" ||
+   window.location.port === "5173" ||
    window.location.hostname === "");
 
 export const API_BASE_URL = (
   rawBaseUrl && typeof rawBaseUrl === "string" && rawBaseUrl.trim().length > 0
     ? rawBaseUrl.trim().replace(/\/+$/, "")
-    : ""
+    : (isDevOrLocal ? "http://localhost:5252" : "")
 );
 
 export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";

@@ -40,31 +40,56 @@ export default function WorkshopCheckoutPage() {
 
   const STORAGE_KEY = "ethos_booking_contact";
 
-  // Form State
-  const [fullName, setFullName] = useState(user?.fullName || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [email, setEmail] = useState(user?.email || "");
+  // Form State — Default to empty so clear reference placeholders are visible
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [savedContact, setSavedContact] = useState(null);
 
-  // Load saved details on page open
+  // Check for saved contact or logged in user profile on mount, but DO NOT force-fill inputs automatically
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    let candidate = null;
+
+    const savedRaw = localStorage.getItem(STORAGE_KEY);
+    if (savedRaw) {
       try {
-        const contact = JSON.parse(saved);
-        if (contact.fullName && !user?.fullName) setFullName(contact.fullName);
-        if (contact.whatsappNumber && !user?.phone) setPhone(contact.whatsappNumber);
-        if (contact.email && !user?.email) setEmail(contact.email);
-        setRememberMe(true);
+        const parsed = JSON.parse(savedRaw);
+        if (parsed.fullName || parsed.whatsappNumber || parsed.email) {
+          candidate = {
+            fullName: parsed.fullName || "",
+            phone: parsed.whatsappNumber || "",
+            email: parsed.email || "",
+          };
+          setRememberMe(true);
+        }
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
+
+    if (!candidate && user && (user.fullName || user.phone || user.email)) {
+      candidate = {
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        email: user.email || "",
+      };
+    }
+
+    setSavedContact(candidate);
+
     // Clean up legacy keys if any
     localStorage.removeItem("ethos_guest_name");
     localStorage.removeItem("ethos_guest_phone");
     localStorage.removeItem("ethos_guest_email");
   }, [user]);
+
+  const handleApplySavedContact = () => {
+    if (!savedContact) return;
+    setFullName(savedContact.fullName || "");
+    setPhone(savedContact.phone || "");
+    setEmail(savedContact.email || "");
+  };
 
   const handleRememberMe = (checked) => {
     setRememberMe(checked);
@@ -132,6 +157,7 @@ export default function WorkshopCheckoutPage() {
   const [confirmedBooking, setConfirmedBooking] = useState(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -220,9 +246,32 @@ export default function WorkshopCheckoutPage() {
         fullName: fullName.trim(),
         phone: phone.trim(),
         email: email.trim(),
+        idempotencyKey,
       });
 
-      // 2. Open Razorpay modal
+      // 2. Test mode / sandbox handling when Razorpay live key is unconfigured or test order is issued
+      const isTestOrder = !order.razorpayKeyId || order.razorpayKeyId === "rzp_test_placeholder" || order.razorpayOrderId?.startsWith("order_test_");
+      if (isTestOrder) {
+        try {
+          const bookingResult = await workshopsApi.verifyWorkshopPayment(workshop.id, {
+            transactionId: order.transactionId,
+            razorpayOrderId: order.razorpayOrderId,
+            razorpayPaymentId: `pay_test_${Date.now()}`,
+            razorpaySignature: "mock_signature",
+          });
+          setConfirmedBooking(bookingResult);
+          setIsPassModalOpen(true);
+          setIdempotencyKey(crypto.randomUUID());
+        } catch (verErr) {
+          console.error("Test payment verification error:", verErr);
+          setErrorMsg(verErr?.data?.message || verErr?.message || "Failed to complete test booking.");
+        } finally {
+          setIsSubmitting(false);
+        }
+        return;
+      }
+
+      // 3. Open live Razorpay modal
       const options = {
         key: order.razorpayKeyId,
         amount: Math.round(order.amount * 100),
@@ -240,7 +289,7 @@ export default function WorkshopCheckoutPage() {
         },
         handler: async function (response) {
           try {
-            // 3. Verify payment signature on backend
+            // 4. Verify payment signature on backend
             const bookingResult = await workshopsApi.verifyWorkshopPayment(workshop.id, {
               transactionId: order.transactionId,
               razorpayOrderId: response.razorpay_order_id,
@@ -250,6 +299,7 @@ export default function WorkshopCheckoutPage() {
 
             setConfirmedBooking(bookingResult);
             setIsPassModalOpen(true);
+            setIdempotencyKey(crypto.randomUUID());
           } catch (verErr) {
             console.error("Verification error:", verErr);
             setErrorMsg(verErr?.data?.message || "Payment verification failed. Please contact support with Payment ID.");
@@ -393,6 +443,21 @@ export default function WorkshopCheckoutPage() {
         <div className="checkout-card">
           <h3 className="card-heading">Contact Details</h3>
 
+          {savedContact && (savedContact.fullName || savedContact.phone || savedContact.email) && (
+            <div className="autofill-prompt-box">
+              <span className="autofill-prompt-text">
+                Saved details available for <strong>{savedContact.fullName || savedContact.phone || "your profile"}</strong>
+              </span>
+              <button
+                type="button"
+                className="autofill-apply-btn"
+                onClick={handleApplySavedContact}
+              >
+                ⚡ Use Saved Contact
+              </button>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">FULL NAME *</label>
             <input
@@ -400,7 +465,7 @@ export default function WorkshopCheckoutPage() {
               className="form-input"
               value={fullName}
               onChange={(e) => handleFullNameChange(e.target.value)}
-              placeholder="e.g. Shanmuka Gaddam"
+              placeholder="e.g. Maya Patel"
               required
             />
           </div>
@@ -427,7 +492,7 @@ export default function WorkshopCheckoutPage() {
               className="form-input"
               value={email}
               onChange={(e) => handleEmailChange(e.target.value)}
-              placeholder="youremail@example.com"
+              placeholder="e.g. maya@example.com"
               required
             />
           </div>

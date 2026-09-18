@@ -178,18 +178,29 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                       {selectedTrainer.fullName || selectedTrainer.name}
                     </span>
                     <span className="trainer-display-style">
-                      {selectedTrainer.primaryDanceStyle || selectedTrainer.specialty || "Faculty"}
-                      {selectedTrainer.tierName ? ` • ${selectedTrainer.tierName}` : ""}
+                      Lead Trainer {selectedTrainer.primaryDanceStyle ? `• ${selectedTrainer.primaryDanceStyle}` : ""}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="trainer-clear-btn"
-                    onClick={handleClearTrainer}
-                    title="Clear selection"
-                  >
-                    <X size={14} />
-                  </button>
+                  <div className="trainer-actions-group">
+                    <button
+                      type="button"
+                      className="trainer-change-link-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTrainerDropdownOpen(true);
+                      }}
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      className="trainer-clear-btn"
+                      onClick={handleClearTrainer}
+                      title="Remove trainer"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="trainer-placeholder-text">

@@ -35,6 +35,8 @@ export default function AdminLayout() {
     }
   });
 
+  const [layoutDashboardData, setLayoutDashboardData] = useState(null);
+
   const handleThemeChange = (newTheme) => {
     if (VALID_THEMES.includes(newTheme)) {
       setTheme(newTheme);
@@ -48,12 +50,10 @@ export default function AdminLayout() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  if (!isAdminAuthenticated()) {
-    return <Navigate to="/admin_portal/login" replace />;
-  }
-
   // Periodic session heartbeat (every 60s) to maintain active session presence
   useEffect(() => {
+    if (!isAdminAuthenticated()) return;
+
     let isMounted = true;
 
     const pingHeartbeat = () => {
@@ -76,8 +76,6 @@ export default function AdminLayout() {
     };
   }, []);
 
-  const [layoutDashboardData, setLayoutDashboardData] = useState(null);
-
   const updateDashboardContext = (data) => {
     if (!data) return;
     setLayoutDashboardData(data);
@@ -96,6 +94,8 @@ export default function AdminLayout() {
   };
 
   useEffect(() => {
+    if (!isAdminAuthenticated()) return;
+
     let isMounted = true;
 
     // Load active sessions
@@ -128,7 +128,11 @@ export default function AdminLayout() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [layoutDashboardData]);
+
+  if (!isAdminAuthenticated()) {
+    return <Navigate to="/admin_portal/login" replace />;
+  }
 
   return (
     <div className="admin-app-container" data-theme={theme}>

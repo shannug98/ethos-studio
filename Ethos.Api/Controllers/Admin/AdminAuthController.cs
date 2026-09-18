@@ -49,17 +49,10 @@ public class AdminAuthController : ControllerBase
             request.Phone,
             request.Password,
             deviceCredential,
+            request.DeviceName,
             ipAddress,
             userAgent,
             cancellationToken);
-
-        if (result == null)
-        {
-            return Unauthorized(new
-            {
-                message = "Invalid administrative credentials."
-            });
-        }
 
         if (!result.Success)
         {
@@ -73,69 +66,13 @@ public class AdminAuthController : ControllerBase
                 });
             }
 
-            return BadRequest(new
+            return Unauthorized(new
             {
                 message = result.Message
             });
         }
 
-        return Ok(result);
-    }
-
-    [HttpPost("verify-mfa")]
-    public async Task<IActionResult> VerifyMfa(
-        [FromBody] AdminVerifyMfaRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var userAgent = Request.Headers.UserAgent.ToString();
-
-        // Check for device credential from body, header, or cookie
-        var deviceCredential = request.DeviceCredential;
-        if (string.IsNullOrWhiteSpace(deviceCredential) && Request.Headers.TryGetValue("X-Admin-Device-Credential", out var headerCred))
-        {
-            deviceCredential = headerCred.ToString();
-        }
-        if (string.IsNullOrWhiteSpace(deviceCredential) && Request.Cookies.TryGetValue("ethos_admin_device", out var cookieCred))
-        {
-            deviceCredential = cookieCred;
-        }
-
-        var result = await _adminAuthService.VerifyMfaAsync(
-            request.Phone,
-            request.Otp,
-            deviceCredential,
-            request.DeviceName,
-            request.FingerprintTelemetry,
-            ipAddress,
-            userAgent,
-            cancellationToken);
-
-        if (!result.Success)
-        {
-            if (result.StatusCode == StatusCodes.Status403Forbidden)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new AdminDeviceErrorResponse
-                {
-                    Code = result.ErrorCode ?? "DEVICE_NOT_AUTHORIZED",
-                    Message = result.ErrorMessage ?? "Device authorization failed.",
-                    ActiveSessions = result.ActiveSessions
-                });
-            }
-
-            return Unauthorized(new
-            {
-                code = result.ErrorCode ?? "INVALID_MFA",
-                message = result.ErrorMessage ?? "Invalid or expired MFA verification code."
-            });
-        }
-
-        // Set HttpOnly, Secure, SameSite=Lax cookies
+        // Set HttpOnly, Secure, SameSite=Lax cookies for browser session
         if (!string.IsNullOrWhiteSpace(result.RawDeviceCredential))
         {
             Response.Cookies.Append("ethos_admin_device", result.RawDeviceCredential, new CookieOptions
@@ -265,30 +202,6 @@ public class AdminAuthController : ControllerBase
     }
 
     [Authorize(Roles = "ADMIN")]
-    [HttpPost("change-password/request-otp")]
-    public async Task<IActionResult> RequestChangePasswordOtp(CancellationToken cancellationToken)
-    {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdClaim, out var adminUserId))
-        {
-            return Unauthorized(new { message = "Invalid administrative authentication identity." });
-        }
-
-        var result = await _adminAuthService.RequestChangePasswordOtpAsync(adminUserId, cancellationToken);
-        if (!result.Success)
-        {
-            return StatusCode(result.StatusCode, new { message = result.Message });
-        }
-
-        return Ok(new AdminRequestOtpResponse
-        {
-            Success = true,
-            Message = result.Message,
-            DevelopmentOtp = result.DevelopmentOtp
-        });
-    }
-
-    [Authorize(Roles = "ADMIN")]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword(
         [FromBody] AdminChangePasswordRequest request,
@@ -308,10 +221,10 @@ public class AdminAuthController : ControllerBase
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = Request.Headers.UserAgent.ToString();
 
-        var result = await _adminAuthService.ChangePasswordAsync(
+        var result = await _adminAuthService.ChangePasswordWithCurrentAsync(
             adminUserId,
+            request.CurrentPassword,
             request.NewPassword,
-            request.Otp,
             ipAddress,
             userAgent,
             cancellationToken);
@@ -325,30 +238,9 @@ public class AdminAuthController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpPost("forgot-password/request-otp")]
-    public async Task<IActionResult> RequestForgotPasswordOtp(
+    [HttpPost("forgot-password/request")]
+    public async Task<IActionResult> RequestPasswordReset(
         [FromBody] AdminForgotPasswordRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        var result = await _adminAuthService.RequestForgotPasswordOtpAsync(request.Phone, cancellationToken);
-
-        return Ok(new AdminRequestOtpResponse
-        {
-            Success = true,
-            Message = result.Message,
-            DevelopmentOtp = result.DevelopmentOtp
-        });
-    }
-
-    [AllowAnonymous]
-    [HttpPost("forgot-password/reset")]
-    public async Task<IActionResult> ResetForgotPassword(
-        [FromBody] AdminResetForgotPasswordRequest request,
         CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -359,9 +251,31 @@ public class AdminAuthController : ControllerBase
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = Request.Headers.UserAgent.ToString();
 
-        var result = await _adminAuthService.ResetForgotPasswordAsync(
+        var result = await _adminAuthService.RequestPasswordResetAsync(
             request.Phone,
-            request.Otp,
+            ipAddress,
+            userAgent,
+            cancellationToken);
+
+        return Ok(new { success = true, message = result.Message });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password/reset")]
+    public async Task<IActionResult> ResetPasswordWithToken(
+        [FromBody] AdminResetPasswordWithTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        var result = await _adminAuthService.ResetPasswordWithTokenAsync(
+            request.Token,
             request.NewPassword,
             ipAddress,
             userAgent,
@@ -375,3 +289,4 @@ public class AdminAuthController : ControllerBase
         return Ok(new { success = true, message = result.Message });
     }
 }
+

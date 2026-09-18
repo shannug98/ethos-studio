@@ -21,7 +21,7 @@ import hero02 from "../assets/hero/hero-02.jpg";
 import hero03 from "../assets/hero/hero-03.jpg";
 
 import visualReel from "../assets/gallery/ethos-visual-reel.mp4";
-import { adminApi } from "../services/adminApi";
+import { publicApi } from "../services/publicApi";
 
 import "../styles/gallery.css";
 
@@ -162,17 +162,50 @@ function Gallery() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [dynamicVideos, setDynamicVideos] = useState([]);
 
+  const [cloudMedia, setCloudMedia] = useState([]);
+
   useEffect(() => {
     let isMounted = true;
-    adminApi
-      .getPublicVideos("Gallery")
+
+    // Load gallery videos (GalleryVideos section)
+    publicApi
+      .getPublicMedia({ section: "GalleryVideos" })
       .then((data) => {
         if (isMounted && Array.isArray(data)) {
           setDynamicVideos(data);
         }
       })
       .catch((err) => {
-        console.warn("[Gallery] Unable to load dynamic gallery videos:", err);
+        console.warn("[Gallery] Unable to load gallery videos:", err);
+      });
+
+    // Load cloud media assets for gallery grid (GalleryImages section)
+    publicApi
+      .getPublicMedia({ section: "GalleryImages" })
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          const mapped = data.map((m) => {
+            let className = "gallery-item--standard";
+            if (m.layoutType === "portrait_3_4" || m.layoutType === "Portrait") className = "gallery-item--tall";
+            else if (m.layoutType === "landscape_16_9" || m.layoutType === "Landscape" || m.layoutType === "featured" || m.layoutType === "Featured") className = "gallery-item--wide";
+
+            let cat = (m.category || "COMMUNITY").toUpperCase();
+            if (cat === "GENERAL") cat = "COMMUNITY";
+
+            return {
+              id: m.id,
+              type: (m.mediaType || "image").toLowerCase(),
+              src: m.publicUrl,
+              category: cat,
+              title: m.title || "Ethos Moment",
+              className,
+            };
+          });
+          setCloudMedia(mapped);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Gallery] Unable to load cloud media:", err);
       });
 
     return () => {
@@ -180,15 +213,19 @@ function Gallery() {
     };
   }, []);
 
+  const allItems = useMemo(() => {
+    return [...cloudMedia, ...galleryItems];
+  }, [cloudMedia]);
+
   const filteredItems = useMemo(() => {
     if (activeCategory === "ALL") {
-      return galleryItems;
+      return allItems;
     }
 
-    return galleryItems.filter(
+    return allItems.filter(
       (item) => item.category === activeCategory
     );
-  }, [activeCategory]);
+  }, [activeCategory, allItems]);
 
   useEffect(() => {
     if (!selectedItem) {

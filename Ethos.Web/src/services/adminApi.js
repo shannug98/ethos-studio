@@ -161,35 +161,16 @@ export function clearAdminDeviceCredential() {
 }
 
 export const adminApi = {
-  login: (phone, password) => {
+  login: (phone, password, deviceName = null) => {
     const deviceCredential = getAdminDeviceCredential();
     return adminRequest("/api/admin/auth/login", {
       method: "POST",
-      body: JSON.stringify({ phone, password, deviceCredential }),
-    });
-  },
-
-  verifyMfa: (phone, otp, deviceName = null, fingerprintTelemetry = null) => {
-    const deviceCredential = getAdminDeviceCredential();
-    const telemetryString =
-      typeof fingerprintTelemetry === "object" && fingerprintTelemetry !== null
-        ? JSON.stringify(fingerprintTelemetry)
-        : fingerprintTelemetry;
-
-    return adminRequest("/api/admin/auth/verify-mfa", {
-      method: "POST",
-      body: JSON.stringify({
-        phone,
-        otp,
-        deviceName,
-        fingerprintTelemetry: telemetryString,
-        deviceCredential,
-      }),
+      body: JSON.stringify({ phone, password, deviceName, deviceCredential }),
     });
   },
 
   heartbeat: () =>
-    adminRequest("/api/admin/sessions/heartbeat", {
+    adminRequest("/api/admin/auth/heartbeat", {
       method: "POST",
     }),
 
@@ -269,27 +250,22 @@ export const adminApi = {
       method: "POST",
     }),
 
-  requestChangePasswordOtp: () =>
-    adminRequest("/api/admin/auth/change-password/request-otp", {
-      method: "POST",
-    }),
-
-  changePassword: (newPassword, otp) =>
+  changePassword: (currentPassword, newPassword) =>
     adminRequest("/api/admin/auth/change-password", {
       method: "POST",
-      body: JSON.stringify({ newPassword, otp }),
+      body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  requestForgotPasswordOtp: (phone) =>
-    adminRequest("/api/admin/auth/forgot-password/request-otp", {
+  requestForgotPassword: (phone) =>
+    adminRequest("/api/admin/auth/forgot-password/request", {
       method: "POST",
       body: JSON.stringify({ phone }),
     }),
 
-  resetForgotPassword: (phone, otp, newPassword) =>
+  resetForgotPassword: (token, newPassword) =>
     adminRequest("/api/admin/auth/forgot-password/reset", {
       method: "POST",
-      body: JSON.stringify({ phone, otp, newPassword }),
+      body: JSON.stringify({ token, newPassword }),
     }),
 
   // Phase 18.6: Users & Accounts
@@ -332,6 +308,17 @@ export const adminApi = {
     adminRequest("/api/admin/trainers", {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+
+  updateTrainer: (id, payload) =>
+    adminRequest(`/api/admin/trainers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteTrainer: (id) =>
+    adminRequest(`/api/admin/trainers/${id}`, {
+      method: "DELETE",
     }),
 
   getTrainerStats: () => adminRequest("/api/admin/trainers/stats"),
@@ -511,6 +498,9 @@ export const adminApi = {
   searchVenues: (query) =>
     adminRequest(`/api/admin/venues/autocomplete?query=${encodeURIComponent(query)}`),
 
+  getPlaceDetails: (placeId) =>
+    adminRequest(`/api/admin/venues/details?placeId=${encodeURIComponent(placeId)}`),
+
   getWorkshops: (params = "") =>
     adminRequest(`/api/admin/workshops${params ? `?${params}` : ""}`),
 
@@ -607,6 +597,21 @@ export const adminApi = {
       method: "DELETE",
     }),
 
+  archiveAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}/archive`, {
+      method: "POST",
+    }),
+
+  restoreAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}/restore`, {
+      method: "POST",
+    }),
+
+  permanentDeleteAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}?permanent=true`, {
+      method: "DELETE",
+    }),
+
   getWorkshopRegistrations: (id, page = 1, pageSize = 50) =>
     adminRequest(`/api/admin/workshops/${id}/registrations?page=${page}&pageSize=${pageSize}`),
 
@@ -671,6 +676,17 @@ export const adminApi = {
     adminRequest(`/api/admin/bookings/workshops/${bookingId}/cancel`, {
       method: "POST",
       body: JSON.stringify({ reason }),
+    }),
+
+  updateBookingContact: (bookingId, payload) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/contact`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  resendWhatsAppTicket: (bookingId) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/resend-whatsapp`, {
+      method: "POST",
     }),
 
   manualClassEnrollment: (data) =>
@@ -969,6 +985,98 @@ export const adminApi = {
 
   deleteVideo: (id) =>
     adminRequest(`/api/admin/videos/${id}`, {
+      method: "DELETE",
+    }),
+
+  // Unified Media Gallery API (Images & Videos)
+  getPublicMedia: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetch(`${API_BASE_URL}/api/media/public${qs ? `?${qs}` : ""}`).then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch public media");
+      return r.json();
+    });
+  },
+
+  getAdminMedia: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return adminRequest(`/api/admin/media${qs ? `?${qs}` : ""}`);
+  },
+
+  uploadAdminMedia: (formData) =>
+    adminRequest("/api/admin/media/upload", {
+      method: "POST",
+      body: formData,
+    }),
+
+  updateAdminMedia: (id, data) =>
+    adminRequest(`/api/admin/media/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  // ── Placement-level API calls ─────────────────────────────────────────────
+
+  addMediaPlacement: (mediaItemId, placementData) =>
+    adminRequest(`/api/admin/media/${mediaItemId}/placements`, {
+      method: "POST",
+      body: JSON.stringify(placementData),
+    }),
+
+  updateMediaPlacement: (mediaItemId, placementId, placementData) =>
+    adminRequest(`/api/admin/media/${mediaItemId}/placements/${placementId}`, {
+      method: "PUT",
+      body: JSON.stringify(placementData),
+    }),
+
+  removeMediaPlacement: (mediaItemId, placementId) =>
+    adminRequest(`/api/admin/media/${mediaItemId}/placements/${placementId}`, {
+      method: "DELETE",
+    }),
+
+  /** Toggle publish on a specific placement. */
+  togglePlacementPublish: (mediaItemId, placementId, isPublished) =>
+    adminRequest(`/api/admin/media/${mediaItemId}/placements/${placementId}/publish`, {
+      method: "PATCH",
+      body: JSON.stringify({ isPublished }),
+    }),
+
+  /** Legacy helper — finds first placement and toggles it. */
+  toggleMediaPublish: (id, isPublished) =>
+    adminRequest(`/api/admin/media/${id}/placements`, {
+      method: "GET",
+    }).then((resp) => {
+      // resp is the full MediaItemResponse which includes placements
+      return resp;
+    }),
+
+  reorderAdminMedia: (itemsOrRequest) => {
+    // Accept both legacy array format and new { section, items } format
+    const body = Array.isArray(itemsOrRequest)
+      ? { section: "all", items: itemsOrRequest.map((i) => ({ placementId: i.id || i.placementId, displayOrder: i.displayOrder })) }
+      : itemsOrRequest;
+    return adminRequest("/api/admin/media/reorder", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
+
+  deleteAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}`, {
+      method: "DELETE",
+    }),
+
+  archiveAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}/archive`, {
+      method: "POST",
+    }),
+
+  restoreAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}/restore`, {
+      method: "POST",
+    }),
+
+  permanentDeleteAdminMedia: (id) =>
+    adminRequest(`/api/admin/media/${id}?permanent=true`, {
       method: "DELETE",
     }),
 };

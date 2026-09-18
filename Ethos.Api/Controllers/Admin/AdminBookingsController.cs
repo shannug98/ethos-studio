@@ -129,4 +129,44 @@ public class AdminBookingsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPut("workshops/{bookingId:guid}/contact")]
+    public async Task<IActionResult> UpdateWorkshopBookingContact(
+        Guid bookingId,
+        [FromBody] AdminUpdateBookingContactRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.BookingCorrect, "WorkshopBooking", bookingId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            await _bookingService.UpdateWorkshopBookingContactAsync(bookingId, AdminUserId, request.Phone, request.Email, request.FullName, cancellationToken);
+            return Ok(new { message = "Contact details updated successfully." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("workshops/{bookingId:guid}/resend-whatsapp")]
+    public async Task<IActionResult> ResendWhatsAppTicket(
+        Guid bookingId,
+        [FromBody] AdminResendWhatsAppRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.BookingCorrect, "WorkshopBooking", bookingId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var recipientPhone = await _bookingService.ResendWhatsAppTicketAsync(bookingId, AdminUserId, request?.Phone, cancellationToken);
+            return Ok(new { message = $"Ticket PDF queued and resent to {recipientPhone} via WhatsApp outbox." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

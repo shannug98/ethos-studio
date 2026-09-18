@@ -1,12 +1,31 @@
 import { apiClient } from "./apiClient";
+import { API_BASE_URL } from "../config/api";
 
 export const workshopsApi = {
   getAll() {
     return apiClient.get("/api/workshops");
   },
 
-  getApprovedWorkshops() {
-    return apiClient.get("/api/workshops");
+  async getApprovedWorkshops() {
+    try {
+      const data = await apiClient.get("/api/workshops");
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.items)) return data.items;
+      return [];
+    } catch (err) {
+      console.warn("workshopsApi: apiClient error, trying direct API fallback:", err);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/workshops`);
+        if (res.ok) {
+          const fallbackData = await res.json();
+          if (Array.isArray(fallbackData)) return fallbackData;
+          if (Array.isArray(fallbackData?.items)) return fallbackData.items;
+        }
+      } catch (fallbackErr) {
+        console.error("workshopsApi: direct fallback fetch failed:", fallbackErr);
+      }
+      throw err;
+    }
   },
 
   getWorkshopById(id) {
@@ -22,7 +41,11 @@ export const workshopsApi = {
   },
 
   createWorkshopOrder(workshopId, payload = { quantity: 1 }) {
-    return apiClient.post(`/api/workshops/${workshopId}/order`, payload);
+    const data = typeof payload === "object" && payload !== null ? { ...payload } : { quantity: payload || 1 };
+    if (!data.idempotencyKey) {
+      data.idempotencyKey = crypto.randomUUID();
+    }
+    return apiClient.post(`/api/workshops/${workshopId}/order`, data);
   },
 
   verifyWorkshopPayment(workshopId, payload) {

@@ -52,9 +52,9 @@ export default function TrainerWorkshopCreate() {
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 35 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError("Workshop image cannot exceed 5 MB.");
+      setError("Workshop image cannot exceed 35 MB.");
       return;
     }
 

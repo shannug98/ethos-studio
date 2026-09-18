@@ -37,4 +37,8 @@ public interface IWorkshopTicketService
     string DeriveQrToken(WorkshopTicket ticket);
 
     string ComputeTokenHash(string rawToken);
+
+    string GeneratePdfDownloadToken(Guid ticketId, TimeSpan? validity = null);
+
+    bool ValidatePdfDownloadToken(Guid ticketId, string? token);
 }

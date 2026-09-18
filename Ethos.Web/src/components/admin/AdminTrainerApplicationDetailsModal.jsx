@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./AdminTrainerApplicationDetailsModal.css";
 import { adminApi, getAdminToken } from "../../services/adminApi";
+import { API_BASE_URL } from "../../config/api";
 
 export default function AdminTrainerApplicationDetailsModal({
   isOpen,
@@ -39,7 +40,7 @@ export default function AdminTrainerApplicationDetailsModal({
     if (application.hasVideo) {
       setVideoLoading(true);
       const token = getAdminToken();
-      fetch(`/api/admin/trainer-applications/${application.id}/video/stream`, {
+      fetch(`${API_BASE_URL}/api/admin/trainer-applications/${application.id}/video/stream`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
         .then((res) => {

@@ -33,7 +33,7 @@ public class AdminFeedbackService : IAdminFeedbackService
             .Include(f => f.Workshop)
                 .ThenInclude(w => w.TrainerProfile)
             .Include(f => f.StudentProfile)
-                .ThenInclude(s => s.User)
+                .ThenInclude(s => s!.User)
             .Include(f => f.WorkshopBooking)
             .Where(f => f.IsValid &&
                         f.WorkshopBooking != null &&
@@ -103,7 +103,7 @@ public class AdminFeedbackService : IAdminFeedbackService
             .Include(f => f.Workshop)
                 .ThenInclude(w => w.TrainerProfile)
             .Include(f => f.StudentProfile)
-                .ThenInclude(s => s.User)
+                .ThenInclude(s => s!.User)
             .Include(f => f.WorkshopBooking)
             .FirstOrDefaultAsync(f => f.Id == feedbackId &&
                                       f.IsValid &&

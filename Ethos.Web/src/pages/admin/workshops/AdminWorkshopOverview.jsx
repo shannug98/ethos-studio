@@ -1,12 +1,48 @@
-import React from "react";
+import React, { useState } from "react";
 import { useOutletContext, useNavigate, Link } from "react-router-dom";
+import { AlertTriangle, X, XCircle } from "lucide-react";
 import AdminKpiCard from "../../../components/admin/common/AdminKpiCard";
+import { adminApi } from "../../../services/adminApi";
 import "./AdminWorkshopSubPages.css";
 
 export default function AdminWorkshopOverview() {
-  const { workshop } = useOutletContext();
+  const { workshop, reloadWorkshop } = useOutletContext();
   const navigate = useNavigate();
   const workshopId = workshop.Id || workshop.id;
+
+  const [cancelModal, setCancelModal] = useState({
+    open: false,
+    reason: "",
+    submitting: false,
+    error: null,
+  });
+  const [statusMsg, setStatusMsg] = useState(null);
+
+  const phase = workshop.LifecyclePhase || workshop.lifecyclePhase || "Upcoming";
+  const isCancelled = phase === "Cancelled";
+  const isCompleted = phase === "Completed";
+
+  const handleConfirmCancelWorkshop = async () => {
+    if (!cancelModal.reason.trim()) {
+      setCancelModal((prev) => ({ ...prev, error: "A cancellation reason is required." }));
+      return;
+    }
+
+    setCancelModal((prev) => ({ ...prev, submitting: true, error: null }));
+
+    try {
+      await adminApi.cancelWorkshop(workshopId, cancelModal.reason.trim());
+      setCancelModal({ open: false, reason: "", submitting: false, error: null });
+      setStatusMsg({ type: "success", text: "Workshop has been cancelled successfully." });
+      if (reloadWorkshop) await reloadWorkshop();
+    } catch (err) {
+      setCancelModal((prev) => ({
+        ...prev,
+        submitting: false,
+        error: err?.message || "Failed to cancel workshop.",
+      }));
+    }
+  };
 
   const bookedCount = workshop.BookedCount ?? workshop.bookedCount ?? 0;
   const attendedCount = workshop.AttendedCount ?? workshop.attendedCount ?? 0;
@@ -47,11 +83,41 @@ export default function AdminWorkshopOverview() {
             type="button"
             className="admin-btn-secondary"
             onClick={() => navigate(`/admin_portal/workshops/${workshopId}/edit`)}
+            title={attendedCount > 0 ? "Editing locked: Attendee check-ins have already occurred." : "Edit Workshop"}
           >
-            ✏️ Edit Workshop
+            {attendedCount > 0 ? "🔒 Edit Workshop (Locked)" : "✏️ Edit Workshop"}
           </button>
+
+          {!isCompleted && !isCancelled && (
+            <button
+              type="button"
+              className="admin-btn-danger"
+              onClick={() => setCancelModal({ open: true, reason: "", submitting: false, error: null })}
+              title="Cancel Workshop"
+            >
+              <XCircle size={15} />
+              <span>Cancel Workshop</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {isCancelled && (
+        <div
+          className="subpage-error-banner"
+          style={{
+            background: "rgba(239, 68, 68, 0.12)",
+            color: "#b91c1c",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+          }}
+        >
+          🚫 This workshop is <strong>Cancelled</strong>. Ticket sales are suspended.
+        </div>
+      )}
+
+      {statusMsg && (
+        <div className={`subpage-${statusMsg.type}-banner`}>{statusMsg.text}</div>
+      )}
 
       {/* KPI Cards */}
       <div className="admin-kpi-grid">
@@ -166,6 +232,79 @@ export default function AdminWorkshopOverview() {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {cancelModal.open && (
+        <div
+          className="cancel-modal-overlay"
+          onClick={() => setCancelModal({ open: false, reason: "", submitting: false, error: null })}
+        >
+          <div className="cancel-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="cancel-modal-header">
+              <h3 className="cancel-modal-title">
+                <AlertTriangle size={18} />
+                <span>Confirm Workshop Cancellation</span>
+              </h3>
+              <button
+                type="button"
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748b" }}
+                onClick={() => setCancelModal({ open: false, reason: "", submitting: false, error: null })}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="cancel-modal-body">
+              <p>
+                Are you sure you want to cancel{" "}
+                <strong>"{workshop.Title || workshop.title}"</strong>? This will notify all registered attendees,
+                stop all ticket bookings, and archive this session as Cancelled.
+              </p>
+
+              <div className="form-group">
+                <label className="form-label" style={{ color: "#991b1b" }}>
+                  Cancellation Reason (Required) *
+                </label>
+                <textarea
+                  rows="3"
+                  className="form-control"
+                  placeholder="e.g. Lead trainer unavailable, studio renovation, weather warning..."
+                  value={cancelModal.reason}
+                  onChange={(e) =>
+                    setCancelModal((prev) => ({ ...prev, reason: e.target.value, error: null }))
+                  }
+                  required
+                />
+              </div>
+
+              {cancelModal.error && (
+                <div style={{ color: "#dc2626", fontSize: "13px", fontWeight: "600" }}>
+                  ⚠️ {cancelModal.error}
+                </div>
+              )}
+            </div>
+
+            <div className="cancel-modal-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                disabled={cancelModal.submitting}
+                onClick={() => setCancelModal({ open: false, reason: "", submitting: false, error: null })}
+              >
+                Keep Workshop
+              </button>
+              <button
+                type="button"
+                className="admin-btn-danger-solid"
+                disabled={cancelModal.submitting}
+                onClick={handleConfirmCancelWorkshop}
+              >
+                {cancelModal.submitting ? "Cancelling Workshop..." : "Yes, Cancel Workshop"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

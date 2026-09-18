@@ -43,5 +43,19 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.UpdatedAt)
             .IsRequired();
+
+        builder.Property(x => x.MustChangePassword)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(x => x.FailedLoginCount)
+            .HasDefaultValue(0)
+            .IsRequired();
+
+        builder.Property(x => x.LockoutEnd)
+            .HasColumnType("timestamptz");
+
+        builder.Property(x => x.PasswordChangedAt)
+            .HasColumnType("timestamptz");
     }
 }

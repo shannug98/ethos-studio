@@ -26,6 +26,10 @@ public class WorkshopBooking
 
     public WorkshopBookingStatus Status { get; set; }
 
+    public string IdempotencyKey { get; set; } = Guid.NewGuid().ToString();
+
+    public DateTime? ReservationExpiresAt { get; set; }
+
     public DateTime BookedAt { get; set; }
 
     public DateTime? CancelledAt { get; set; }

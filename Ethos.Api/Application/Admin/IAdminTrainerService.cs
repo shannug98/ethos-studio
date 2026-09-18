@@ -45,6 +45,23 @@ public interface IAdminTrainerService
         Guid adminUserId,
         CancellationToken cancellationToken);
 
+    Task<AdminTrainerListResponse> UpdateTrainerAsync(
+        Guid trainerId,
+        AdminUpdateTrainerRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<bool> ToggleTrainerStatusAsync(
+        Guid trainerId,
+        bool isActive,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<AdminDeleteTrainerResult> DeleteOrArchiveTrainerAsync(
+        Guid trainerId,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
     Task<TrainerDiagnosticReport?> GetTrainerDiagnosticsAsync(
         Guid trainerId,
         string? traceId,

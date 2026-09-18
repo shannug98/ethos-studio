@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import ethosLogo from "../../assets/logo.png";
+import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./AdminSidebar.css";
 
 // 12 Primary Core items matching the Visual Design Reference exactly
@@ -11,7 +11,7 @@ const PRIMARY_NAV_ITEMS = [
   { to: "/admin_portal/bookings", label: "Bookings", icon: "📑" },
   { to: "/admin_portal/payments", label: "Payments", icon: "💳" },
   { to: "/admin_portal/videos", label: "Media Gallery", icon: "🎬" },
-  { to: "/admin_portal/communications", label: "Messages", icon: "💬", badgeKey: "messages", defaultBadge: 3 },
+  { to: "/admin_portal/communications", label: "Messages", icon: "💬", badgeKey: "messages" },
   { to: "/admin_portal/users", label: "Users", icon: "👥" },
   { to: "/admin_portal/observability", label: "Reports", icon: "📈" },
   { to: "/admin_portal/audit-logs", label: "Audit Logs", icon: "📜" },
@@ -64,8 +64,8 @@ export default function AdminSidebar({ collapsed, onToggleCollapse, attentionCou
         <ul className="ethos-nav-list">
           {PRIMARY_NAV_ITEMS.map((item) => {
             const badgeValue = item.badgeKey
-              ? (attentionCounts[item.badgeKey] ?? item.defaultBadge)
-              : null;
+              ? (Number(attentionCounts[item.badgeKey]) || 0)
+              : 0;
 
             return (
               <li key={item.to} className="ethos-nav-item">

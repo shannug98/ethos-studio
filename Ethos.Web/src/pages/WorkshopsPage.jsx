@@ -15,6 +15,30 @@ const months = [
   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
 ];
 
+function getWorkshopEndDateTime(w) {
+  if (w.endUtc) {
+    const d = new Date(w.endUtc);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const datePart = w.workshopDate ? w.workshopDate.split("T")[0] : "";
+  const timePart = w.endTime || "23:59:59";
+  const d = new Date(`${datePart}T${timePart}`);
+  if (!isNaN(d.getTime())) return d;
+  return new Date(w.workshopDate || Date.now());
+}
+
+function getWorkshopStartDateTime(w) {
+  if (w.startUtc) {
+    const d = new Date(w.startUtc);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const datePart = w.workshopDate ? w.workshopDate.split("T")[0] : "";
+  const timePart = w.startTime || "00:00:00";
+  const d = new Date(`${datePart}T${timePart}`);
+  if (!isNaN(d.getTime())) return d;
+  return new Date(w.workshopDate || Date.now());
+}
+
 function WorkshopsPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
   const [selectedMonth, setSelectedMonth] = useState("SEP");
@@ -34,10 +58,14 @@ function WorkshopsPage() {
       const apiList = await workshopsApi.getApprovedWorkshops();
       if (Array.isArray(apiList) && apiList.length > 0) {
         const fallbackImgs = [workshop01, workshop02, workshop03, workshop04];
+        const now = new Date();
         const mapped = apiList.map((w, idx) => {
           const d = new Date(w.workshopDate);
           const mStr = months[d.getMonth()] || "SEP";
           const yStr = d.getFullYear().toString();
+          const startDateTime = getWorkshopStartDateTime(w);
+          const endDateTime = getWorkshopEndDateTime(w);
+          const isCompleted = endDateTime <= now;
 
           return {
             id: w.id,
@@ -45,19 +73,31 @@ function WorkshopsPage() {
             month: mStr,
             date: d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }).toUpperCase(),
             rawDate: w.workshopDate,
+            startDateTime,
+            endDateTime,
+            isCompleted,
             time: w.startTime ? `${w.startTime.slice(0, 5)} - ${w.endTime ? w.endTime.slice(0, 5) : ""}` : "5:00 PM",
             title: w.title,
             style: w.danceStyle || "WORKSHOP",
             level: w.level || "ALL LEVELS",
             trainer: w.trainerName || "Ethos Faculty",
+            trainerPhotoUrl: w.trainerPhotoUrl,
+            trainerDanceStyles: w.trainerDanceStyles,
             location: w.venue || "Ethos Dance Studio, Hyderabad",
             image: w.imageUrl || fallbackImgs[idx % fallbackImgs.length],
-            startingPrice: w.startingPrice || w.price || 299,
+            startingPrice: w.currentPrice || w.startingPrice || w.price || 299,
             description: w.description || "Join this transformative movement session with Ethos.",
           };
         });
 
         setWorkshops(mapped);
+        if (mapped.length > 0) {
+          const upcoming = mapped.find((item) => !item.isCompleted) || mapped[0];
+          if (upcoming) {
+            setSelectedYear(upcoming.year);
+            setSelectedMonth(upcoming.month);
+          }
+        }
       } else {
         setWorkshops([]);
       }
@@ -83,9 +123,26 @@ function WorkshopsPage() {
     }
   };
 
-  const filteredWorkshops = workshops.filter(
+  const now = new Date();
+
+  // Filter for selected year & month
+  const monthWorkshops = workshops.filter(
     (item) => item.year === selectedYear && item.month === selectedMonth
   );
+
+  // STRICT REQUIREMENT:
+  // 1. Immediate upcoming workshops in chronological order (1, 2, 3, 4...)
+  const upcomingList = monthWorkshops
+    .filter((w) => w.endDateTime > now)
+    .sort((a, b) => a.startDateTime - b.startDateTime);
+
+  // 2. Completed workshops moved down to the bottom of the list
+  const completedList = monthWorkshops
+    .filter((w) => w.endDateTime <= now)
+    .sort((a, b) => a.startDateTime - b.startDateTime);
+
+  // Final ordered array: upcoming first, completed at the bottom
+  const filteredWorkshops = [...upcomingList, ...completedList];
 
   return (
     <div className="workshops-page">
@@ -150,7 +207,9 @@ function WorkshopsPage() {
             {selectedMonth} {selectedYear} EVENTS
           </h2>
           <span className="workshops-page__count">
-            {filteredWorkshops.length} {filteredWorkshops.length === 1 ? "EXPERIENCE AVAILABLE" : "EXPERIENCES AVAILABLE"}
+            {upcomingList.length > 0 ? `${upcomingList.length} UPCOMING` : ""}{" "}
+            {completedList.length > 0 ? `· ${completedList.length} COMPLETED` : ""}
+            {upcomingList.length === 0 && completedList.length === 0 ? "0 EXPERIENCES AVAILABLE" : ""}
           </span>
         </div>
 
@@ -163,18 +222,37 @@ function WorkshopsPage() {
             {filteredWorkshops.map((ws) => (
               <article 
                 key={ws.id} 
-                className="event-card-modern"
+                className={`event-card-modern ${ws.isCompleted ? "is-completed-card" : ""}`}
                 onClick={() => navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`)}
               >
                 {/* IMAGE */}
                 <div className="event-card-media">
                   <img src={ws.image} alt={ws.title} className="event-card-img" />
-                  <span className="event-badge-og">★ OG</span>
+                  {ws.isCompleted ? (
+                    <span className="event-badge-completed">✓ COMPLETED</span>
+                  ) : (
+                    <span className="event-badge-og">★ OG</span>
+                  )}
                 </div>
 
                 {/* CONTENT */}
                 <div className="event-card-body">
                   <h3 className="event-card-title">{ws.title}</h3>
+
+                  {/* TRAINER CHIP */}
+                  <div className="event-trainer-chip">
+                    {ws.trainerPhotoUrl ? (
+                      <img src={ws.trainerPhotoUrl} alt={ws.trainer} className="trainer-chip-avatar" />
+                    ) : (
+                      <span className="trainer-chip-placeholder">{ws.trainer.charAt(0)}</span>
+                    )}
+                    <div className="trainer-chip-meta">
+                      <span className="trainer-chip-name">{ws.trainer}</span>
+                      {ws.trainerDanceStyles && (
+                        <span className="trainer-chip-styles">{ws.trainerDanceStyles}</span>
+                      )}
+                    </div>
+                  </div>
 
                   {/* DATE & TIME CHIP */}
                   <div className="event-info-pill">
@@ -202,16 +280,23 @@ function WorkshopsPage() {
                     </div>
 
                     <div className="card-btn-group">
-                      <button
-                        type="button"
-                        className="btn-book-now-card"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`);
-                        }}
-                      >
-                        Book Now
-                      </button>
+                      {/* STRICT REQUIREMENT: Completed workshops show 'Completed' and NO ticketing option */}
+                      {ws.isCompleted ? (
+                        <span className="btn-completed-card">
+                          ✓ Completed
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-book-now-card"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`);
+                          }}
+                        >
+                          Book Now
+                        </button>
+                      )}
 
                       <button
                         type="button"

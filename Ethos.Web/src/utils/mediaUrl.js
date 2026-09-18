@@ -1,8 +1,13 @@
 import { API_BASE_URL } from "../config/api";
 
-export function getMediaUrl(path) {
+export function getMediaUrl(path, id) {
   if (!path) {
-    return "";
+    return id ? `${API_BASE_URL}/api/media/content/${id}` : "";
+  }
+
+  // If URL points to media.ethosdancestudio.com which is not yet live on DNS, fallback to API stream
+  if (typeof path === "string" && path.includes("media.ethosdancestudio.com")) {
+    if (id) return `${API_BASE_URL}/api/media/content/${id}`;
   }
 
   // Already an absolute URL
@@ -12,8 +17,8 @@ export function getMediaUrl(path) {
 
   // Blob/data URLs used for local previews
   if (
-    path.startsWith("blob:") ||
-    path.startsWith("data:")
+    typeof path === "string" &&
+    (path.startsWith("blob:") || path.startsWith("data:"))
   ) {
     return path;
   }

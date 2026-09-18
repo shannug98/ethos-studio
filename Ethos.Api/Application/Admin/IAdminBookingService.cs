@@ -39,4 +39,18 @@ public interface IAdminBookingService
         Guid adminUserId,
         AdminManualEnrollmentRequest request,
         CancellationToken cancellationToken);
+
+    Task UpdateWorkshopBookingContactAsync(
+        Guid bookingId,
+        Guid adminUserId,
+        string phone,
+        string? email,
+        string? name,
+        CancellationToken cancellationToken);
+
+    Task<string> ResendWhatsAppTicketAsync(
+        Guid bookingId,
+        Guid adminUserId,
+        string? overridePhone,
+        CancellationToken cancellationToken);
 }

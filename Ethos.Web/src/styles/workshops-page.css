@@ -1011,6 +1011,49 @@
   transform: translateY(-1px);
 }
 
+.btn-completed-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: default;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+.event-badge-completed {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(18, 18, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #d4d4d8;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  text-transform: uppercase;
+}
+
+.event-card-modern.is-completed-card {
+  opacity: 0.82;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.event-card-modern.is-completed-card:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
 .btn-share-card {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1028,4 +1071,65 @@
 .btn-share-card:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
+}
+
+/* Modern Event Trainer Chip */
+.event-trainer-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 5px 12px 5px 6px;
+  margin-bottom: 12px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.trainer-chip-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #e11d48;
+  flex-shrink: 0;
+}
+
+.trainer-chip-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #27272a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1.5px solid #52525b;
+  flex-shrink: 0;
+}
+
+.trainer-chip-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.trainer-chip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trainer-chip-styles {
+  font-size: 10px;
+  color: #a1a1aa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

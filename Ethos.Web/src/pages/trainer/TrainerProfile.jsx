@@ -65,6 +65,7 @@ export default function TrainerProfile() {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const photoInputRef = useRef(null);
 
   function handlePhotoSelect(event) {
@@ -78,8 +79,8 @@ export default function TrainerProfile() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Profile photo cannot exceed 10 MB.");
+    if (file.size > 35 * 1024 * 1024) {
+      setError("Profile photo cannot exceed 35 MB.");
       event.target.value = "";
       return;
     }
@@ -549,17 +550,84 @@ export default function TrainerProfile() {
               </div>
 
               <div className="trainer-profile-field">
-                <label>PROFILE PHOTO URL</label>
+                <label>PROFILE PHOTO</label>
 
                 {editMode ? (
-                  <input
-                    type="url"
-                    value={form.profilePhotoUrl}
-                    onChange={(e) => setForm({ ...form, profilePhotoUrl: e.target.value })}
-                    placeholder="https://example.com/photo.jpg"
-                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="trainer-photo-upload-btn"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                        style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                      >
+                        {uploadingPhoto ? "UPLOADING..." : "UPLOAD FROM DEVICE"}
+                      </button>
+
+                      {photoFile && (
+                        <button
+                          type="button"
+                          className="trainer-photo-upload-btn"
+                          onClick={handlePhotoUpload}
+                          disabled={uploadingPhoto}
+                          style={{
+                            background: "#16a34a",
+                            borderColor: "#16a34a",
+                            color: "#ffffff",
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          SAVE PHOTO
+                        </button>
+                      )}
+
+                      {(photoPreview || form.profilePhotoUrl) && (
+                        <span style={{ fontSize: "12px", color: "#16a34a", fontWeight: 600 }}>
+                          ✓ Photo Selected
+                        </span>
+                      )}
+                    </div>
+
+                    {!showUrlInput ? (
+                      <button
+                        type="button"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#94a3b8",
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          textAlign: "left",
+                          padding: 0,
+                          width: "fit-content",
+                        }}
+                        onClick={() => setShowUrlInput(true)}
+                      >
+                        or enter image URL manually
+                      </button>
+                    ) : (
+                      <input
+                        type="url"
+                        value={form.profilePhotoUrl}
+                        onChange={(e) =>
+                          setForm({ ...form, profilePhotoUrl: e.target.value })
+                        }
+                        placeholder="https://example.com/photo.jpg"
+                        style={{ fontSize: "12px", marginTop: "2px" }}
+                      />
+                    )}
+                  </div>
                 ) : (
-                  <strong style={{ wordBreak: "break-all" }}>{profile?.profilePhotoUrl || "Not set"}</strong>
+                  <strong style={{ wordBreak: "break-all" }}>
+                    {profile?.profilePhotoUrl ? (
+                      <span style={{ color: "#16a34a" }}>✓ Uploaded</span>
+                    ) : (
+                      "Not set"
+                    )}
+                  </strong>
                 )}
               </div>
 

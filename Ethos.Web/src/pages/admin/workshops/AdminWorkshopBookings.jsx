@@ -32,6 +32,43 @@ export default function AdminWorkshopBookings() {
     loadBookings();
   }, [loadBookings]);
 
+  const [actionSuccess, setActionSuccess] = useState(null);
+
+  const handleEditContact = async (row) => {
+    const bookingId = row.id || row.bookingId;
+    const newPhone = window.prompt(
+      `Update WhatsApp Contact Phone for ${row.studentName || "Attendee"}:\n(e.g., +919876543210 or 9876543210)`,
+      row.studentPhone || ""
+    );
+    if (newPhone === null) return;
+    if (!newPhone.trim()) {
+      alert("Phone number cannot be empty.");
+      return;
+    }
+
+    try {
+      await adminApi.updateBookingContact(bookingId, { phone: newPhone.trim() });
+      setActionSuccess(`Updated phone number for ${row.studentName} to ${newPhone.trim()}.`);
+      await loadBookings();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      alert(err?.message || "Failed to update contact number.");
+    }
+  };
+
+  const handleResendWhatsApp = async (row) => {
+    const bookingId = row.id || row.bookingId;
+    if (!window.confirm(`Resend official WhatsApp ticket PDF pass for booking ${row.bookingReference}?`)) return;
+
+    try {
+      const res = await adminApi.resendWhatsAppTicket(bookingId);
+      setActionSuccess(res?.message || `WhatsApp Ticket PDF queued and resent to ${row.studentName || "contact"}.`);
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      alert(err?.message || "Failed to resend WhatsApp ticket.");
+    }
+  };
+
   const columns = [
     {
       header: "Booking Ref",
@@ -44,7 +81,7 @@ export default function AdminWorkshopBookings() {
       render: (row) => (
         <div>
           <div className="font-semibold text-slate-800">{row.studentName}</div>
-          <div className="text-xs text-slate-500">{row.studentPhone}</div>
+          <div className="text-xs text-slate-500">{row.studentPhone || "No Phone"}</div>
         </div>
       ),
     },
@@ -76,6 +113,30 @@ export default function AdminWorkshopBookings() {
         </span>
       ),
     },
+    {
+      header: "Actions",
+      key: "actions",
+      render: (row) => (
+        <div className="table-actions-cell flex gap-1.5">
+          <button
+            type="button"
+            className="admin-btn-secondary btn-xs"
+            title="Edit WhatsApp phone number"
+            onClick={() => handleEditContact(row)}
+          >
+            ✏️ Contact
+          </button>
+          <button
+            type="button"
+            className="admin-btn-secondary btn-xs text-emerald-600"
+            title="Resend WhatsApp Ticket PDF"
+            onClick={() => handleResendWhatsApp(row)}
+          >
+            💬 Resend
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -90,6 +151,7 @@ export default function AdminWorkshopBookings() {
         <AdminExportButton data={bookings} filename="workshop_bookings" />
       </div>
 
+      {actionSuccess && <div className="subpage-success-banner">{actionSuccess}</div>}
       {error && <div className="subpage-error-banner">{error}</div>}
 
       <AdminDataTable

@@ -44,10 +44,15 @@ public class WorkshopBookingConfiguration : IEntityTypeConfiguration<WorkshopBoo
             .HasColumnType("timestamptz")
             .IsRequired();
 
-        builder.Property(x => x.CancelledAt)
+        builder.Property(x => x.IdempotencyKey)
+            .HasMaxLength(128)
+            .IsRequired();
+
+        builder.Property(x => x.ReservationExpiresAt)
             .HasColumnType("timestamptz");
 
-        builder.HasIndex(x => new { x.WorkshopId, x.StudentProfileId }).IsUnique();
+        builder.HasIndex(x => new { x.WorkshopId, x.StudentProfileId });
+        builder.HasIndex(x => x.IdempotencyKey).IsUnique();
 
         builder.HasOne(x => x.Workshop)
             .WithMany(x => x.Bookings)

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ZoomIn, ZoomOut, RotateCcw, Check, Upload, AlertCircle } from "lucide-react";
 import "./ImageCropperModal.css";
 
@@ -57,9 +58,6 @@ export default function ImageCropperModal({
       }
     }
   }, [isOpen, initialImage]);
-
-  // Calculate crop box aspect
-  const ratioValue = selectedRatio === "16:9" ? 16 / 9 : 3 / 4;
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -127,7 +125,6 @@ export default function ImageCropperModal({
     const img = imgRef.current;
     const cropBox = containerRef.current.getBoundingClientRect();
 
-    // Determine target dimensions
     const outW = selectedRatio === "16:9" ? 1600 : 900;
     const outH = selectedRatio === "16:9" ? 900 : 1200;
 
@@ -136,11 +133,8 @@ export default function ImageCropperModal({
     canvas.height = outH;
     const ctx = canvas.getContext("2d");
 
-    // Scale factor from screen cropBox to output canvas
     const scaleFactor = outW / cropBox.width;
 
-    // Image drawn position on screen relative to cropBox
-    // The image is centered with translate(offset.x, offset.y) and scaled by zoom
     const imgAspect = img.naturalWidth / img.naturalHeight;
     const boxAspect = cropBox.width / cropBox.height;
 
@@ -159,7 +153,6 @@ export default function ImageCropperModal({
     const screenImgX = (cropBox.width - currentW) / 2 + offset.x;
     const screenImgY = (cropBox.height - currentH) / 2 + offset.y;
 
-    // Draw onto canvas scaled
     ctx.drawImage(
       img,
       screenImgX * scaleFactor,
@@ -186,7 +179,7 @@ export default function ImageCropperModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="image-cropper-overlay" onClick={onClose}>
       <div className="image-cropper-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -266,10 +259,7 @@ export default function ImageCropperModal({
               </div>
             </div>
           ) : (
-            <div
-              className="cropper-empty-dropzone"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <div className="cropper-empty-dropzone" onClick={() => fileInputRef.current?.click()}>
               <Upload size={36} className="cropper-dropzone-icon" />
               <p className="cropper-dropzone-text">Click or drag image here to crop</p>
               <span className="cropper-dropzone-hint">Supports JPEG, PNG, WebP up to 5MB</span>
@@ -341,6 +331,7 @@ export default function ImageCropperModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

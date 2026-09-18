@@ -2027,41 +2027,56 @@
   background: #F8FAFC !important;
 }
 
-/* CARDS VIEW - CLEAN WHITE CARDS */
+/* CARDS VIEW - CLEAN WIDE LANDSCAPE CARDS (IMG 3 DESIGN) */
 .workshops-cards-grid {
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)) !important;
   gap: 24px !important;
+}
+
+@media (max-width: 640px) {
+  .workshops-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .workshop-feature-card {
   background: #FFFFFF !important;
   border: 1px solid #E2E8F0 !important;
   border-radius: 14px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
   display: flex !important;
   flex-direction: column !important;
-  height: 100% !important;
-  min-height: 490px !important;
+  height: auto !important;
+  min-height: unset !important;
+  overflow: hidden !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
 .workshop-feature-card:hover {
-  transform: translateY(-3px) !important;
+  transform: translateY(-2px) !important;
   border-color: #CBD5E1 !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 .card-media-wrap {
   position: relative !important;
   width: 100% !important;
-  aspect-ratio: 16 / 10 !important;
-  background: #F1F5F9 !important;
+  aspect-ratio: 2.1 / 1 !important;
+  min-height: 200px !important;
+  background: #0F172A !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
 }
 
 .card-cover-img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+  transition: transform 0.3s ease !important;
+}
+
+.workshop-feature-card:hover .card-cover-img {
+  transform: scale(1.02) !important;
 }
 
 .card-placeholder-img {
@@ -2090,137 +2105,292 @@
   letter-spacing: 0.5px !important;
 }
 
-.card-body-content {
-  padding: 20px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-}
-
-.card-title {
-  color: #172033 !important;
-  font-size: 16px !important;
-  font-weight: 750 !important;
-  line-height: 1.35 !important;
-  margin-bottom: 8px !important;
-}
-
-.card-title:hover {
-  color: #FF5500 !important;
-}
-
-.card-instructor {
-  font-size: 13px !important;
-  margin-bottom: 12px !important;
-}
-
-.instructor-lbl {
-  color: #718096 !important;
-}
-
-.instructor-val {
-  color: #172033 !important;
-  font-weight: 700 !important;
-}
-
-.card-meta-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
-  margin-bottom: 16px !important;
-}
-
-.card-meta-item {
-  font-size: 12px !important;
-  color: #526078 !important;
-  display: flex !important;
+/* Status Pill Badge (Top-Left on Image Banner) */
+.card-status-pill-badge {
+  position: absolute !important;
+  top: 14px !important;
+  left: 14px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 9999px !important;
+  padding: 5px 13px !important;
+  display: inline-flex !important;
   align-items: center !important;
-  gap: 7px !important;
+  gap: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  z-index: 2 !important;
 }
 
-.card-meta-item svg {
-  color: #718096 !important;
+.status-pill-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
   flex-shrink: 0 !important;
 }
 
-.style-tag {
+.dot-completed {
+  background: #0EA5E9 !important;
+  box-shadow: 0 0 6px rgba(14, 165, 233, 0.4) !important;
+}
+
+.dot-upcoming {
+  background: #10B981 !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4) !important;
+}
+
+.dot-ongoing {
+  background: #22C55E !important;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5) !important;
+}
+
+.dot-pending-review,
+.dot-pendingapproval,
+.dot-pending {
+  background: #F59E0B !important;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4) !important;
+}
+
+.dot-cancelled {
+  background: #EF4444 !important;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4) !important;
+}
+
+.status-pill-text {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #1E293B !important;
+  line-height: 1 !important;
+}
+
+/* Card Body Content */
+.card-body-content {
+  padding: 18px 20px 20px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  gap: 10px !important;
+}
+
+.card-header-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.card-title-modern {
+  color: #0F172A !important;
+  font-size: 16.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.2px !important;
+  cursor: pointer !important;
+  flex: 1 !important;
+  transition: color 0.15s ease !important;
+}
+
+.card-title-modern:hover {
+  color: #FF5500 !important;
+}
+
+.card-menu-anchor {
+  position: relative !important;
+}
+
+.btn-card-more-menu {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
+  color: #64748B !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-card-more-menu:hover {
   background: #F1F5F9 !important;
-  color: #172033 !important;
+  color: #0F172A !important;
+}
+
+.card-menu-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  margin-top: 6px !important;
+  background: #FFFFFF !important;
   border: 1px solid #E2E8F0 !important;
-  font-size: 11px !important;
-  font-weight: 650 !important;
-  padding: 3px 9px !important;
-  border-radius: 6px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+  min-width: 175px !important;
+  padding: 6px !important;
+  z-index: 20 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
 }
 
-.level-tag {
-  background: #FFF3D6 !important;
-  color: #8A5700 !important;
-  border: 1px solid #FDE68A !important;
-  font-size: 11px !important;
-  font-weight: 650 !important;
-  padding: 3px 9px !important;
-  border-radius: 6px !important;
-}
-
-.card-capacity-box {
-  margin-top: auto !important;
-  margin-bottom: 16px !important;
-  padding-top: 12px !important;
-  border-top: 1px solid #F1F5F9 !important;
-}
-
-.cap-lbl {
-  color: #718096 !important;
-}
-
-.capacity-progress-track {
-  background: #F1F5F9 !important;
-  height: 6px !important;
-}
-
-.card-action-bar {
+.menu-dropdown-item {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  margin-top: auto !important;
+  width: 100% !important;
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
 }
 
-.btn-card-primary {
-  flex: 1 !important;
-  background: #FF5500 !important;
-  color: #FFFFFF !important;
+.menu-dropdown-item:hover {
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.menu-dropdown-item svg {
+  color: #64748B !important;
+}
+
+.menu-dropdown-item.menu-dropdown-danger {
+  color: #DC2626 !important;
+}
+
+.menu-dropdown-item.menu-dropdown-danger:hover {
+  background: #FEF2F2 !important;
+  color: #B91C1C !important;
+}
+
+.menu-dropdown-item.menu-dropdown-danger svg {
+  color: #DC2626 !important;
+}
+
+/* Venue Row */
+.card-venue-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
   font-size: 13px !important;
-  font-weight: 700 !important;
-  padding: 9px 14px !important;
+  color: #64748B !important;
+  font-weight: 500 !important;
+  margin-top: -4px !important;
+}
+
+.card-venue-pin {
+  color: #94A3B8 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Meta Chips Strip (Date | Trainer | Duration) */
+.card-meta-chips-strip {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  padding: 9px 12px !important;
+  background: #F8FAFC !important;
+  border: 1px solid #F1F5F9 !important;
   border-radius: 8px !important;
+  margin-top: 2px !important;
+}
+
+.meta-chip-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.meta-chip-item svg {
+  color: #64748B !important;
+  flex-shrink: 0 !important;
+}
+
+.meta-chip-divider {
+  width: 1px !important;
+  height: 16px !important;
+  background: #E2E8F0 !important;
+}
+
+/* Performance Metrics Pill (Bookings & Revenue) */
+.card-performance-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 9999px !important;
+  padding: 5px 14px !important;
+  font-size: 12.5px !important;
+  color: #475569 !important;
+  width: fit-content !important;
+  margin-top: 2px !important;
+}
+
+.perf-metric {
+  color: #64748B !important;
+}
+
+.perf-metric strong {
+  color: #0F172A !important;
+  font-weight: 750 !important;
+}
+
+.perf-dot {
+  color: #CBD5E1 !important;
+  font-size: 13px !important;
+}
+
+/* Footer Action Row (Price Badge + View Details Button) */
+.card-footer-action-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: auto !important;
+  padding-top: 6px !important;
+}
+
+.card-price-badge {
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  padding: 9px 16px !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: #0F172A !important;
+  min-width: 75px !important;
+  text-align: center !important;
+}
+
+.btn-card-view-details {
+  flex: 1 !important;
+  background: #18181B !important;
+  color: #FFFFFF !important;
   border: none !important;
+  border-radius: 8px !important;
+  padding: 11px 18px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
   cursor: pointer !important;
-  transition: background 0.15s ease !important;
+  transition: all 0.15s ease !important;
 }
 
-.btn-card-primary:hover {
-  background: #E04B00 !important;
-}
-
-.btn-card-scanner,
-.btn-card-edit {
-  background: #FFFFFF !important;
-  border: 1px solid #CBD5E1 !important;
-  color: #172033 !important;
-  padding: 9px !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-}
-
-.btn-card-scanner:hover,
-.btn-card-edit:hover:not(:disabled) {
-  background: #F8FAFC !important;
-  border-color: #94A3B8 !important;
+.btn-card-view-details:hover {
+  background: #000000 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
 }
 
 /* EXACT STATUS BADGE SPECIFICATIONS */
@@ -2326,4 +2496,65 @@
   background: #FFFFFF !important;
   border: 1px solid #CBD5E1 !important;
   color: #172033 !important;
+}
+
+
+/* Card Instructor Avatar & Info */
+.card-instructor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.card-instructor-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #FF5500;
+  flex-shrink: 0;
+}
+
+.card-instructor-avatar-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #E8F2FF;
+  color: #185ABD;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #BFDBFE;
+  flex-shrink: 0;
+}
+
+.card-instructor-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-instructor-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #172033;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-instructor-style {
+  font-size: 11px;
+  font-weight: 500;
+  color: #526078;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

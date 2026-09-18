@@ -20,8 +20,12 @@ public class WorkshopTicketService : IWorkshopTicketService
         _dbContext = dbContext;
         _configuration = configuration;
 
-        var configuredKey = _configuration["TicketSecurity:SecretKey"]
-            ?? "Ethos_Studio_Cryptographic_Ticket_Secret_Key_2026_Secure_Token_Generation_Key_Bytes";
+        var configuredKey = _configuration["TicketSecurity:SecretKey"];
+        if (string.IsNullOrWhiteSpace(configuredKey))
+        {
+            throw new InvalidOperationException(
+                "TicketSecurity:SecretKey is required but not configured. Set a cryptographically secure key in application configuration.");
+        }
         _hmacKey = Encoding.UTF8.GetBytes(configuredKey);
     }
 
@@ -38,6 +42,50 @@ public class WorkshopTicketService : IWorkshopTicketService
         using var sha256 = SHA256.Create();
         var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawToken.Trim()));
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    public string GeneratePdfDownloadToken(Guid ticketId, TimeSpan? validity = null)
+    {
+        var duration = validity ?? TimeSpan.FromHours(24);
+        var expiresUtcTicks = DateTime.UtcNow.Add(duration).Ticks;
+        using var hmac = new HMACSHA256(_hmacKey);
+        var payload = $"pdf-download:{ticketId:D}:{expiresUtcTicks}";
+        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        var sig = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return $"{expiresUtcTicks}.{sig}";
+    }
+
+    public bool ValidatePdfDownloadToken(Guid ticketId, string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        var parts = token.Split('.');
+        if (parts.Length != 2)
+        {
+            return false;
+        }
+
+        if (!long.TryParse(parts[0], out var expiresUtcTicks))
+        {
+            return false;
+        }
+
+        if (DateTime.UtcNow.Ticks > expiresUtcTicks)
+        {
+            return false; // Token expired
+        }
+
+        using var hmac = new HMACSHA256(_hmacKey);
+        var payload = $"pdf-download:{ticketId:D}:{expiresUtcTicks}";
+        var expectedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        var expectedSig = Convert.ToHexString(expectedHash).ToLowerInvariant();
+
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(parts[1].ToLowerInvariant()),
+            Encoding.UTF8.GetBytes(expectedSig));
     }
 
     public async Task<List<WorkshopTicketResponse>> IssueTicketsForBookingAsync(
@@ -300,7 +348,8 @@ public class WorkshopTicketService : IWorkshopTicketService
             IssuedAt = ticket.IssuedAt,
             CheckedInAt = ticket.CheckedInAt,
             AttendeeDetailsLockedAt = ticket.AttendeeDetailsLockedAt,
-            QrToken = includeQrToken ? DeriveQrToken(ticket) : null
+            QrToken = includeQrToken ? DeriveQrToken(ticket) : null,
+            PdfDownloadToken = includeQrToken ? GeneratePdfDownloadToken(ticket.Id) : null
         };
     }
 }

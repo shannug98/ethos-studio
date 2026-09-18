@@ -88,20 +88,17 @@ public class TrainerService : ITrainerService
                 file,
                 ct);
 
-        trainer.ProfilePhotoUrl =
-            $"/uploads/trainer-profile-photos/{userId}/{Path.GetFileName(newPhotoPath)}";
-
+        trainer.ProfilePhotoUrl = newPhotoPath;
         trainer.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 
-        if (!string.IsNullOrWhiteSpace(oldPhotoPath) && oldPhotoPath.StartsWith("/uploads/trainer-profile-photos/"))
+        if (!string.IsNullOrWhiteSpace(oldPhotoPath))
         {
             try
             {
-                var relativeStoragePath = oldPhotoPath.Replace("/uploads/trainer-profile-photos/", "App_Data/uploads/trainer-profile-photos/");
                 await _profilePhotoStorage.DeleteAsync(
-                    relativeStoragePath,
+                    oldPhotoPath,
                     ct);
             }
             catch
@@ -153,7 +150,8 @@ public class TrainerService : ITrainerService
                 AdminApprovedPrice = w.AdminApprovedPrice,
                 Price = w.AdminApprovedPrice ?? w.TrainerProposedPrice ?? w.Price,
                 Capacity = w.Capacity,
-                BookedCount = w.Bookings?.Count(b => b.Status == Domain.Enums.WorkshopBookingStatus.Confirmed || b.Status == Domain.Enums.WorkshopBookingStatus.Attended) ?? 0,
+                BookedCount = w.Bookings?.Where(b => b.Status == Domain.Enums.WorkshopBookingStatus.Confirmed || b.Status == Domain.Enums.WorkshopBookingStatus.Attended).Sum(b => b.Quantity) ?? 0,
+                TotalRevenue = w.Bookings?.Where(b => b.Status == Domain.Enums.WorkshopBookingStatus.Confirmed || b.Status == Domain.Enums.WorkshopBookingStatus.Attended).Sum(b => b.TotalPrice) ?? 0,
                 Status = w.Status.ToString(),
                 ImageUrl = w.ImageUrl,
                 CreatedAt = w.CreatedAt
@@ -410,7 +408,7 @@ public class TrainerService : ITrainerService
             .AnyAsync(
                 x =>
                     x.Id == workshopId &&
-                    x.TrainerProfile.UserId == userId,
+                    x.TrainerProfile != null && x.TrainerProfile != null && x.TrainerProfile != null && x.TrainerProfile.UserId == userId,
                 ct);
 
         if (!trainerOwnsWorkshop)
@@ -429,6 +427,7 @@ public class TrainerService : ITrainerService
             .AnyAsync(
                 x =>
                     x.Id == workshopId &&
+                    x.TrainerProfile != null &&
                     x.TrainerProfile.UserId == userId,
                 ct);
 

@@ -52,7 +52,11 @@ export default function AdminWorkshopLayout() {
   }
 
   const attendeeCount = workshop.BookedCount ?? workshop.bookedCount ?? 0;
+  const attendedCount = workshop.AttendedCount ?? workshop.attendedCount ?? (workshop.RecentCheckIns?.length || workshop.recentCheckIns?.length || 0);
   const status = workshop.Status ?? workshop.status ?? "Published";
+  const phase = workshop.LifecyclePhase || workshop.lifecyclePhase || "Upcoming";
+
+  const isEditLocked = attendedCount > 0 || (phase === "Ongoing" && attendedCount > 0) || phase === "Completed";
 
   return (
     <div className="ethos-workshop-portal">
@@ -150,10 +154,11 @@ export default function AdminWorkshopLayout() {
 
             <NavLink
               to={`/admin_portal/workshops/${workshopId}/edit`}
-              className={({ isActive }) => `sub-nav-item ${isActive ? "active" : ""}`}
+              className={({ isActive }) => `sub-nav-item ${isActive ? "active" : ""} ${isEditLocked ? "locked-edit-nav" : ""}`}
+              title={isEditLocked ? "Editing locked: Check-in activity has occurred for this ongoing session." : "Edit Workshop"}
             >
-              <span className="nav-icon">✏️</span>
-              <span className="nav-label">Edit Workshop</span>
+              <span className="nav-icon">{isEditLocked ? "🔒" : "✏️"}</span>
+              <span className="nav-label">{isEditLocked ? "Edit Workshop (Locked)" : "Edit Workshop"}</span>
             </NavLink>
           </nav>
 

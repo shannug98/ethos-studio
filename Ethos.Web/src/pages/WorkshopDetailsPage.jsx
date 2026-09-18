@@ -208,6 +208,20 @@ export default function WorkshopDetailsPage() {
   const progressPct = pricing?.progressPercentage ?? 60;
   const currentTier = pricing?.currentTier ?? 1;
 
+  const isCompleted = (() => {
+    if (!workshop) return false;
+    const now = new Date();
+    if (workshop.endUtc) {
+      const d = new Date(workshop.endUtc);
+      if (!isNaN(d.getTime())) return d <= now;
+    }
+    const datePart = workshop.workshopDate ? workshop.workshopDate.split("T")[0] : "";
+    const timePart = workshop.endTime || "23:59:59";
+    const d = new Date(`${datePart}T${timePart}`);
+    if (!isNaN(d.getTime())) return d <= now;
+    return false;
+  })();
+
   const formatDate = (iso) => {
     if (!iso) return "Saturday, Sep 19, 2026";
     try {
@@ -427,17 +441,40 @@ export default function WorkshopDetailsPage() {
                 </div>
               </div>
 
-              {/* BOOK NOW PRIMARY ACTION */}
-              <button
-                type="button"
-                className="primary-book-now-btn"
-                onClick={() => setIsTicketModalOpen(true)}
-              >
-                Book Now
-              </button>
+              {/* BOOK NOW PRIMARY ACTION OR COMPLETED STATE */}
+              {isCompleted ? (
+                <button
+                  type="button"
+                  className="primary-book-now-btn is-completed"
+                  disabled
+                  style={{
+                    background: "rgba(255, 255, 255, 0.08)",
+                    color: "#a1a1aa",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    cursor: "not-allowed",
+                    boxShadow: "none",
+                  }}
+                >
+                  ✓ Workshop Completed
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-book-now-btn"
+                  onClick={() => setIsTicketModalOpen(true)}
+                >
+                  Book Now
+                </button>
+              )}
 
               <div className="booking-guarantee-note">
-                <ShieldCheck size={14} /> Instant digital QR pass on booking confirmation
+                {isCompleted ? (
+                  <span>This session has concluded. Check our calendar for upcoming masterclasses!</span>
+                ) : (
+                  <>
+                    <ShieldCheck size={14} /> Instant digital QR pass on booking confirmation
+                  </>
+                )}
               </div>
             </div>
           </div>

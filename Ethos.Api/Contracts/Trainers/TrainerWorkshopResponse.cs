@@ -9,6 +9,8 @@ public class TrainerWorkshopResponse
     public Guid TrainerProfileId { get; set; }
 
     public string TrainerName { get; set; } = null!;
+    public string? TrainerPhotoUrl { get; set; }
+    public string? TrainerDanceStyles { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -35,6 +37,10 @@ public class TrainerWorkshopResponse
     public int Capacity { get; set; }
 
     public int BookedCount { get; set; }
+
+    public int AttendedCount { get; set; }
+
+    public decimal TotalRevenue { get; set; }
 
     public int EnrolledStudentsCount { get; set; }
 

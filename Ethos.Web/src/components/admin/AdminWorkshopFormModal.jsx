@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./AdminWorkshopFormModal.css";
 import { adminApi } from "../../services/adminApi";
+import { Upload, Loader2, Trash2, Image as ImageIcon } from "lucide-react";
 
 const DANCE_STYLE_PRESETS = [
   "Hip Hop",
@@ -54,6 +55,49 @@ export default function AdminWorkshopFormModal({
   const [loadingTrainers, setLoadingTrainers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Device upload state
+  const fileInputRef = useRef(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  const handleDeviceFileSelect = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageUploadError("Please select a valid image file (JPEG, PNG, WebP).");
+      return;
+    }
+    if (file.size > 35 * 1024 * 1024) {
+      setImageUploadError("File size exceeds 35 MB limit.");
+      return;
+    }
+
+    setUploadingImage(true);
+    setImageUploadError("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("section", "Workshop");
+      fd.append("title", `${form.title || "Workshop"} Cover Image`);
+      fd.append("mediaType", "Image");
+      fd.append("isPublished", "true");
+
+      const res = await adminApi.uploadMedia(fd);
+      const url = res?.publicUrl || res?.PublicUrl || res?.r2Url || res?.R2Url || res?.mediaItem?.r2Url;
+      if (url) {
+        setForm((prev) => ({ ...prev, imageUrl: url }));
+      } else {
+        throw new Error("No URL returned from upload");
+      }
+    } catch (err) {
+      console.error("Workshop image upload failed:", err);
+      setImageUploadError(err.message || "Failed to upload image from device.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Load trainers for trainer dropdown
   useEffect(() => {
@@ -461,16 +505,128 @@ export default function AdminWorkshopFormModal({
                 </select>
               </div>
 
-              {/* Image URL */}
+              {/* Workshop Cover Image */}
               <div className="workshop-form-field full-width">
-                <label>Cover Image URL (Optional)</label>
-                <input
-                  type="url"
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  placeholder="https://images.unsplash.com/..."
-                />
+                <label>Workshop Cover Image</label>
+
+                {form.imageUrl ? (
+                  <div className="workshop-image-preview-box">
+                    <img
+                      src={form.imageUrl}
+                      alt="Workshop Cover"
+                      className="workshop-image-preview-thumb"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                    <div className="workshop-image-preview-details">
+                      <span className="image-active-badge">✓ Cover Image Active</span>
+                      <div className="workshop-image-actions">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/jpeg,image/png,image/webp"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleDeviceFileSelect(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-ws-image-action"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingImage}
+                        >
+                          {uploadingImage ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                          <span>Change Image</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ws-image-action delete"
+                          onClick={() => setForm((prev) => ({ ...prev, imageUrl: "" }))}
+                          disabled={uploadingImage}
+                        >
+                          <Trash2 size={13} />
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="workshop-image-upload-drop">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleDeviceFileSelect(e.target.files[0]);
+                        }
+                      }}
+                    />
+
+                    {uploadingImage ? (
+                      <div className="workshop-image-uploading">
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Uploading image from device to Cloudflare R2...</span>
+                      </div>
+                    ) : (
+                      <div
+                        className="workshop-dropzone-panel"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div className="workshop-dropzone-icon">
+                          <Upload size={20} />
+                        </div>
+                        <div className="workshop-dropzone-info">
+                          <div className="workshop-dropzone-title">Upload Cover Image from Device</div>
+                          <div className="workshop-dropzone-sub">Supports JPEG, PNG, WebP up to 35 MB (Saved directly to R2)</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {imageUploadError && (
+                  <div style={{ color: "#dc2626", fontSize: "12.5px", marginTop: "6px" }}>
+                    ⚠️ {imageUploadError}
+                  </div>
+                )}
+
+                {/* Optional manual URL override */}
+                <div style={{ marginTop: "6px" }}>
+                  {!showUrlInput ? (
+                    <button
+                      type="button"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#64748b",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        padding: 0,
+                      }}
+                      onClick={() => setShowUrlInput(true)}
+                    >
+                      or enter image URL manually
+                    </button>
+                  ) : (
+                    <div style={{ marginTop: "6px" }}>
+                      <input
+                        type="url"
+                        name="imageUrl"
+                        value={form.imageUrl}
+                        onChange={handleChange}
+                        placeholder="https://images.unsplash.com/... or https://..."
+                        style={{ fontSize: "13px" }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Re-Entry Settings */}

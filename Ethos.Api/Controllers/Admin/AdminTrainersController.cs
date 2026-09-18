@@ -160,4 +160,53 @@ public class AdminTrainersController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPut("trainers/{id:guid}")]
+    public async Task<ActionResult<AdminTrainerListResponse>> UpdateTrainer(
+        Guid id,
+        [FromBody] AdminUpdateTrainerRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.TrainerApprove, "Trainer", id, HttpContext, cancellationToken);
+        if (!authCheck.Success)
+            return StatusCode(authCheck.StatusCode, new { error = authCheck.ErrorCode, message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _trainerService.UpdateTrainerAsync(id, request, AdminUserId, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("trainers/{id:guid}")]
+    public async Task<ActionResult<AdminDeleteTrainerResult>> DeleteTrainer(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.TrainerApprove, "Trainer", id, HttpContext, cancellationToken);
+        if (!authCheck.Success)
+            return StatusCode(authCheck.StatusCode, new { error = authCheck.ErrorCode, message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _trainerService.DeleteOrArchiveTrainerAsync(id, AdminUserId, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

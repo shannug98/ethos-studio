@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { 
   X, Printer, CheckCircle, MapPin, Calendar, Clock, User, ShieldCheck, 
-  ChevronLeft, ChevronRight, Edit2, Check, AlertCircle, Send, Users
+  ChevronLeft, ChevronRight, Edit2, Check, AlertCircle, Send, Users, Sparkles, MessageSquare
 } from "lucide-react";
 import QrCode from "../common/QrCode";
 import { workshopsApi } from "../../services/workshopsApi";
+import { API_BASE_URL } from "../../services/apiClient";
 import "./WorkshopPassModal.css";
 
 export default function WorkshopPassModal({ isOpen, booking, student, onClose }) {
@@ -106,6 +107,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
 
   if (!isOpen || !booking) return null;
 
+  const isGroupBooking = tickets.length > 1;
   const bookingRef =
     booking.bookingReference ||
     `ETH-WS-${(booking.id || "").replace(/-/g, "").slice(0, 8).toUpperCase()}`;
@@ -135,7 +137,14 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
   };
 
   const handlePrint = () => {
-    window.print();
+    const targetId = currentTicket?.id || booking?.id;
+    if (targetId) {
+      const token = currentTicket?.pdfDownloadToken ? `?token=${encodeURIComponent(currentTicket.pdfDownloadToken)}` : "";
+      const pdfUrl = `${API_BASE_URL}/api/workshops/tickets/${targetId}/pdf${token}`;
+      window.open(pdfUrl, "_blank");
+    } else {
+      window.print();
+    }
   };
 
   const handleSaveGuest = async (e) => {
@@ -166,7 +175,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
       setResendLoading(true);
       setResendStatus("");
       await workshopsApi.resendTicketPass(booking.id, currentTicket.id);
-      setResendStatus("Pass notification resent to registered contact.");
+      setResendStatus(`Pass #${activeIndex + 1} resent via WhatsApp to registered contact.`);
     } catch (err) {
       setResendStatus(err.response?.data?.message || err.message || "Could not resend pass.");
     } finally {
@@ -193,33 +202,68 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
           <X size={20} />
         </button>
 
-        {/* MULTI-TICKET SWITCHER BAR */}
-        {tickets.length > 1 && (
-          <div className="workshop-multi-ticket-bar">
-            <div className="multi-ticket-info">
-              <Users size={16} />
-              <span>GROUP BOOKING: <strong>{tickets.length} PASSES</strong></span>
+        {/* TOP BOOKING MODE BADGE BAR */}
+        {isGroupBooking ? (
+          <div className="workshop-group-header-banner">
+            <div className="group-banner-top">
+              <div className="group-title-badge">
+                <Users size={18} className="group-icon-pulse" />
+                <span>GROUP BOOKING: <strong>{tickets.length} PASSES ISSUED</strong></span>
+              </div>
+              <div className="group-nav-stepper">
+                <button
+                  type="button"
+                  className="ticket-nav-btn"
+                  disabled={activeIndex === 0}
+                  onClick={() => setActiveIndex(prev => Math.max(0, prev - 1))}
+                  title="Previous Pass"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="ticket-nav-counter">
+                  Pass {activeIndex + 1} of {tickets.length}
+                </span>
+                <button
+                  type="button"
+                  className="ticket-nav-btn"
+                  disabled={activeIndex === tickets.length - 1}
+                  onClick={() => setActiveIndex(prev => Math.min(tickets.length - 1, prev + 1))}
+                  title="Next Pass"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-            <div className="multi-ticket-nav">
-              <button
-                type="button"
-                className="ticket-nav-btn"
-                disabled={activeIndex === 0}
-                onClick={() => setActiveIndex(prev => Math.max(0, prev - 1))}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="ticket-nav-counter">
-                Pass {activeIndex + 1} of {tickets.length}
-              </span>
-              <button
-                type="button"
-                className="ticket-nav-btn"
-                disabled={activeIndex === tickets.length - 1}
-                onClick={() => setActiveIndex(prev => Math.min(tickets.length - 1, prev + 1))}
-              >
-                <ChevronRight size={16} />
-              </button>
+
+            {/* QUICK PASS SELECTOR PILLS */}
+            <div className="group-pass-pills-row">
+              {tickets.map((t, idx) => (
+                <button
+                  key={t.id || idx}
+                  type="button"
+                  className={`pass-selector-pill ${idx === activeIndex ? "active" : ""}`}
+                  onClick={() => setActiveIndex(idx)}
+                >
+                  <span className="pill-index">Pass {idx + 1}</span>
+                  <span className="pill-name">{t.attendeeName || `Guest ${idx + 1}`}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* WHATSAPP DELIVERY NOTIFICATION BAR */}
+            <div className="whatsapp-delivery-note">
+              <MessageSquare size={14} className="wa-icon" />
+              <span>All {tickets.length} individual ticket passes are sent directly to your registered WhatsApp number.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="workshop-solo-header-banner">
+            <div className="solo-badge-tag">
+              <Sparkles size={14} />
+              <span>INDIVIDUAL WORKSHOP PASS</span>
+            </div>
+            <div className="solo-ref-code">
+              Ref: <strong>{bookingRef}</strong>
             </div>
           </div>
         )}
@@ -246,7 +290,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
           <div className="workshop-ticket-body">
             <div className="ticket-title-section">
               <div className="ticket-title-header">
-                <span className="ticket-eyebrow">MASTERCLASS & INTENSIVE</span>
+                <span className="ticket-eyebrow">
+                  {isGroupBooking ? `GROUP PASS ${activeIndex + 1} OF ${tickets.length}` : "MASTERCLASS & INTENSIVE"}
+                </span>
                 {currentTicket?.ticketNumber && (
                   <span className="ticket-num-badge">{currentTicket.ticketNumber}</span>
                 )}
@@ -318,9 +364,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               </div>
 
               <div className="ticket-meta-col">
-                <span className="meta-label">ADMISSION</span>
+                <span className="meta-label">ADMISSION TYPE</span>
                 <strong className="meta-value ticket-price-highlight">
-                  PASS {activeIndex + 1} OF {tickets.length}
+                  {isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "SOLO PASS"}
                 </strong>
                 <small className="meta-sub">Verified Razorpay</small>
               </div>
@@ -334,11 +380,11 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               </div>
             </div>
 
-            {/* INLINE GUEST EDITOR MODAL/FORM */}
+            {/* INLINE GUEST EDITOR FORM */}
             {editingGuest && (
               <form className="guest-edit-form" onSubmit={handleSaveGuest}>
                 <div className="guest-form-title">
-                  <span>Assign Attendee Identity</span>
+                  <span>Assign Attendee Identity for Pass #{activeIndex + 1}</span>
                   <button type="button" className="guest-close-btn" onClick={() => setEditingGuest(false)}>
                     <X size={14} />
                   </button>
@@ -420,7 +466,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
                 <p className="qr-instructions">
                   {isCheckedIn
                     ? "This ticket pass has already been validated and checked in for entry."
-                    : "Present this individual pass QR code at studio check-in for contactless verification."}
+                    : `Present this pass QR code (Pass ${activeIndex + 1} of ${tickets.length}) at studio check-in.`}
                 </p>
                 <div className="qr-ref-pill">
                   TICKET: <strong>{currentTicket?.ticketNumber || bookingRef}</strong>
@@ -462,7 +508,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
             disabled={resendLoading}
           >
             <Send size={16} />
-            <span>{resendLoading ? "RESENDING..." : "RESEND PASS"}</span>
+            <span>{resendLoading ? "RESENDING..." : "RESEND TO WHATSAPP"}</span>
           </button>
           <button
             type="button"
@@ -476,3 +522,4 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
     </div>
   );
 }
+

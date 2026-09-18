@@ -99,6 +99,40 @@ export default function AdminWorkshopAttendees() {
   const checkedInCount = attendees.filter((a) => a.isCheckedIn).length;
   const notCheckedInCount = attendees.length - checkedInCount;
 
+  const handleEditContact = async (row) => {
+    const currentPhone = row.attendeePhoneMasked || "";
+    const newPhone = window.prompt(
+      `Correct WhatsApp Phone Number for ${row.attendeeName}:\n(e.g., +919876543210 or 9876543210)`,
+      ""
+    );
+    if (newPhone === null) return;
+    if (!newPhone.trim()) {
+      alert("Phone number cannot be empty.");
+      return;
+    }
+
+    try {
+      await adminApi.updateBookingContact(row.bookingId, { phone: newPhone.trim() });
+      setActionSuccess(`Contact phone number updated for ${row.attendeeName}.`);
+      await loadAttendees();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      alert(err?.message || "Failed to update contact number.");
+    }
+  };
+
+  const handleResendWhatsApp = async (row) => {
+    if (!window.confirm(`Resend official WhatsApp ticket PDF pass to ${row.attendeeName}?`)) return;
+
+    try {
+      const res = await adminApi.resendWhatsAppTicket(row.bookingId);
+      setActionSuccess(res?.message || `WhatsApp Ticket PDF queued and resent to ${row.attendeeName}.`);
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      alert(err?.message || "Failed to resend WhatsApp ticket.");
+    }
+  };
+
   const tableColumns = [
     {
       header: "Attendee",
@@ -108,6 +142,7 @@ export default function AdminWorkshopAttendees() {
           <div className="attendee-avatar">{row.attendeeName.charAt(0).toUpperCase()}</div>
           <div>
             <div className="attendee-primary-name">{row.attendeeName}</div>
+            <div className="text-xs text-slate-500">{row.attendeePhoneMasked || row.attendeePhone || "No Phone"}</div>
             <div className="attendee-type-badge">{row.attendeeType}</div>
           </div>
         </div>
@@ -154,7 +189,7 @@ export default function AdminWorkshopAttendees() {
       header: "Actions",
       key: "actions",
       render: (row) => (
-        <div className="table-actions-cell">
+        <div className="table-actions-cell flex gap-1.5 flex-wrap">
           {!row.isCheckedIn ? (
             <button
               type="button"
@@ -172,6 +207,24 @@ export default function AdminWorkshopAttendees() {
               Undo
             </button>
           )}
+
+          <button
+            type="button"
+            className="admin-btn-secondary btn-xs"
+            title="Edit contact phone number"
+            onClick={() => handleEditContact(row)}
+          >
+            ✏️ Contact
+          </button>
+
+          <button
+            type="button"
+            className="admin-btn-secondary btn-xs text-emerald-600"
+            title="Resend WhatsApp Ticket PDF"
+            onClick={() => handleResendWhatsApp(row)}
+          >
+            💬 WhatsApp
+          </button>
         </div>
       ),
     },

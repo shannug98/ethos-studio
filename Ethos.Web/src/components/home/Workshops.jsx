@@ -9,6 +9,49 @@ import workshop02 from "../../assets/workshops/workshop-02.jpg";
 import workshop03 from "../../assets/workshops/workshop-03.jpg";
 import workshop04 from "../../assets/workshops/workshop-04.jpg";
 
+function formatWorkshopTime(startTime, endTime) {
+  const formatSingle = (timeStr) => {
+    if (!timeStr) return "";
+    const parts = timeStr.split(":");
+    if (parts.length < 2) return timeStr;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  if (!startTime) return "";
+  const start = formatSingle(startTime);
+  if (!endTime) return start;
+  const end = formatSingle(endTime);
+  return `${start} – ${end}`;
+}
+
+function getWorkshopEndDateTime(w) {
+  if (w.endUtc) {
+    const d = new Date(w.endUtc);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const datePart = w.workshopDate ? w.workshopDate.split("T")[0] : "";
+  const timePart = w.endTime || "23:59:59";
+  const d = new Date(`${datePart}T${timePart}`);
+  if (!isNaN(d.getTime())) return d;
+  return new Date(w.workshopDate || Date.now());
+}
+
+function getWorkshopStartDateTime(w) {
+  if (w.startUtc) {
+    const d = new Date(w.startUtc);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const datePart = w.workshopDate ? w.workshopDate.split("T")[0] : "";
+  const timePart = w.startTime || "00:00:00";
+  const d = new Date(`${datePart}T${timePart}`);
+  if (!isNaN(d.getTime())) return d;
+  return new Date(w.workshopDate || Date.now());
+}
+
 function Workshops() {
   const sectionRef = useRef(null);
   const navigate = useNavigate();
@@ -25,6 +68,8 @@ function Workshops() {
           const fallbackImgs = [workshop01, workshop02, workshop03, workshop04];
           const mapped = list.map((w, idx) => {
             const d = new Date(w.workshopDate);
+            const startDateTime = getWorkshopStartDateTime(w);
+            const endDateTime = getWorkshopEndDateTime(w);
             return {
               id: w.id,
               image: w.imageUrl || fallbackImgs[idx % fallbackImgs.length],
@@ -33,12 +78,18 @@ function Workshops() {
                 month: "short",
                 year: "numeric",
               }).toUpperCase(),
-              rawDate: w.workshopDate?.split("T")[0] || "2026-09-14",
+              time: formatWorkshopTime(w.startTime, w.endTime),
+              startDateTime,
+              endDateTime,
               style: (w.danceStyle || "WORKSHOP").toUpperCase(),
               title: w.title,
-              trainer: w.trainerName ? `With ${w.trainerName}` : "With Ethos Faculty",
+              trainerName: w.trainerName ? w.trainerName.trim() : "Ethos Faculty",
+              trainer: w.trainerName ? `With ${w.trainerName.trim()}` : "With Ethos Faculty",
+              trainerPhotoUrl: w.trainerPhotoUrl,
+              trainerDanceStyles: w.trainerDanceStyles,
               level: (w.level || "ALL LEVELS").toUpperCase(),
-              price: w.startingPrice || w.price || 599,
+              venue: w.venue || "Ethos Dance Studio",
+              price: w.currentPrice || w.startingPrice || w.price || 599,
               description: w.description || "Join this transformative movement session with Ethos.",
             };
           });
@@ -56,25 +107,19 @@ function Workshops() {
       });
   }, []);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
-  const activePool = liveWorkshops;
+  // STRICT REQUIREMENT: Only workshops whose end time is in the future are shown on homepage.
+  // The moment a workshop ends, it automatically drops off the homepage.
+  const upcomingWorkshops = liveWorkshops
+    .filter((workshop) => workshop.endDateTime && workshop.endDateTime > now)
+    .sort((a, b) => a.startDateTime - b.startDateTime);
 
-  const sortedWorkshops = [...activePool]
-    .filter((workshop) => {
-      const workshopDate = new Date(`${workshop.rawDate}T00:00:00`);
-      return workshopDate >= today;
-    })
-    .sort((a, b) => {
-      const dateA = new Date(`${a.rawDate}T00:00:00`);
-      const dateB = new Date(`${b.rawDate}T00:00:00`);
-      return dateA - dateB;
-    })
-    .slice(0, 4);
-
-  const featured = sortedWorkshops[0];
-  const upcomingList = sortedWorkshops.slice(1);
+  // STRICT REQUIREMENT: Only the top 4 upcoming workshops appear on homepage:
+  // 1 immediate next workshop (big featured card) + next 3 in a single row below.
+  const displayPool = upcomingWorkshops.slice(0, 4);
+  const featured = displayPool[0] || null;
+  const upcomingList = displayPool.slice(1, 4);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -90,13 +135,25 @@ function Workshops() {
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
 
     elements.forEach((element) => observer.observe(element));
 
-    return () => observer.disconnect();
-  }, []);
+    const timer = setTimeout(() => {
+      elements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 100) {
+          el.classList.add("workshops-reveal--visible");
+        }
+      });
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [loading, displayPool.length]);
 
   return (
     <section id="workshops" className="workshops" ref={sectionRef}>
@@ -140,20 +197,28 @@ function Workshops() {
       {/* WORKSHOPS CONTENT / EMPTY STATE */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: "#a1a1aa" }}>
-          <p>Loading workshops...</p>
+          <p>Loading upcoming workshops...</p>
         </div>
-      ) : sortedWorkshops.length === 0 ? (
+      ) : displayPool.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 20px" }}>
           <h3 style={{ color: "#ffffff", fontSize: "20px", marginBottom: "8px" }}>
-            No workshops are currently available.
+            No upcoming workshops scheduled at this moment.
           </h3>
           <p style={{ color: "#a1a1aa", fontSize: "14px" }}>
-            Please check back soon.
+            Check out past workshops or explore upcoming season announcements!
           </p>
+          <button
+            type="button"
+            className="workshops__explore-link"
+            style={{ marginTop: "24px" }}
+            onClick={() => navigate("/workshops")}
+          >
+            BROWSE ALL WORKSHOPS <span>↗</span>
+          </button>
         </div>
       ) : (
         <>
-          {/* FEATURED WORKSHOP */}
+          {/* MAIN UPCOMING WORKSHOP (BIG FEATURED CARD) */}
           {featured && (
             <div
               className="workshops__featured workshops-reveal"
@@ -170,16 +235,32 @@ function Workshops() {
                   <h3>{featured.title}</h3>
 
                   <div className="workshops__featured-meta">
-                    <span>{featured.date}</span>
-                    <span>{featured.level}</span>
-                    <span>{featured.trainer}</span>
+                    <div className="hp-meta-pill hp-meta-date">
+                      <span className="hp-meta-icon">📅</span>
+                      <span className="hp-meta-text">{featured.date}</span>
+                      {featured.time && <span className="hp-meta-sub">({featured.time})</span>}
+                    </div>
+
+                    <div className="hp-meta-pill hp-meta-trainer">
+                      {featured.trainerPhotoUrl ? (
+                        <img src={featured.trainerPhotoUrl} alt={featured.trainerName} className="hp-meta-avatar" />
+                      ) : (
+                        <span className="hp-meta-avatar-initial">{featured.trainerName.charAt(0)}</span>
+                      )}
+                      <span className="hp-meta-text">{featured.trainer}</span>
+                    </div>
+
+                    <div className="hp-meta-pill hp-meta-level">
+                      <span>{featured.level}</span>
+                      {featured.venue && <span className="hp-meta-sub">· {featured.venue}</span>}
+                    </div>
                   </div>
                 </div>
 
                 <button
                   className="workshops__featured-arrow"
                   type="button"
-                  aria-label="View workshops"
+                  aria-label="View workshop"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/workshops/${createSlug(featured.title || featured.name || featured.id)}`);
@@ -191,37 +272,62 @@ function Workshops() {
             </div>
           )}
 
-          {/* UPCOMING WORKSHOPS */}
-          <div className="workshops__list">
-            {upcomingList.map((workshop, index) => (
-              <article
-                className="workshop-card workshops-reveal"
-                key={workshop.id}
-                style={{
-                  "--workshop-delay": `${index * 120}ms`,
-                  cursor: "pointer",
-                }}
-                onClick={() => navigate(`/workshops/${createSlug(workshop.title || workshop.name || workshop.id)}`)}
-              >
-                <div className="workshop-card__image">
-                  <img src={workshop.image} alt={workshop.title} />
-                  <div className="workshop-card__overlay" />
-                  <span className="workshop-card__arrow">↗</span>
-                </div>
-
-                <div className="workshop-card__content">
-                  <div className="workshop-card__top">
-                    <span>{workshop.date}</span>
-                    <span>{workshop.level}</span>
+          {/* NEXT UPCOMING WORKSHOPS (MAX 3 IN ONE ROW) */}
+          {upcomingList.length > 0 && (
+            <div className="workshops__list">
+              {upcomingList.map((workshop, index) => (
+                <article
+                  className="workshop-card workshops-reveal"
+                  key={workshop.id}
+                  style={{
+                    "--workshop-delay": `${index * 120}ms`,
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate(`/workshops/${createSlug(workshop.title || workshop.name || workshop.id)}`)}
+                >
+                  <div className="workshop-card__image">
+                    <img src={workshop.image} alt={workshop.title} />
+                    <div className="workshop-card__overlay" />
+                    <span className="workshop-card__arrow">↗</span>
                   </div>
 
-                  <span className="workshop-card__style">{workshop.style}</span>
-                  <h3>{workshop.title}</h3>
-                  <p>{workshop.trainer}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="workshop-card__content">
+                    {/* Top Row: Prominent Date and Level Badge */}
+                    <div className="workshop-card__top">
+                      <div className="workshop-card__date-badge">
+                        <span className="workshop-card__date-icon">📅</span>
+                        <span className="workshop-card__date-text">{workshop.date}</span>
+                      </div>
+                      <span className="workshop-card__level-badge">{workshop.level}</span>
+                    </div>
+
+                    <span className="workshop-card__style">{workshop.style}</span>
+                    <h3 className="workshop-card__title" title={workshop.title}>{workshop.title}</h3>
+
+                    {workshop.time && (
+                      <div className="workshop-card__time-row">
+                        <span className="workshop-card__time-icon">🕒</span>
+                        <span className="workshop-card__time-text">{workshop.time}</span>
+                      </div>
+                    )}
+
+                    {/* Prominent Trainer Row with High Visibility Text & Avatar */}
+                    <div className="homepage-workshop-trainer-row">
+                      {workshop.trainerPhotoUrl ? (
+                        <img src={workshop.trainerPhotoUrl} alt={workshop.trainer} className="hp-trainer-avatar" />
+                      ) : (
+                        <span className="hp-trainer-avatar-initial">{workshop.trainerName.charAt(0)}</span>
+                      )}
+                      <div className="hp-trainer-info">
+                        <span className="hp-trainer-label">INSTRUCTOR</span>
+                        <span className="hp-trainer-text">{workshop.trainer}</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -251,3 +357,4 @@ function Workshops() {
 }
 
 export default Workshops;
+

@@ -641,3 +641,155 @@
   background: rgba(255, 255, 255, 0.12);
   border-color: #ffffff;
 }
+
+/* GROUP & SOLO HEADER BANNERS */
+.workshop-group-header-banner {
+  background: linear-gradient(135deg, rgba(255, 85, 0, 0.15) 0%, rgba(20, 18, 16, 0.95) 100%);
+  border: 1px solid rgba(255, 85, 0, 0.35);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.group-banner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.group-title-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #FF5500;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.group-title-badge strong {
+  color: #FFFFFF;
+}
+
+.group-icon-pulse {
+  color: #FF5500;
+  animation: pulseIcon 2s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.8; }
+}
+
+.group-nav-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* QUICK PASS SELECTOR PILLS */
+.group-pass-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 85, 0, 0.4) transparent;
+}
+
+.pass-selector-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  min-width: 90px;
+}
+
+.pass-selector-pill:hover {
+  background: rgba(255, 85, 0, 0.15);
+  border-color: rgba(255, 85, 0, 0.4);
+}
+
+.pass-selector-pill.active {
+  background: #FF5500;
+  border-color: #FF5500;
+  box-shadow: 0 4px 12px rgba(255, 85, 0, 0.4);
+}
+
+.pass-selector-pill .pill-index {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.pass-selector-pill.active .pill-index {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pass-selector-pill .pill-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+/* WHATSAPP DELIVERY NOTE */
+.whatsapp-delivery-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #25D366;
+  background: rgba(37, 211, 102, 0.1);
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.whatsapp-delivery-note .wa-icon {
+  flex-shrink: 0;
+}
+
+/* SOLO HEADER BANNER */
+.workshop-solo-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(20, 18, 16, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.solo-badge-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF5500;
+  letter-spacing: 0.08em;
+}
+
+.solo-ref-code {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.solo-ref-code strong {
+  color: #FFFFFF;
+  font-family: monospace;
+}
+

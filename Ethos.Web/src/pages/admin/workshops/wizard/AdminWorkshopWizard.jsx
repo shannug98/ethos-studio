@@ -60,6 +60,12 @@ const INITIAL_FORM = {
   registrationType: "Standard",
   termsAndCancellationPolicy: "",
   status: 3, // 3: Approved, 1: Draft, 2: PendingApproval
+  pricingTiers: [
+    { tierNumber: 1, tierName: "Early Bird Tier", minTickets: 1, maxTickets: 10, price: 500 },
+    { tierNumber: 2, tierName: "Standard Tier", minTickets: 11, maxTickets: 20, price: 600 },
+    { tierNumber: 3, tierName: "Peak Tier", minTickets: 21, maxTickets: 30, price: 700 },
+    { tierNumber: 4, tierName: "Final Batch Tier", minTickets: 31, maxTickets: null, price: 800 },
+  ],
 };
 
 export default function AdminWorkshopWizard() {
@@ -266,25 +272,49 @@ export default function AdminWorkshopWizard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Upload Blobs to Cloudflare R2 before payload submission
+  // Upload Blobs or Base64 data URLs to Cloudflare R2 / media storage before payload submission
   const uploadPendingPhotos = async () => {
     let finalImageUrl = form.imageUrl;
     let finalLandscapeUrl = form.landscapeImageUrl;
 
-    if (portraitBlob) {
-      const fd = new FormData();
-      fd.append("file", portraitBlob, "workshop-portrait.jpg");
-      fd.append("folder", "workshops");
-      const res = await adminApi.uploadMedia(fd);
-      finalImageUrl = res.url || res.mediaUrl || finalImageUrl;
+    const dataUrlToFile = async (dataUrl, filename) => {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      return new File([blob], filename, { type: blob.type || "image/jpeg" });
+    };
+
+    let pBlob = portraitBlob;
+    if (!pBlob && form.imageUrl && form.imageUrl.startsWith("data:image/")) {
+      try { pBlob = await dataUrlToFile(form.imageUrl, "workshop-portrait.jpg"); } catch (e) { console.warn("Blob conversion failed:", e); }
     }
 
-    if (landscapeBlob) {
-      const fd = new FormData();
-      fd.append("file", landscapeBlob, "workshop-landscape.jpg");
-      fd.append("folder", "workshops");
-      const res = await adminApi.uploadMedia(fd);
-      finalLandscapeUrl = res.url || res.mediaUrl || finalLandscapeUrl;
+    if (pBlob) {
+      try {
+        const fd = new FormData();
+        fd.append("file", pBlob, "workshop-portrait.jpg");
+        fd.append("folder", "workshops");
+        const res = await adminApi.uploadMedia(fd);
+        finalImageUrl = res.url || res.mediaUrl || finalImageUrl;
+      } catch (err) {
+        console.warn("Portrait media upload failed, proceeding with current URL:", err);
+      }
+    }
+
+    let lBlob = landscapeBlob;
+    if (!lBlob && form.landscapeImageUrl && form.landscapeImageUrl.startsWith("data:image/")) {
+      try { lBlob = await dataUrlToFile(form.landscapeImageUrl, "workshop-landscape.jpg"); } catch (e) { console.warn("Blob conversion failed:", e); }
+    }
+
+    if (lBlob) {
+      try {
+        const fd = new FormData();
+        fd.append("file", lBlob, "workshop-landscape.jpg");
+        fd.append("folder", "workshops");
+        const res = await adminApi.uploadMedia(fd);
+        finalLandscapeUrl = res.url || res.mediaUrl || finalLandscapeUrl;
+      } catch (err) {
+        console.warn("Landscape media upload failed, proceeding with current URL:", err);
+      }
     }
 
     return { finalImageUrl, finalLandscapeUrl };
@@ -298,6 +328,16 @@ export default function AdminWorkshopWizard() {
       form.danceStyle === "Other" && form.customStyle?.trim()
         ? form.customStyle.trim()
         : form.danceStyle;
+
+    const formattedTiers = Array.isArray(form.pricingTiers) && form.pricingTiers.length > 0
+      ? form.pricingTiers.map((t, idx) => ({
+          tierNumber: idx + 1,
+          tierName: t.tierName || `Tier ${idx + 1}`,
+          minTickets: Number(t.minTickets) || 1,
+          maxTickets: t.maxTickets != null && t.maxTickets !== "" ? Number(t.maxTickets) : null,
+          price: Number(t.price) || 500,
+        }))
+      : undefined;
 
     return {
       title: form.title.trim(),
@@ -315,9 +355,9 @@ export default function AdminWorkshopWizard() {
       googlePlaceId: form.googlePlaceId || "",
       latitude: form.latitude,
       longitude: form.longitude,
-      price: Number(form.price) || 500,
+      price: Number(form.price) || (formattedTiers && formattedTiers[0] ? formattedTiers[0].price : 500),
       capacity: Number(form.capacity) || 35,
-      trainerProfileId: form.trainerProfileId,
+      trainerProfileId: form.trainerProfileId && form.trainerProfileId !== "none" ? form.trainerProfileId : null,
       imageUrl: finalImageUrl,
       landscapeImageUrl: finalLandscapeUrl,
       contactPerson: form.contactPerson?.trim() || "",
@@ -327,6 +367,7 @@ export default function AdminWorkshopWizard() {
       termsAndCancellationPolicy: form.termsAndCancellationPolicy || "",
       timezone: "Asia/Kolkata",
       status: statusCode, // 1: Draft, 2: PendingApproval, 3: Approved
+      pricingTiers: formattedTiers,
     };
   };
 

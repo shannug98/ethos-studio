@@ -16,7 +16,7 @@ const starterSuggestions = [
 
 export default function EchoBot() {
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
+  const [botState, setBotState] = useState("closed"); // "closed" | "preview" | "chat"
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -30,10 +30,10 @@ export default function EchoBot() {
   };
 
   useEffect(() => {
-    if (isOpen && messages.length > 0) {
+    if (botState === "chat" && messages.length > 0) {
       scrollToBottom();
     }
-  }, [messages, isTyping, isOpen]);
+  }, [messages, isTyping, botState]);
 
   const shouldShowContactActions = (text) => {
     if (!text) return false;
@@ -213,8 +213,8 @@ export default function EchoBot() {
   };
 
   return (
-    <div className={`echo-widget ${isOpen ? "echo-widget-open" : ""}`}>
-      {isOpen && (
+    <div className={`echo-widget ${botState === "chat" ? "echo-widget-open" : ""}`}>
+      {botState === "chat" && (
         <section className="echo-panel" aria-label="ECHO AI Assistant">
           {/* HEADER */}
           <header className="echo-header">
@@ -254,7 +254,7 @@ export default function EchoBot() {
                 type="button"
                 className="echo-header-icon close-icon"
                 aria-label="Close ECHO"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setBotState("closed")}
               >
                 <span />
                 <span />
@@ -478,13 +478,14 @@ export default function EchoBot() {
         </section>
       )}
 
-      {/* FLOATING LAUNCHER (CLOSED STATE) */}
-      {!isOpen && (
+      {/* 1. CLOSED STATE: COMPACT CIRCULAR LAUNCHER BUTTON */}
+      {botState === "closed" && (
         <button
           type="button"
-          className="echo-launcher"
-          onClick={() => setIsOpen(true)}
+          className="echo-launcher-closed"
+          onClick={() => setBotState("preview")}
           aria-label="Open ECHO AI Assistant"
+          title="Open ECHO AI Assistant"
         >
           <div className="echo-launcher-avatar">
             <div className="echo-launcher-face">
@@ -493,22 +494,56 @@ export default function EchoBot() {
             </div>
             <div className="echo-online-dot" />
           </div>
-
-          <div className="echo-launcher-text">
-            <strong>ECHO</strong>
-            <span>AI Studio Assistant</span>
-          </div>
-
-          <span className="echo-launcher-arrow">↗</span>
         </button>
       )}
 
-      {/* FLOATING CLOSE BUTTON (OPEN STATE) */}
-      {isOpen && (
+      {/* 2. PREVIEW STATE: SLID-OUT CAPSULE BAR WITH ECHO ACTION AND CLOSE BUTTON */}
+      {botState === "preview" && (
+        <div className="echo-launcher-preview-wrapper">
+          <div
+            className="echo-launcher-preview"
+            onClick={() => setBotState("chat")}
+            role="button"
+            tabIndex={0}
+            aria-label="Open ECHO Chat"
+          >
+            <div className="echo-launcher-avatar">
+              <div className="echo-launcher-face">
+                <span />
+                <span />
+              </div>
+              <div className="echo-online-dot" />
+            </div>
+
+            <div className="echo-launcher-text">
+              <strong>ECHO</strong>
+              <span>AI Studio Assistant</span>
+            </div>
+
+            <span className="echo-launcher-arrow">↗</span>
+          </div>
+
+          <button
+            type="button"
+            className="echo-preview-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              setBotState("closed");
+            }}
+            aria-label="Close AI Bot"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* 3. CHAT STATE: FLOATING CLOSE BUTTON */}
+      {botState === "chat" && (
         <button
           type="button"
           className="echo-floating-close"
-          onClick={() => setIsOpen(false)}
+          onClick={() => setBotState("closed")}
           aria-label="Close ECHO"
         >
           ×

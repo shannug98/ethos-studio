@@ -333,7 +333,7 @@ public class TrainerWorkshopService : ITrainerWorkshopService
 
         return await _db.WorkshopBookings
             .Include(b => b.StudentProfile)
-            .ThenInclude(s => s.User)
+            .ThenInclude(s => s!.User)
             .Where(b => b.WorkshopId == workshopId &&
                         (b.Status == WorkshopBookingStatus.Confirmed ||
                          b.Status == WorkshopBookingStatus.Attended ||
@@ -371,8 +371,8 @@ public class TrainerWorkshopService : ITrainerWorkshopService
             throw new ArgumentException("Workshop not found or access denied.");
 
         return await _db.WorkshopFeedbacks
-            .Include(f => f.StudentProfile)
-            .ThenInclude(s => s.User)
+            .Include(f => f.StudentProfile!)
+            .ThenInclude(s => s.User!)
             .Where(f => f.WorkshopId == workshopId &&
                         f.IsValid &&
                         f.WorkshopBooking != null &&
@@ -461,6 +461,8 @@ public class TrainerWorkshopService : ITrainerWorkshopService
             Id = w.Id,
             TrainerProfileId = w.TrainerProfileId ?? Guid.Empty,
             TrainerName = w.TrainerProfile?.FullName ?? "Ethos Trainer",
+            TrainerPhotoUrl = w.TrainerProfile?.ProfilePhotoUrl,
+            TrainerDanceStyles = w.TrainerProfile?.PrimaryDanceStyle,
             Title = w.Title,
             Description = w.Description,
             DanceStyle = w.DanceStyle,
@@ -473,7 +475,8 @@ public class TrainerWorkshopService : ITrainerWorkshopService
             AdminApprovedPrice = w.AdminApprovedPrice,
             Price = effectivePrice,
             Capacity = w.Capacity,
-            BookedCount = w.Bookings?.Count(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended) ?? 0,
+            BookedCount = w.Bookings?.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => b.Quantity) ?? 0,
+            TotalRevenue = w.Bookings?.Where(b => b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended).Sum(b => b.TotalPrice) ?? 0,
             Status = w.Status.ToString(),
             ImageUrl = w.ImageUrl,
             CreatedAt = w.CreatedAt

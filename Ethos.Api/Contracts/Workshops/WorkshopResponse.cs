@@ -23,6 +23,8 @@ public class WorkshopResponse
     public string Venue { get; set; } = string.Empty;
 
     public string? TrainerName { get; set; }
+    public string? TrainerPhotoUrl { get; set; }
+    public string? TrainerDanceStyles { get; set; }
 
     public decimal StartingPrice { get; set; }
 
@@ -47,4 +49,12 @@ public class WorkshopResponse
     public WorkshopStatus Status { get; set; }
 
     public string? ImageUrl { get; set; }
+    public string? LandscapeImageUrl { get; set; }
+    public string? City { get; set; }
+    public string? Area { get; set; }
+    public string? VenueAddress { get; set; }
+    public string? ShortDescription { get; set; }
+    public bool PublicVisibility { get; set; } = true;
+    public DateTime? StartUtc { get; set; }
+    public DateTime? EndUtc { get; set; }
 }

@@ -126,38 +126,25 @@ public class WorkshopPricingService : IWorkshopPricingService
             .Where(b => b.WorkshopId == workshop.Id && b.Status == WorkshopBookingStatus.Confirmed)
             .SumAsync(b => b.Quantity, cancellationToken);
 
-        var startingPrice = tiers.FirstOrDefault(t => t.TierNumber == 1)?.Price ?? workshop.Price;
+        int nextTicketIndex = bookedSeats + 1;
+        var activeTier = tiers.FirstOrDefault(t => nextTicketIndex >= t.MinTickets && (t.MaxTickets == null || nextTicketIndex <= t.MaxTickets))
+            ?? tiers.LastOrDefault()
+            ?? new WorkshopPricingTier { TierNumber = 1, TierName = "Standard Tier", Price = workshop.Price };
 
-        // Current tier identification based on bookedSeats:
-        // Seat 0 to 9 sold -> next ticket is 1..10 -> Tier 1
-        // Seat 10 to 19 sold -> next ticket is 11..20 -> Tier 2
-        // Seat 20 to 29 sold -> next ticket is 21..30 -> Tier 3
-        // Seat 30+ sold -> next ticket is 31+ -> Tier 4
-        int currentTierNum;
-        if (bookedSeats < 10) currentTierNum = 1;
-        else if (bookedSeats < 20) currentTierNum = 2;
-        else if (bookedSeats < 30) currentTierNum = 3;
-        else currentTierNum = 4;
-
-        var activeTier = tiers.FirstOrDefault(t => t.TierNumber == currentTierNum) ?? tiers.Last();
+        int currentTierNum = activeTier.TierNumber;
         var currentPrice = activeTier.Price;
 
-        int tierCapacity = currentTierNum switch
-        {
-            1 => 10,
-            2 => 10,
-            3 => 10,
-            _ => Math.Max(0, workshop.Capacity - 30) // Tier 4 capacity is remaining capacity up to workshop.Capacity
-        };
+        // Starting price for currently available tickets (if Tier 1 is finished, starting price is Tier 2's price)
+        var startingPrice = currentPrice;
 
-        int ticketsFilledInTier = currentTierNum switch
-        {
-            1 => Math.Clamp(bookedSeats, 0, 10),
-            2 => Math.Clamp(bookedSeats - 10, 0, 10),
-            3 => Math.Clamp(bookedSeats - 20, 0, 10),
-            _ => Math.Max(0, bookedSeats - 30)
-        };
+        int minSeats = activeTier.MinTickets > 0 ? activeTier.MinTickets : 1;
+        int? maxSeats = activeTier.MaxTickets;
 
+        int tierCapacity = maxSeats.HasValue
+            ? Math.Max(1, maxSeats.Value - minSeats + 1)
+            : Math.Max(1, workshop.Capacity - minSeats + 1);
+
+        int ticketsFilledInTier = Math.Clamp(bookedSeats - (minSeats - 1), 0, tierCapacity);
         int ticketsRemainingInTier = Math.Max(0, tierCapacity - ticketsFilledInTier);
 
         int progressPercentage = tierCapacity > 0
@@ -165,11 +152,8 @@ public class WorkshopPricingService : IWorkshopPricingService
             : 100;
 
         decimal? nextPrice = null;
-        if (currentTierNum < 4)
-        {
-            var nextTier = tiers.FirstOrDefault(t => t.TierNumber == currentTierNum + 1);
-            if (nextTier != null) nextPrice = nextTier.Price;
-        }
+        var nextTier = tiers.FirstOrDefault(t => t.TierNumber > currentTierNum);
+        if (nextTier != null) nextPrice = nextTier.Price;
 
         var isStudentEligible = false;
         if (userId.HasValue && userId.Value != Guid.Empty)

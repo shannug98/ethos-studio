@@ -613,36 +613,30 @@ public class AdminStudentService : IAdminStudentService
             });
         }
 
-        // 5. OTP Failures (Technical Failure - 24 hours)
-        var failedOtps = await _db.OtpVerifications
-            .AsNoTracking()
-            .Where(o => o.Phone == sp.User.Phone && o.CreatedAt >= twentyFourHoursAgo && (o.AttemptCount >= 3 || (!o.IsUsed && o.ExpiresAt < now)))
-            .ToListAsync(cancellationToken);
-
+        // 5. OTP / Security Anomaly (Technical Failure - 24 hours)
         var otpSecEvents = await _db.SecurityEvents
             .AsNoTracking()
             .Where(s => s.UserId == sp.UserId && s.CreatedAt >= twentyFourHoursAgo && s.EventType.Contains("OTP"))
             .ToListAsync(cancellationToken);
 
-        if (failedOtps.Count > 0 || otpSecEvents.Count > 0)
+        if (otpSecEvents.Count > 0)
         {
             technicalFailures.Add(new DiagnosticIssue
             {
                 Code = "OTP_FAILURE",
                 Category = "TECHNICAL_FAILURE",
                 Severity = "WARNING",
-                Title = "Recent OTP verification issue",
-                Description = "Failed OTP authentication or verification attempts detected in the last 24 hours.",
+                Title = "Recent security / OTP event detected",
+                Description = "Failed security or authentication attempts detected in the last 24 hours.",
                 Evidence = new
                 {
                     maskedPhone = MaskPhone(sp.User.Phone),
-                    failedAttempts = failedOtps.Sum(o => o.AttemptCount),
                     securityEvents = otpSecEvents.Count,
                     window = "24h"
                 },
                 DetectedAt = now,
                 TraceId = traceId,
-                RecommendedAction = "Verify mobile connectivity or advise student on OTP entry."
+                RecommendedAction = "Verify mobile connectivity or advise user."
             });
         }
 

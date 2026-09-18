@@ -47,4 +47,10 @@ public class WorkshopTicketResponse
     /// NEVER returned on public or trainer roster endpoints.
     /// </summary>
     public string? QrToken { get; set; }
+
+    /// <summary>
+    /// Scoped, short-lived cryptographic token specifically authorized for downloading the ticket PDF.
+    /// Decoupled from check-in QrToken.
+    /// </summary>
+    public string? PdfDownloadToken { get; set; }
 }

@@ -62,6 +62,39 @@ public class PaymentsController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpPost("webhook")]
+    public async Task<IActionResult> HandleWebhook(
+        [FromServices] IPaymentFulfillmentService fulfillmentService,
+        CancellationToken cancellationToken)
+    {
+        string rawBody;
+        using (var reader = new System.IO.StreamReader(Request.Body, System.Text.Encoding.UTF8))
+        {
+            rawBody = await reader.ReadToEndAsync(cancellationToken);
+        }
+
+        var signatureHeader = Request.Headers["X-Razorpay-Signature"].FirstOrDefault();
+
+        try
+        {
+            var result = await fulfillmentService.ProcessWebhookEventAsync(rawBody, signatureHeader, cancellationToken);
+            return Ok(new { status = result.Status, message = result.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status401Unauthorized, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Webhook processing error: " + ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
     [HttpPost("public/package-order")]
     public async Task<IActionResult> CreatePublicPackageOrder(
         [FromBody] CreatePublicPackageOrderRequest request,

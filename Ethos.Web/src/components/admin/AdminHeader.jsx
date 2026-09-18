@@ -4,7 +4,7 @@ import { getAdminUser, clearAdminAuth, adminApi } from "../../services/adminApi"
 import { getAdminBreadcrumbs } from "../../constants/adminRouteRegistry";
 import AdminCommandPalette from "./common/AdminCommandPalette";
 import ChangePasswordModal from "./ChangePasswordModal";
-import ethosLogo from "../../assets/logo.png";
+import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./AdminHeader.css";
 
 export default function AdminHeader({

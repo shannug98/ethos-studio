@@ -88,9 +88,14 @@ public class CloudflareR2StorageService : ICloudflareR2StorageService
 
         string publicUrl;
 
-        if (IsR2Configured)
+        if (!IsR2Configured)
         {
-            using var client = CreateS3Client();
+            _logger.LogError("Cloudflare R2 is not configured. Media/photo storage operation cannot proceed without valid credentials.");
+            throw new InvalidOperationException("Cloudflare R2 credentials (AccountId, AccessKeyId, SecretAccessKey) are required for persistent media and profile photo storage. Please configure CloudflareR2 in application settings.");
+        }
+
+        using (var client = CreateS3Client())
+        {
             var putRequest = new PutObjectRequest
             {
                 BucketName = _settings.BucketName,
@@ -108,22 +113,6 @@ public class CloudflareR2StorageService : ICloudflareR2StorageService
             publicUrl = GetPublicUrl(objectKey);
             _logger.LogInformation("File successfully uploaded to Cloudflare R2: {ObjectKey}", objectKey);
         }
-        else
-        {
-            // Local fallback for local development when live R2 keys are not yet provided
-            var localUploadDir = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", sanitizedSection, mediaTypeFolder, now.ToString("yyyy"), now.ToString("MM"));
-            Directory.CreateDirectory(localUploadDir);
-            var localFilePath = Path.Combine(localUploadDir, $"{uniqueId}{extension}");
-
-            using (var fileStream = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                if (stream.CanSeek) stream.Position = 0;
-                await stream.CopyToAsync(fileStream, cancellationToken);
-            }
-
-            publicUrl = $"/uploads/{sanitizedSection}/{mediaTypeFolder}/{now:yyyy}/{now:MM}/{uniqueId}{extension}";
-            _logger.LogWarning("Cloudflare R2 credentials not configured. Saved file locally: {LocalPath}", localFilePath);
-        }
 
         return new R2UploadResult
         {
@@ -137,27 +126,29 @@ public class CloudflareR2StorageService : ICloudflareR2StorageService
 
     public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
     {
-        if (IsR2Configured)
+        var localFilePath = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", objectKey.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(localFilePath))
         {
-            using var client = CreateS3Client();
-            var deleteRequest = new DeleteObjectRequest
-            {
-                BucketName = _settings.BucketName,
-                Key = objectKey
-            };
+            File.Delete(localFilePath);
+            _logger.LogInformation("Deleted local legacy file: {LocalPath}", localFilePath);
+            return;
+        }
 
-            await client.DeleteObjectAsync(deleteRequest, cancellationToken);
-            _logger.LogInformation("Deleted object from Cloudflare R2: {ObjectKey}", objectKey);
-        }
-        else
+        if (!IsR2Configured)
         {
-            var localFilePath = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", objectKey.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(localFilePath))
-            {
-                File.Delete(localFilePath);
-                _logger.LogInformation("Deleted local fallback file: {LocalPath}", localFilePath);
-            }
+            _logger.LogWarning("Cloudflare R2 is not configured. Cannot delete remote object: {ObjectKey}", objectKey);
+            return;
         }
+
+        using var client = CreateS3Client();
+        var deleteRequest = new DeleteObjectRequest
+        {
+            BucketName = _settings.BucketName,
+            Key = objectKey
+        };
+
+        await client.DeleteObjectAsync(deleteRequest, cancellationToken);
+        _logger.LogInformation("Deleted object from Cloudflare R2: {ObjectKey}", objectKey);
     }
 
     public string GetPublicUrl(string objectKey)
@@ -188,5 +179,41 @@ public class CloudflareR2StorageService : ICloudflareR2StorageService
         };
 
         return client.GetPreSignedURL(request);
+    }
+
+    public async Task<(Stream Stream, string ContentType)?> GetObjectStreamAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        if (IsR2Configured)
+        {
+            try
+            {
+                var client = CreateS3Client();
+                var response = await client.GetObjectAsync(_settings.BucketName, objectKey, cancellationToken);
+                return (response.ResponseStream, response.Headers.ContentType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch object {ObjectKey} from R2 directly", objectKey);
+            }
+        }
+
+        var localFilePath = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", objectKey.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(localFilePath))
+        {
+            var stream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var ext = Path.GetExtension(localFilePath).ToLowerInvariant();
+            var contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                ".mp4" => "video/mp4",
+                ".webm" => "video/webm",
+                _ => "application/octet-stream"
+            };
+            return (stream, contentType);
+        }
+
+        return null;
     }
 }
