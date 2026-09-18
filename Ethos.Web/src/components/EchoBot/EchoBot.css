@@ -16,6 +16,9 @@
 .echo-panel {
   width: 360px;
   min-height: 520px;
+  max-height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: 18px;
   background: #f8f8f8;
@@ -858,6 +861,26 @@
 
   .echo-floating-close {
     margin-right: 0;
+  }
+}
+
+@media (max-height: 560px) {
+  .echo-widget {
+    bottom: 6px;
+    right: 8px;
+  }
+  .echo-panel {
+    min-height: 0;
+    max-height: calc(100vh - 12px);
+    width: min(340px, calc(100vw - 16px));
+  }
+  .echo-avatar-area {
+    min-height: 100px;
+    padding: 8px 0;
+  }
+  .echo-heading {
+    margin-bottom: 8px;
+    font-size: 15px;
   }
 }
 

@@ -272,6 +272,12 @@
   }
 }
 
+@media (max-height: 480px) and (orientation: landscape) {
+  .ethos-floating-socials {
+    display: none;
+  }
+}
+
 
 @media (prefers-reduced-motion: reduce) {
 

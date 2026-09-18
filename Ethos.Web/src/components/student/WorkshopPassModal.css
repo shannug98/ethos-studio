@@ -793,3 +793,52 @@
   font-family: monospace;
 }
 
+@media (max-width: 540px) {
+  .workshop-pass-overlay {
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .workshop-pass-container {
+    margin: 16px auto 20px;
+    padding-top: 40px;
+  }
+
+  .workshop-pass-close-btn {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 50;
+  }
+
+  .ticket-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ticket-meta-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .ticket-qr-section {
+    flex-direction: column;
+    text-align: center;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .ticket-qr-box {
+    margin: 0 auto;
+  }
+
+  .ticket-qr-meta {
+    align-items: center;
+  }
+}
+

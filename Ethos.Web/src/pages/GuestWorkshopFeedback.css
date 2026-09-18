@@ -261,6 +261,15 @@
   color: #f59e0b;
 }
 
+@media (max-width: 360px) {
+  .star-btn {
+    font-size: 28px;
+  }
+  .star-rating-selector {
+    gap: 4px;
+  }
+}
+
 .star-feedback-label {
   display: block;
   font-size: 13px;

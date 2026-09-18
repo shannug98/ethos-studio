@@ -508,3 +508,24 @@
   background: #df806c;
   color: #ffffff;
 }
+
+@media (max-width: 380px) {
+  .sticky-footer-inner {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .footer-total-price {
+    font-size: 16px;
+  }
+  .footer-total-price span {
+    font-size: 11px;
+    display: block;
+    margin-left: 0;
+  }
+  .checkout-pay-btn {
+    padding: 10px 16px;
+    font-size: 13.5px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+}

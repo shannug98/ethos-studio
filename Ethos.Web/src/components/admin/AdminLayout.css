@@ -377,6 +377,28 @@ select {
   }
 }
 
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-app-body,
+  .admin-main-shell {
+    margin-left: 68px;
+    width: calc(100% - 68px);
+    min-width: 0;
+  }
+
+  .admin-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 90;
+  }
+}
+
 @media (max-width: 760px) {
   .admin-page-header {
     flex-direction: column;

@@ -141,6 +141,13 @@ export default function AdminLayout() {
         onToggleCollapse={() => setCollapsed(!collapsed)}
         attentionCounts={attentionCounts}
       />
+      {!collapsed && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={() => setCollapsed(true)}
+          aria-hidden="true"
+        />
+      )}
       <div className="admin-app-body">
         <AdminHeader
           deviceCount={deviceCount}

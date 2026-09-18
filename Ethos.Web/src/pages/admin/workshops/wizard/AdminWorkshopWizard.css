@@ -208,6 +208,43 @@
   color: #172033;
 }
 
+@media (max-width: 768px) {
+  .wizard-stepper-container {
+    padding: 12px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wizard-stepper-track {
+    gap: 8px;
+    justify-content: space-around;
+  }
+
+  .stepper-node:not(.current) .stepper-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .wizard-stepper-container {
+    padding: 10px 8px;
+  }
+
+  .stepper-label {
+    display: none;
+  }
+
+  .stepper-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .stepper-node {
+    gap: 0;
+  }
+}
+
 /* Main Content Panel */
 .wizard-content-container {
   max-width: 1020px;
