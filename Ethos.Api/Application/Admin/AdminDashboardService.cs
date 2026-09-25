@@ -624,7 +624,7 @@ public class AdminDashboardService : IAdminDashboardService
         var upcomingWorkshops = await _db.Workshops.CountAsync(w => w.WorkshopDate >= now && w.Status != WorkshopStatus.Cancelled && w.Status != WorkshopStatus.Archived, cancellationToken);
         var workshopsThisWeek = await _db.Workshops.CountAsync(w => w.WorkshopDate >= now && w.WorkshopDate <= now.AddDays(7) && w.Status != WorkshopStatus.Cancelled && w.Status != WorkshopStatus.Archived, cancellationToken);
 
-        var unreadMessages = await _db.NotificationRecipients.CountAsync(nr => !nr.IsRead, cancellationToken);
+        var totalCommunications = await _db.CommunicationLogs.CountAsync(cancellationToken);
 
         var pendingApps = await _db.TrainerApplications.CountAsync(a =>
             a.Status == TrainerApplicationStatus.Submitted ||
@@ -643,7 +643,7 @@ public class AdminDashboardService : IAdminDashboardService
             RevenueGrowthPercent = revGrowth,
             UpcomingWorkshopsCount = upcomingWorkshops,
             WorkshopsThisWeekCount = workshopsThisWeek,
-            UnreadMessagesCount = unreadMessages,
+            UnreadMessagesCount = totalCommunications,
             MessagesGrowthPercent = 0.0,
             PendingActionsCount = pendingActions,
             FailedPaymentsCount = failedPayments
@@ -773,7 +773,7 @@ public class AdminDashboardService : IAdminDashboardService
     {
         var pendingWorkshops = await _db.Workshops.CountAsync(w => w.Status == WorkshopStatus.PendingApproval, cancellationToken);
         var failedPayments = await _db.PaymentTransactions.CountAsync(p => p.Status == PaymentStatus.Failed, cancellationToken);
-        var unreadMessages = await _db.NotificationRecipients.CountAsync(nr => !nr.IsRead, cancellationToken);
+        var failedComms = await _db.CommunicationLogs.CountAsync(c => c.Status == "FAILED", cancellationToken);
         var pendingVideos = await _db.StudioVideos.CountAsync(v => !v.IsActive, cancellationToken);
         var newUsersToday = await _db.Users.CountAsync(u => u.CreatedAt >= DateTime.UtcNow.Date, cancellationToken);
 
@@ -807,15 +807,15 @@ public class AdminDashboardService : IAdminDashboardService
             });
         }
 
-        if (unreadMessages > 0)
+        if (failedComms > 0)
         {
             items.Add(new AdminPriorityItemDto
             {
-                Id = "prio_messages",
-                Type = "UNREAD_MESSAGES",
-                Count = unreadMessages,
-                Title = $"{unreadMessages} unread contact message{(unreadMessages > 1 ? "s" : "")}",
-                Subtitle = "Respond to enquiries →",
+                Id = "prio_comms_failed",
+                Type = "FAILED_COMMUNICATIONS",
+                Count = failedComms,
+                Title = $"{failedComms} failed communication dispatch{(failedComms > 1 ? "es" : "")}",
+                Subtitle = "Review communication logs →",
                 ActionUrl = "/admin_portal/communications",
                 Severity = "WARNING"
             });

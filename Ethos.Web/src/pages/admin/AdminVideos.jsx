@@ -1,48 +1,43 @@
-import React, { useState, useEffect, useRef } from "react";
-import { RotateCw, Plus } from "lucide-react";
-import { adminApi } from "../../services/adminApi";
-import { API_BASE_URL } from "../../config/api";
-import AdminKpiCard from "../../components/admin/common/AdminKpiCard";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  Cloud, Plus, ArrowRight, ArrowLeft, ExternalLink, Play, Camera,
+  Users, Home, Image as ImageIcon, Calendar, Star, Shield, FileText,
+  Lightbulb, X, Upload, Trash2, Edit2, CheckCircle, AlertCircle,
+  ArrowUp, ArrowDown, ChevronDown, Eye
+} from "lucide-react";
+import { adminApi, getAdminUser } from "../../services/adminApi";
+import {
+  MEDIA_PLACEMENTS,
+  DEVELOPER_OWNED_ASSETS,
+  GALLERY_CATEGORIES,
+  MEDIA_LIMITS,
+  getPlacementById,
+  getPlacementCropConfig,
+} from "../../config/MediaPlacementCatalog";
+import PlacementSlotCard from "../../components/admin/media/PlacementSlotCard";
+import AdminMediaPreviewModal from "../../components/admin/media/AdminMediaPreviewModal";
+import ImageCropperModal from "../../components/admin/common/ImageCropperModal";
+import { getMediaUrl, handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../../utils/mediaUrl";
 import "./AdminVideos.css";
+import "../../styles/hero.css";
 
-const DISPLAY_SECTIONS = [
-  { id: "HomepageScrolling", label: "Hero Banner",            icon: "🎞️", group: "Homepage", hint: "Homepage Hero Scrolling Photos & Videos" },
-  { id: "HomepageReels",    label: "Short Dance Reels",       icon: "🎬", group: "Homepage", hint: "9:16 Portrait Short Videos (max 30-40s)" },
-  { id: "GalleryImages",   label: "Gallery Photos",           icon: "📸", group: "Gallery",  hint: "Public Masonry Photo Gallery" },
-  { id: "GalleryVideos",   label: "Gallery Videos",           icon: "🎭", group: "Gallery",  hint: "Public Showcase Videos" },
-  { id: "Workshop",        label: "Workshop Media",           icon: "💃", group: "Studio",   hint: "Workshop posters and media" },
-  { id: "Events",          label: "Events & Festivals",       icon: "🎪", group: "Studio",   hint: "Events and performances" },
-  { id: "AboutEthos",      label: "About Studio",             icon: "🏛️", group: "Studio",   hint: "About page visuals" },
-  { id: "Trainers",        label: "Faculty / Trainers",       icon: "⭐", group: "Studio",   hint: "Faculty profile pictures" },
-  { id: "Draft",           label: "Hidden / Draft",           icon: "🔒", group: "System",   hint: "Assets not published on website" },
-];
-
-const LAYOUT_TYPES = [
-  { id: "Square", label: "Square (1:1)" },
-  { id: "Portrait", label: "Portrait (3:4 Poster)" },
-  { id: "Landscape", label: "Landscape (16:9 Wide)" },
-  { id: "Featured", label: "Featured (Spans 2 Columns)" },
-];
-
-const CATEGORIES = [
-  { id: "General", label: "General" },
-  { id: "Workshops", label: "Workshops" },
-  { id: "Performances", label: "Performances" },
-  { id: "Community", label: "Community" },
-  { id: "Studio", label: "Studio" },
-  { id: "BehindTheScenes", label: "Behind The Scenes" },
-];
-
-const FOCAL_POINTS = [
-  { id: "center", label: "Center" },
-  { id: "top", label: "Top" },
-  { id: "bottom", label: "Bottom" },
-  { id: "left", label: "Left" },
-  { id: "right", label: "Right" },
+const SECTION_TABS = [
+  { id: "all", label: "All Sections" },
+  { id: "homepage", label: "Homepage" },
+  { id: "trainers", label: "Trainers" },
+  { id: "gallery", label: "Gallery" },
+  { id: "other", label: "Developer Assets" },
 ];
 
 export default function AdminVideos() {
-  const [activeTab, setActiveTab] = useState("HomepageScrolling"); // Section ID, "all", or "archived"
+  // Navigation & filtering
+  const [activeTab, setActiveTab] = useState("all");
+  const [activeGalleryCat, setActiveGalleryCat] = useState("All");
+
+  // Managing a specific placement (modal / drill-down)
+  const [managingPlacementId, setManagingPlacementId] = useState(null);
+
+  // Backend media state
   const [mediaList, setMediaList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,42 +48,54 @@ export default function AdminVideos() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [previewContext, setPreviewContext] = useState(null);
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Form states
+  // Slot-targeted upload context
+  const [targetSlot, setTargetSlot] = useState(null);
+  const [replacingItemId, setReplacingItemId] = useState(null);
+
+  // Upload Form State
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
+  const [rawUploadFile, setRawUploadFile] = useState(null);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState(null);
+  const [cropperModal, setCropperModal] = useState({
+    isOpen: false,
+    initialImage: null,
+    aspectRatio: "16:9",
+    allowedRatios: ["16:9"],
+    title: "Crop & Adjust Image",
+  });
+  const [uploadPlacementId, setUploadPlacementId] = useState("hero-banner");
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCaption, setUploadCaption] = useState("");
-  const [uploadAltText, setUploadAltText] = useState("");
-  const [uploadFocalPoint, setUploadFocalPoint] = useState("center");
-  const [uploadSection, setUploadSection] = useState("Draft");
-  const [uploadCategory, setUploadCategory] = useState("General");
-  const [uploadLayout, setUploadLayout] = useState("Square");
-  const [uploadOrder, setUploadOrder] = useState("");
+  const [uploadCategory, setUploadCategory] = useState("Workshops");
+  const [uploadLayout, setUploadLayout] = useState("Landscape");
+  const [uploadOrder, setUploadOrder] = useState(1);
   const [uploadIsPublished, setUploadIsPublished] = useState(true);
   const [uploadIsFeatured, setUploadIsFeatured] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
 
-  // Edit form state
+  // Edit Form State
   const [editTitle, setEditTitle] = useState("");
   const [editCaption, setEditCaption] = useState("");
-  const [editAltText, setEditAltText] = useState("");
-  const [editFocalPoint, setEditFocalPoint] = useState("center");
-  const [editSection, setEditSection] = useState("Draft");
-  const [editCategory, setEditCategory] = useState("General");
-  const [editLayout, setEditLayout] = useState("Square");
-  const [editOrder, setEditOrder] = useState(0);
+  const [editCategory, setEditCategory] = useState("Workshops");
+  const [editLayout, setEditLayout] = useState("Landscape");
   const [editIsPublished, setEditIsPublished] = useState(true);
-  const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editing, setEditing] = useState(false);
-
-  // Delete / Archive state
   const [deleting, setDeleting] = useState(false);
-  const [archivingId, setArchivingId] = useState(null);
 
+  // Admin user information
+  const adminUser = useMemo(() => getAdminUser(), []);
+  const adminName = adminUser?.name || "Admin";
+  const adminInitial = adminName.charAt(0).toUpperCase();
+
+  // Load Media from Backend
   const loadMedia = async () => {
     setLoading(true);
     setError(null);
@@ -97,7 +104,7 @@ export default function AdminVideos() {
       const items = res?.items || (Array.isArray(res) ? res : []);
       setMediaList(items);
     } catch (err) {
-      setError(err.message || "Failed to load media assets.");
+      setError(err.message || "Failed to load media assets from server.");
     } finally {
       setLoading(false);
     }
@@ -107,906 +114,1643 @@ export default function AdminVideos() {
     loadMedia();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        if (!uploading) setUploadModalOpen(false);
-        if (!editing) setEditModalOpen(false);
-        if (!deleting) setDeleteModalOpen(false);
-        setPreviewMedia(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [uploading, editing, deleting]);
-
   const showNotification = (msg) => {
     setActionSuccess(msg);
     setTimeout(() => setActionSuccess(null), 5000);
   };
 
-  // Helper: get primary section from placements
-  const getPrimarySection = (item) => {
-    if (item.placements && item.placements.length > 0) return item.placements[0].section || "";
-    return item.section || ""; // legacy fallback
+  // Keyboard shortcut (Escape to close modals)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (cropperModal.isOpen) {
+          // Crop modal is topmost and handles its own ESC dismissal
+          return;
+        }
+        if (!uploading) setUploadModalOpen(false);
+        if (!editing) setEditModalOpen(false);
+        if (!deleting) setDeleteModalOpen(false);
+        setPreviewMedia(null);
+        setPreviewContext(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [uploading, editing, deleting, cropperModal.isOpen]);
+
+  // Storage Used Calculation
+  const totalSizeBytes = useMemo(() => {
+    return mediaList.reduce((acc, item) => acc + (item.fileSizeBytes || 0), 0);
+  }, [mediaList]);
+  const storageUsedMb = (totalSizeBytes / (1024 * 1024)).toFixed(1);
+  const storagePercent = Math.min(100, Math.round((totalSizeBytes / (10 * 1024 * 1024 * 1024)) * 100));
+
+  // Helper to filter media items by section
+  const getItemsForSection = (sectionKey) => {
+    if (!sectionKey) return [];
+    const targetKey = sectionKey.toLowerCase();
+    return mediaList
+      .filter((m) => {
+        if (m.isArchived) return false;
+        return m.placements?.some((p) => {
+          const pSec = (p.section || "").toLowerCase();
+          if (pSec === targetKey) return true;
+          if ((targetKey === "workshop" || targetKey === "workshops") && (pSec === "workshop" || pSec === "workshops")) return true;
+          if ((targetKey === "founder" || targetKey === "founders") && (pSec === "founder" || pSec === "founders")) return true;
+          return false;
+        });
+      })
+      .sort((a, b) => {
+        const getOrder = (item) => item.placements?.find((p) => {
+          const pSec = (p.section || "").toLowerCase();
+          return pSec === targetKey ||
+            ((targetKey === "workshop" || targetKey === "workshops") && (pSec === "workshop" || pSec === "workshops")) ||
+            ((targetKey === "founder" || targetKey === "founders") && (pSec === "founder" || pSec === "founders"));
+        })?.displayOrder ?? 0;
+        return getOrder(a) - getOrder(b);
+      });
   };
 
-  // Segregate active vs archived
-  const activeItems = mediaList.filter((m) => !m.isArchived);
-  const archivedItems = mediaList.filter((m) => m.isArchived);
+  // Section item collections
+  const heroItems = useMemo(() => getItemsForSection("HomepageScrolling"), [mediaList]);
+  const reelItems = useMemo(() => getItemsForSection("HomepageReels"), [mediaList]);
+  const ethosItems = useMemo(() => getItemsForSection("AboutEthos"), [mediaList]);
+  const founderItems = useMemo(() => getItemsForSection("Founders"), [mediaList]);
+  const trainerItems = useMemo(() => getItemsForSection("Trainers"), [mediaList]);
+  const slideshowItems = useMemo(() => getItemsForSection("GallerySlideshow"), [mediaList]);
+  const galleryVideoItems = useMemo(() => getItemsForSection("GalleryVideos"), [mediaList]);
+  const galleryAllPhotoItems = useMemo(() => getItemsForSection("GalleryImages"), [mediaList]);
+  const galleryPhotoItems = useMemo(() => {
+    const all = getItemsForSection("GalleryImages");
+    if (activeGalleryCat === "All") return all;
+    return all.filter((m) => (m.category || "").toLowerCase() === activeGalleryCat.toLowerCase());
+  }, [mediaList, activeGalleryCat]);
 
-  // Filtered by current tab
-  const displayedItems = (
-    activeTab === "archived"
-      ? archivedItems
-      : activeTab === "all"
-      ? activeItems
-      : activeItems.filter((m) => {
-          if (m.placements && m.placements.length > 0) {
-            return m.placements.some((p) => (p.section || "").toLowerCase() === activeTab.toLowerCase());
-          }
-          return (m.section || "").toLowerCase() === activeTab.toLowerCase();
-        })
-  ).sort((a, b) => {
-    const aOrder = a.placements?.find((p) => p.section?.toLowerCase() === activeTab.toLowerCase())?.displayOrder ?? a.displayOrder ?? 0;
-    const bOrder = b.placements?.find((p) => p.section?.toLowerCase() === activeTab.toLowerCase())?.displayOrder ?? b.displayOrder ?? 0;
-    return aOrder - bOrder;
-  });
+  // Managing Placement Active Object
+  const managingPlacement = useMemo(() => {
+    return managingPlacementId ? getPlacementById(managingPlacementId) : null;
+  }, [managingPlacementId]);
 
-  const totalActive = activeItems.length;
-  const totalPublished = activeItems.filter((m) =>
-    m.placements?.some((p) => p.isPublished) ?? m.isPublished
-  ).length;
-  const totalArchived = archivedItems.length;
-  const totalStorageBytes = mediaList.reduce((acc, m) => acc + (m.fileSizeBytes || 0), 0);
+  const managingPlacementItems = useMemo(() => {
+    if (!managingPlacement) return [];
+    return getItemsForSection(managingPlacement.sectionKey);
+  }, [managingPlacement, mediaList]);
 
-  const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0) return "0.0 KB";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const getEffectiveMediaUrl = (item) => {
-    if (!item) return "";
-    const url = item.thumbnailUrl || item.publicUrl || "";
-    if (url && !url.includes("media.ethosdancestudio.com")) {
-      return url;
-    }
-    const apiBase = API_BASE_URL;
-    return `${apiBase}/api/media/content/${item.id}`;
-  };
-
-  // --- Handlers ---
-  const handleOpenUpload = () => {
-    const targetSec = activeTab === "all" || activeTab === "archived" ? "HomepageScrolling" : activeTab;
+  // Open slot-targeted upload modal
+  const handleOpenSlotUpload = (placement, slot) => {
+    setUploadPlacementId(placement.id);
+    setTargetSlot(slot);
+    setReplacingItemId(null);
     setUploadFile(null);
+    setRawUploadFile(null);
+    setUploadPreviewUrl(null);
+    setCropperModal({ isOpen: false, initialImage: null, aspectRatio: "16:9", allowedRatios: ["16:9"], title: "" });
     setUploadTitle("");
     setUploadCaption("");
-    setUploadAltText("");
-    setUploadFocalPoint("center");
-    setUploadSection(targetSec);
-    setUploadCategory("General");
-    setUploadLayout("Square");
-    setUploadOrder(displayedItems.length + 1);
+    setUploadCategory("Workshops");
+    setUploadLayout(placement.aspectRatio.includes("9:16") ? "Portrait" : placement.aspectRatio.includes("4:5") ? "Portrait" : "Landscape");
+    setUploadOrder(slot.order);
     setUploadIsPublished(true);
     setUploadIsFeatured(false);
     setUploadError(null);
     setUploadModalOpen(true);
   };
 
-  const handleFileChange = (file) => {
-    setUploadFile(file);
-    if (file && !uploadTitle.trim()) {
-      const suggested = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-      setUploadTitle(suggested);
-    }
+  // Open slot-targeted replace modal
+  const handleOpenSlotReplace = (placement, slot, currentItem) => {
+    setUploadPlacementId(placement.id);
+    setTargetSlot(slot);
+    setReplacingItemId(currentItem.id);
+    setUploadFile(null);
+    setRawUploadFile(null);
+    setUploadPreviewUrl(null);
+    setCropperModal({ isOpen: false, initialImage: null, aspectRatio: "16:9", allowedRatios: ["16:9"], title: "" });
+    setUploadTitle(currentItem.title || "");
+    setUploadCaption(currentItem.caption || "");
+    setUploadCategory(currentItem.category || "Workshops");
+    setUploadLayout(currentItem.layoutType || "Landscape");
+    setUploadOrder(slot.order);
+    setUploadIsPublished(true);
+    setUploadIsFeatured(currentItem.isFeatured || false);
+    setUploadError(null);
+    setUploadModalOpen(true);
   };
 
-  const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    if (!uploadFile) {
-      setUploadError("Please select an image or video file.");
+  // Open generic upload modal
+  const handleOpenGlobalUpload = (defaultPlacementId = "hero-banner") => {
+    const pl = getPlacementById(defaultPlacementId) || MEDIA_PLACEMENTS[0];
+    setUploadPlacementId(pl.id);
+    setTargetSlot(null);
+    setReplacingItemId(null);
+    setUploadFile(null);
+    setRawUploadFile(null);
+    setUploadPreviewUrl(null);
+    setCropperModal({ isOpen: false, initialImage: null, aspectRatio: "16:9", allowedRatios: ["16:9"], title: "" });
+    setUploadTitle("");
+    setUploadCaption("");
+    setUploadCategory("Workshops");
+    const defaultLayout = (pl.aspectRatio?.includes("9:16") || pl.aspectRatio?.includes("Portrait")) ? "Portrait" : "Landscape";
+    setUploadLayout(defaultLayout);
+    setUploadOrder(1);
+    setUploadIsPublished(true);
+    setUploadIsFeatured(false);
+    setUploadError(null);
+    setUploadModalOpen(true);
+  };
+
+  const handleOpenPreview = (placement, slot, item) => {
+    if (!item) return;
+    setPreviewContext({ placement, slot, item });
+    setPreviewMedia(item);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewMedia(null);
+    setPreviewContext(null);
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.__openAdminPreview = (placement, slot, item) => handleOpenPreview(placement, slot, item);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete window.__openAdminPreview;
+      }
+    };
+  }, []);
+
+
+
+  // File selection validation & crop interception
+  const handleFileChange = (file) => {
+    setUploadError(null);
+    if (!file) {
+      setRawUploadFile(null);
+      setUploadFile(null);
+      setUploadPreviewUrl(null);
       return;
     }
 
-    const effectiveTitle = uploadTitle.trim() || uploadFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+    const currentPl = getPlacementById(uploadPlacementId) || MEDIA_PLACEMENTS[0];
+    const isImage = file.type?.startsWith("image/");
+    const isVideo = file.type?.startsWith("video/");
 
+    if (currentPl.allowedMedia === "video_only" && !isVideo) {
+      setUploadError(`${currentPl.placement} accepts Video files only (.mp4, .webm, .mov).`);
+      return;
+    }
+    if (currentPl.allowedMedia === "image_only" && !isImage) {
+      setUploadError(`${currentPl.placement} accepts Image files only (.jpg, .png, .webp).`);
+      return;
+    }
+
+    if (isImage && file.size > MEDIA_LIMITS.IMAGE_MAX_BYTES) {
+      setUploadError(`Image exceeds the 5 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+      return;
+    }
+    if (isVideo) {
+      const maxBytes = currentPl.id === "gallery-videos" ? MEDIA_LIMITS.GALLERY_VIDEO_MAX_BYTES : MEDIA_LIMITS.HOMEPAGE_REEL_MAX_BYTES;
+      if (file.size > maxBytes) {
+        setUploadError(`Video exceeds the limit of ${(maxBytes / (1024 * 1024)).toFixed(0)} MB.`);
+        return;
+      }
+    }
+
+    // Retain original browser file in state for re-crop
+    setRawUploadFile(file);
+
+    if (!uploadTitle.trim()) {
+      const suggested = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      setUploadTitle(suggested);
+    }
+
+    if (isVideo) {
+      // Video bypasses cropper completely
+      setUploadFile(file);
+      setUploadPreviewUrl(null);
+      return;
+    }
+
+    // Image selected -> Open ImageCropperModal before staging for upload
+    const cropConfig = getPlacementCropConfig(uploadPlacementId, targetSlot?.order || uploadOrder);
+    setCropperModal({
+      isOpen: true,
+      initialImage: file,
+      aspectRatio: cropConfig.aspectRatio,
+      allowedRatios: cropConfig.allowedRatios,
+      title: cropConfig.title,
+    });
+  };
+
+  // Crop completion callback - normalizes JPEG blob and sets clean .jpg filename
+  const handleCropComplete = (blob, dataUrl) => {
+    if (!blob) return;
+    const originalName = rawUploadFile?.name || "image.jpg";
+    const baseName = originalName.replace(/\.[^/.]+$/, "");
+    const normalizedFileName = `${baseName}.jpg`;
+
+    const croppedFile = new File([blob], normalizedFileName, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+
+    setUploadFile(croppedFile);
+    setUploadPreviewUrl(dataUrl);
+    setCropperModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  // Re-crop handler using the preserved original browser file
+  const handleReCrop = () => {
+    if (!rawUploadFile) return;
+    const cropConfig = getPlacementCropConfig(uploadPlacementId, targetSlot?.order || uploadOrder);
+    setCropperModal({
+      isOpen: true,
+      initialImage: rawUploadFile,
+      aspectRatio: cropConfig.aspectRatio,
+      allowedRatios: cropConfig.allowedRatios,
+      title: cropConfig.title,
+    });
+  };
+
+  // Submit Upload
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setUploadError("Please select a file to upload.");
+      return;
+    }
+
+    const currentPl = getPlacementById(uploadPlacementId) || MEDIA_PLACEMENTS[0];
+    const effectiveTitle = uploadTitle.trim() || uploadFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
     setUploading(true);
     setUploadError(null);
-
-    const formData = new FormData();
-    formData.append("file", uploadFile);
-    formData.append("section", uploadSection);
-    formData.append("title", effectiveTitle);
-    formData.append("caption", uploadCaption.trim());
-    formData.append("altText", effectiveTitle);
-    formData.append("focalPoint", "center");
-    formData.append("category", "General");
-    formData.append("layoutType", "Square");
-    formData.append("displayOrder", uploadOrder || 0);
-    formData.append("isPublished", uploadIsPublished);
-    formData.append("isFeatured", uploadIsFeatured);
+    setUploadProgress(null);
 
     try {
+      if (currentPl.id === "gallery-videos") {
+        setUploadProgress(1);
+        const presign = await adminApi.presignGalleryVideoUpload({
+          fileName: uploadFile.name,
+          contentType: uploadFile.type || "video/mp4",
+          fileSizeBytes: uploadFile.size,
+        });
+
+        const isDirectHttps = presign.uploadUrl && presign.uploadUrl.startsWith("https://");
+        let directUploadSucceeded = false;
+
+        // Case A: Presign returned non-HTTPS URL (e.g. dev mock /uploads/...)
+        if (!isDirectHttps) {
+          if (uploadFile.size > 100 * 1024 * 1024) {
+            throw new Error(`Direct Cloudflare R2 upload required for videos over 100MB (${(uploadFile.size / (1024 * 1024)).toFixed(1)}MB). Cloudflare R2 storage is not configured in this environment.`);
+          }
+          showNotification("Cloudflare R2 direct endpoint unavailable in this environment; uploading via studio gateway...");
+        } else {
+          // Attempt direct Cloudflare R2 presigned PUT
+          let bytesSent = 0;
+          try {
+            await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open("PUT", presign.uploadUrl, true);
+              xhr.setRequestHeader("Content-Type", uploadFile.type || "video/mp4");
+              xhr.upload.onprogress = (evt) => {
+                if (evt.lengthComputable) {
+                  bytesSent = evt.loaded;
+                  const pct = Math.round((evt.loaded / evt.total) * 100);
+                  setUploadProgress(pct);
+                }
+              };
+              xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+                else reject(new Error(`Direct R2 upload failed with status ${xhr.status}.`));
+              };
+              xhr.onerror = () => reject(new Error("Network connection error during direct Cloudflare R2 upload."));
+              xhr.send(uploadFile);
+            });
+            directUploadSucceeded = true;
+          } catch (putErr) {
+            // Case B vs Case C:
+            if (bytesSent === 0 && uploadFile.size <= 100 * 1024 * 1024) {
+              // Case B: Pre-transmission failure and file <= 100MB -> gateway fallback
+              showNotification("Direct storage upload failed before transmission; falling back to studio gateway...");
+            } else {
+              // Case C: Ambiguous result or large file -> fail closed
+              throw new Error(
+                uploadFile.size > 100 * 1024 * 1024
+                  ? `Direct Cloudflare R2 upload failed for large video (${(uploadFile.size / (1024 * 1024)).toFixed(1)}MB). Please check network and retry.`
+                  : `Upload transmission interrupted or blocked by storage provider. Please check your connection and retry.`
+              );
+            }
+          }
+
+          if (directUploadSucceeded) {
+            await adminApi.confirmGalleryVideoUpload({
+              uploadToken: presign.uploadToken,
+              objectKey: presign.objectKey,
+              title: effectiveTitle,
+              caption: uploadCaption.trim(),
+              altText: effectiveTitle,
+              category: uploadCategory || "Workshop",
+              displayOrder: parseInt(targetSlot?.order || uploadOrder, 10) || 1,
+              isPublished: uploadIsPublished,
+              isFeatured: uploadIsFeatured,
+            });
+
+            setUploadModalOpen(false);
+            setUploadFile(null);
+            setRawUploadFile(null);
+            setUploadPreviewUrl(null);
+            showNotification(`Video "${effectiveTitle}" uploaded successfully to Cloudflare R2!`);
+            await loadMedia();
+            return;
+          }
+        }
+      }
+
+      const effectiveSlotOrder = parseInt(targetSlot?.order || uploadOrder, 10) || 1;
+
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("section", currentPl.sectionKey);
+      formData.append("title", effectiveTitle);
+      formData.append("caption", uploadCaption.trim());
+      formData.append("altText", effectiveTitle);
+      formData.append("focalPoint", "center");
+      formData.append("category", uploadCategory || "Workshop");
+      formData.append("layoutType", uploadLayout || "Landscape");
+      formData.append("displayOrder", effectiveSlotOrder);
+      formData.append("isPublished", uploadIsPublished);
+      formData.append("isFeatured", uploadIsFeatured);
+
       await adminApi.uploadAdminMedia(formData);
+
       setUploadModalOpen(false);
-      showNotification(`"${effectiveTitle}" successfully uploaded to Cloudflare R2!`);
+      setUploadFile(null);
+      setRawUploadFile(null);
+      setUploadPreviewUrl(null);
+      showNotification(`Media "${effectiveTitle}" uploaded successfully!`);
       await loadMedia();
     } catch (err) {
-      setUploadError(err.message || "Failed to upload media to Cloudflare R2.");
+      setUploadError(err.message || "Failed to upload media. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleOpenEdit = (item) => {
-    setSelectedItem(item);
+  // Clear a slot
+  const handleClearSlot = async (placement, slot, currentItem) => {
+    if (!currentItem) return;
+    const confirmed = window.confirm(`Remove media from ${slot.label || `Slot 0${slot.order}`}? The slot will become empty.`);
+    if (!confirmed) return;
+
+    try {
+      await adminApi.deleteAdminMedia(currentItem.id);
+      showNotification(`${slot.label || `Slot 0${slot.order}`} cleared.`);
+      await loadMedia();
+    } catch (err) {
+      alert(err.message || "Failed to clear slot.");
+    }
+  };
+
+  // Reorder items in a collection
+  const handleMoveOrder = async (item, direction, itemsList, sectionKey) => {
+    const idx = itemsList.findIndex((m) => m.id === item.id);
+    if (idx < 0) return;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= itemsList.length) return;
+
+    const currentOrder = item.placements?.find(p => p.section?.toLowerCase() === sectionKey?.toLowerCase())?.displayOrder ?? idx + 1;
+    const targetItem = itemsList[targetIdx];
+    const targetOrder = targetItem.placements?.find(p => p.section?.toLowerCase() === sectionKey?.toLowerCase())?.displayOrder ?? targetIdx + 1;
+
+    try {
+      await adminApi.updateAdminMedia(item.id, {
+        section: sectionKey,
+        displayOrder: targetOrder,
+        title: item.title,
+        caption: item.caption,
+        category: item.category,
+        layoutType: item.layoutType,
+        isPublished: item.placements?.find(p => p.section?.toLowerCase() === sectionKey?.toLowerCase())?.isPublished ?? true,
+      });
+
+      await adminApi.updateAdminMedia(targetItem.id, {
+        section: sectionKey,
+        displayOrder: currentOrder,
+        title: targetItem.title,
+        caption: targetItem.caption,
+        category: targetItem.category,
+        layoutType: targetItem.layoutType,
+        isPublished: targetItem.placements?.find(p => p.section?.toLowerCase() === sectionKey?.toLowerCase())?.isPublished ?? true,
+      });
+
+      await loadMedia();
+    } catch (err) {
+      alert("Failed to reorder items: " + err.message);
+    }
+  };
+
+  // Open Edit Modal
+  const handleOpenEdit = (item, sectionKey) => {
+    setItemToEdit({ ...item, currentSection: sectionKey });
     setEditTitle(item.title || "");
     setEditCaption(item.caption || "");
-    setEditAltText(item.altText || item.title || "");
-    setEditFocalPoint(item.focalPoint || "center");
-    const activePlacement = item.placements?.find(
-      (p) => (p.section || "").toLowerCase() === activeTab.toLowerCase()
-    ) || item.placements?.[0];
-    setEditSection(activePlacement?.section || item.section || "Draft");
-    setEditCategory(item.category || "General");
-    setEditLayout(item.layoutType || "Square");
-    setEditOrder(activePlacement?.displayOrder ?? item.displayOrder ?? 0);
-    setEditIsPublished(activePlacement?.isPublished ?? item.isPublished ?? true);
-    setEditIsFeatured(activePlacement?.isFeatured ?? item.isFeatured ?? false);
+    setEditCategory(item.category || "Workshop");
+    setEditLayout(item.layoutType || "Landscape");
+    const pl = item.placements?.find(p => p.section?.toLowerCase() === sectionKey?.toLowerCase());
+    setEditIsPublished(pl ? pl.isPublished : true);
     setEditModalOpen(true);
   };
 
+  // Submit Edit Form
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedItem) return;
+    if (!itemToEdit) return;
     setEditing(true);
     try {
-      await adminApi.updateAdminMedia(selectedItem.id, {
+      const pl = itemToEdit.placements?.find(p => p.section?.toLowerCase() === itemToEdit.currentSection?.toLowerCase());
+      await adminApi.updateAdminMedia(itemToEdit.id, {
+        section: itemToEdit.currentSection,
         title: editTitle.trim(),
         caption: editCaption.trim(),
-        altText: editAltText.trim() || editTitle.trim(),
-        focalPoint: editFocalPoint,
         category: editCategory,
         layoutType: editLayout,
+        displayOrder: pl ? pl.displayOrder : 0,
+        isPublished: editIsPublished,
       });
-
-      const activePlacement = selectedItem.placements?.find(
-        (p) => (p.section || "").toLowerCase() === activeTab.toLowerCase()
-      ) || selectedItem.placements?.[0];
-
-      if (activePlacement) {
-        await adminApi.updateMediaPlacement(selectedItem.id, activePlacement.id, {
-          section: editSection,
-          displayOrder: parseInt(editOrder, 10) || 0,
-          isPublished: editIsPublished,
-          isFeatured: editIsFeatured,
-        });
-      } else if (editSection) {
-        await adminApi.addMediaPlacement(selectedItem.id, {
-          section: editSection,
-          displayOrder: parseInt(editOrder, 10) || 0,
-          isPublished: editIsPublished,
-          isFeatured: editIsFeatured,
-        });
-      }
-
       setEditModalOpen(false);
-      showNotification("Media details updated successfully.");
+      showNotification("Media details updated successfully!");
       await loadMedia();
     } catch (err) {
-      setError(err.message || "Failed to update media.");
+      alert(err.message || "Failed to update media details.");
     } finally {
       setEditing(false);
     }
   };
 
-  const handleTogglePublish = async (item) => {
-    try {
-      // Find the active placement for the current section (or first placement)
-      const placement = item.placements?.find(
-        (p) => (p.section || "").toLowerCase() === activeTab.toLowerCase()
-      ) || item.placements?.[0];
-
-      if (!placement) {
-        setError("No placement found to toggle visibility.");
-        return;
-      }
-
-      const newStatus = !placement.isPublished;
-      await adminApi.togglePlacementPublish(item.id, placement.id, newStatus);
-      showNotification(
-        newStatus ? `"${item.title}" is now PUBLISHED on website.` : `"${item.title}" is now HIDDEN.`
-      );
-      await loadMedia();
-    } catch (err) {
-      setError(err.message || "Failed to toggle media visibility.");
-    }
-  };
-
-  const handleArchive = async (item) => {
-    setArchivingId(item.id);
-    try {
-      await adminApi.archiveAdminMedia(item.id);
-      showNotification(`"${item.title}" moved to archive.`);
-      await loadMedia();
-    } catch (err) {
-      setError(err.message || "Failed to archive media item.");
-    } finally {
-      setArchivingId(null);
-    }
-  };
-
-  const handleRestore = async (item) => {
-    setArchivingId(item.id);
-    try {
-      await adminApi.restoreAdminMedia(item.id);
-      showNotification(`"${item.title}" restored from archive.`);
-      await loadMedia();
-    } catch (err) {
-      setError(err.message || "Failed to restore media item.");
-    } finally {
-      setArchivingId(null);
-    }
-  };
-
-  const handleOpenDelete = (item) => {
-    setSelectedItem(item);
-    setDeleteModalOpen(true);
-  };
-
+  // Delete Media
   const handleDeleteConfirm = async () => {
-    if (!selectedItem) return;
+    if (!itemToDelete) return;
     setDeleting(true);
     try {
-      await adminApi.permanentDeleteAdminMedia(selectedItem.id);
+      await adminApi.deleteAdminMedia(itemToDelete.id);
       setDeleteModalOpen(false);
-      showNotification(`"${selectedItem.title}" permanently deleted from Cloudflare R2 and DB.`);
+      showNotification("Media deleted successfully.");
       await loadMedia();
     } catch (err) {
-      setError(err.message || "Failed to permanently delete media.");
+      alert(err.message || "Failed to delete media.");
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleMoveOrder = async (item, direction) => {
-    const list = [...displayedItems];
-    const currentIndex = list.findIndex((m) => m.id === item.id);
-    if (currentIndex === -1) return;
-
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= list.length) return;
-
-    const targetItem = list[targetIndex];
-
-    // Find placements for current section
-    const getPlacementOrder = (m) => {
-      const p = m.placements?.find((pl) => (pl.section || "").toLowerCase() === activeTab.toLowerCase());
-      return p?.displayOrder ?? 0;
-    };
-    const getPlacementId = (m) => {
-      const p = m.placements?.find((pl) => (pl.section || "").toLowerCase() === activeTab.toLowerCase());
-      return p?.id;
-    };
-
-    const itemPlacementId   = getPlacementId(item);
-    const targetPlacementId = getPlacementId(targetItem);
-
-    if (!itemPlacementId || !targetPlacementId) {
-      setError("Cannot reorder: placement not found for section.");
-      return;
-    }
-
-    const updatedItems = [
-      { placementId: itemPlacementId,   displayOrder: getPlacementOrder(targetItem) },
-      { placementId: targetPlacementId, displayOrder: getPlacementOrder(item) },
-    ];
-
-    try {
-      await adminApi.reorderAdminMedia({ section: activeTab, items: updatedItems });
-      await loadMedia();
-    } catch (err) {
-      setError(err.message || "Failed to reorder media items.");
-    }
-  };
-
   return (
-    <div className="admin-videos-page">
-      {/* Page Header */}
-      <div className="admin-page-header">
-        <div>
-          <div className="admin-breadcrumb-tag">MEDIA & VISUAL ASSETS · CLOUDFLARE R2</div>
-          <h1 className="admin-page-title">Studio Media & Gallery Management</h1>
-          <p className="admin-page-subtitle">
-            Single source of visual content for the Ethos website: homepage hero banners, short dance reels, gallery, and section-specific media.
+    <div className="media-lib-container">
+      {/* ----------------------------------------------------------------------
+         TOP HEADER AREA
+         ---------------------------------------------------------------------- */}
+      <header className="media-lib-header">
+        <div className="media-lib-title-wrap">
+          <h1 className="media-lib-heading">Media Library</h1>
+          <p className="media-lib-subtitle">
+            Manage all website media in one place. Upload, organize and control exactly where your photos and videos appear.
           </p>
         </div>
-        <div className="admin-header-actions">
+
+        <div className="media-lib-header-actions">
+          {/* Storage Used Card */}
+          <div className="storage-card">
+            <div className="storage-icon-circle">
+              <Cloud size={18} />
+            </div>
+            <div className="storage-info">
+              <span className="storage-label">Storage Used</span>
+              <span className="storage-numbers">{storageUsedMb} MB / 10 GB</span>
+              <div className="storage-bar-wrap">
+                <div className="storage-progress-bar">
+                  <div
+                    className="storage-progress-fill"
+                    style={{ width: `${storagePercent}%` }}
+                  />
+                </div>
+                <span className="storage-pct">{storagePercent}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* + Upload Media Button */}
           <button
             type="button"
-            className="btn-media-header btn-refresh"
-            onClick={loadMedia}
-            disabled={loading}
-          >
-            <RotateCw size={14} className={loading ? "animate-spin" : ""} />
-            <span>{loading ? "Refreshing..." : "Refresh"}</span>
-          </button>
-          <button
-            type="button"
-            className="btn-media-header btn-upload-primary"
-            onClick={handleOpenUpload}
+            className="btn-upload-primary"
+            onClick={() => handleOpenGlobalUpload("hero-banner")}
           >
             <Plus size={16} />
-            <span>Upload Media Asset</span>
+            Upload Media
           </button>
+
+          {/* Admin Identity Pill */}
+          <div className="admin-user-badge">
+            <div className="admin-avatar-circle">{adminInitial}</div>
+            <span>{adminName}</span>
+            <ChevronDown size={14} color="#6b7280" />
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* KPI Overview Grid */}
-      <div className="admin-kpi-grid">
-        <AdminKpiCard
-          label="Active Media Items"
-          value={totalActive}
-          tone="brand"
-          sublabel="Live in Cloudflare R2"
-          icon="🖼️"
-        />
-        <AdminKpiCard
-          label="Published Live"
-          value={`${totalPublished} / ${totalActive}`}
-          tone="success"
-          sublabel="Visible on public website"
-          icon="👁️"
-        />
-        <AdminKpiCard
-          label="Archived Items"
-          value={totalArchived}
-          tone="neutral"
-          sublabel="Soft-archived assets"
-          icon="🗄️"
-        />
-        <AdminKpiCard
-          label="Storage Used"
-          value={formatFileSize(totalStorageBytes)}
-          tone="info"
-          sublabel="Cloudflare R2 Bucket"
-          icon="☁️"
-        />
-      </div>
+      {/* Action notification */}
+      {actionSuccess && (
+        <div style={{
+          background: "#ecfdf5",
+          border: "1px solid #10b981",
+          color: "#065f46",
+          padding: "10px 16px",
+          borderRadius: "8px",
+          fontSize: "13px",
+          fontWeight: "600",
+          marginBottom: "16px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
+          <CheckCircle size={16} />
+          {actionSuccess}
+        </div>
+      )}
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {actionSuccess && <div className="alert alert-success">{actionSuccess}</div>}
-
-      {/* Section Tabs */}
-      <div className="video-tabs-bar">
-        <div className="video-tabs-group">
-          {DISPLAY_SECTIONS.map((sec) => {
-            const count = activeItems.filter((m) => {
-              if (m.placements && m.placements.length > 0) return m.placements.some((p) => (p.section || "").toLowerCase() === sec.id.toLowerCase());
-              return (m.section || "").toLowerCase() === sec.id.toLowerCase();
-            }).length;
-            return (
-              <button
-                key={sec.id}
-                type="button"
-                className={`video-tab-btn ${activeTab === sec.id ? "active" : ""}`}
-                onClick={() => setActiveTab(sec.id)}
-              >
-                <span className="tab-icon">{sec.icon}</span>
-                <span className="tab-label">{sec.label}</span>
-                <span className="tab-count-pill">{count}</span>
-              </button>
-            );
-          })}
-          <div className="video-tab-divider"></div>
+      {/* ----------------------------------------------------------------------
+         SECTION NAVIGATION TABS
+         ---------------------------------------------------------------------- */}
+      <nav className="section-nav-tabs" aria-label="Media Sections">
+        {SECTION_TABS.map((tab) => (
           <button
+            key={tab.id}
             type="button"
-            className={`video-tab-btn ${activeTab === "all" ? "active" : ""}`}
-            onClick={() => setActiveTab("all")}
+            className={`section-nav-tab ${activeTab === tab.id ? "active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
           >
-            <span className="tab-icon">🌐</span>
-            <span className="tab-label">All Active</span>
-            <span className="tab-count-pill">{totalActive}</span>
+            {tab.label}
           </button>
-          <button
-            type="button"
-            className={`video-tab-btn tab-archived ${activeTab === "archived" ? "active" : ""}`}
-            onClick={() => setActiveTab("archived")}
-          >
-            <span className="tab-icon">🗄️</span>
-            <span className="tab-label">Archived</span>
-            <span className="tab-count-pill pill-archived-count">{totalArchived}</span>
-          </button>
-        </div>
+        ))}
+      </nav>
 
-        {/* Active Section Info Guideline */}
-        <div className="section-active-guideline-bar">
-          <div className="guideline-main">
-            <span className="guideline-badge">
-              {DISPLAY_SECTIONS.find((s) => s.id === activeTab)?.icon || "📂"} Section:{" "}
-              <strong>{DISPLAY_SECTIONS.find((s) => s.id === activeTab)?.label || (activeTab === "all" ? "All Active" : "Archived")}</strong>
-            </span>
-            <span className="guideline-text">
-              {activeTab === "HomepageScrolling" && "Powers the cycling banner on the Homepage Hero. Accepts photos (≤10MB) and short muted background videos (≤25MB, ≤30s)."}
-              {activeTab === "HomepageReels" && "Powers 'Short Dance Videos' on the Homepage. Strictly portrait 9:16 videos only (MP4, ≤25MB, max 30-40s duration)."}
-              {activeTab === "GalleryImages" && "Powers the public Masonry Photo Gallery (/gallery). Accepts high-resolution dance photos (≤10MB)."}
-              {activeTab === "GalleryVideos" && "Powers the public Showcase Videos (/gallery). Accepts choreography & masterclass showcase videos (≤100MB)."}
-              {activeTab === "Workshop" && "Media assets specific to workshops, choreography sessions, and masterclass showcases."}
-              {activeTab === "Events" && "Media assets from studio events, battle jams, annual showcases, and festivals."}
-              {activeTab === "AboutEthos" && "Visual assets for the studio About page and facility showcases."}
-              {activeTab === "Trainers" && "Faculty and master instructor profile pictures (1:1 square recommended, ≤5MB)."}
-              {activeTab === "Draft" && "Hidden draft media stored in Cloudflare R2, not currently visible on any public website section."}
-              {activeTab === "all" && "All active studio visual media across all sections."}
-              {activeTab === "archived" && "Soft-archived media assets preserved safely in storage."}
-            </span>
+      {/* ----------------------------------------------------------------------
+         1. HOMEPAGE SECTION
+         ---------------------------------------------------------------------- */}
+      {(activeTab === "all" || activeTab === "homepage" || activeTab === "trainers") && (
+        <section className="placement-section-container">
+          <div className="section-header-banner banner-homepage">
+            <div className="section-header-left">
+              {activeTab === "trainers" ? <Users size={18} /> : <Home size={18} />}
+              <span className="section-header-title">{activeTab === "trainers" ? "Trainers (Master Faculty)" : "Homepage"}</span>
+            </div>
+            <a href={activeTab === "trainers" ? "/#trainers" : "/"} target="_blank" rel="noopener noreferrer" className="section-live-link">
+              View Live Page <ExternalLink size={12} />
+            </a>
           </div>
-          {activeTab !== "archived" && (
-            <button type="button" className="btn-sm-upload-tab" onClick={handleOpenUpload}>
-              + Upload to {DISPLAY_SECTIONS.find((s) => s.id === activeTab)?.label || "Section"}
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* Media Items List */}
-      <div className="videos-container">
-        {loading ? (
-          <div className="videos-loading-state">
-            <div className="spinner"></div>
-            <p>Loading media assets from Cloudflare R2...</p>
-          </div>
-        ) : displayedItems.length === 0 ? (
-          <div className="videos-empty-state">
-            <div className="empty-icon">{activeTab === "archived" ? "🗄️" : "📁"}</div>
-            <h3>{activeTab === "archived" ? "No archived media items" : `No custom uploads in ${DISPLAY_SECTIONS.find((s) => s.id === activeTab)?.label || "this section"} yet`}</h3>
-            <p>
-              {activeTab === "HomepageScrolling"
-                ? "Default curated studio scrolling photos & hero video are currently powering the homepage hero. Upload your own photos or videos here to replace or add to the banner!"
-                : activeTab === "HomepageReels"
-                ? "Default curated short dance reels are currently displaying on the homepage. Upload your own 9:16 portrait videos (max 30-40s) here!"
-                : activeTab === "archived"
-                ? "Archived items will be stored safely here without appearing on the website."
-                : "Upload photos or video reels to display on the Ethos public website."}
-            </p>
-            {activeTab !== "archived" && (
-              <button
-                type="button"
-                className="btn btn-primary btn-empty-upload"
-                onClick={handleOpenUpload}
-              >
-                + Upload to {DISPLAY_SECTIONS.find((s) => s.id === activeTab)?.label || "Section"}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="videos-grid">
-            {displayedItems.map((item, idx) => {
-              const sizeMb = ((item.fileSizeBytes || 0) / (1024 * 1024)).toFixed(1);
-              const isFirst = idx === 0;
-              const isLast = idx === displayedItems.length - 1;
-              const isVideo = (item.mediaType || "").toLowerCase() === "video";
-              const isArchived = item.isArchived;
+          <div className={`section-cards-grid ${activeTab === "trainers" ? "grid-1" : "grid-5"}`}>
+            {(activeTab === "all" || activeTab === "homepage") && (
+              <>
+            {/* Card 1: Hero Banner */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Hero Banner</h4>
+                <p className="placement-card-desc">6 slots • Images or Videos</p>
+              </div>
 
-              // Get placement-specific values for current tab
-              const activePlacement = item.placements?.find(
-                (p) => (p.section || "").toLowerCase() === activeTab.toLowerCase()
-              ) || item.placements?.[0];
-              const itemIsPublished = activePlacement?.isPublished ?? item.isPublished ?? true;
-              const itemIsFeatured  = activePlacement?.isFeatured  ?? item.isFeatured  ?? false;
-              const itemDisplayOrder= activePlacement?.displayOrder ?? item.displayOrder ?? 0;
-
-              return (
-                <div
-                  key={item.id}
-                  className={`video-card ${isArchived ? "is-archived" : itemIsPublished ? "is-active" : "is-hidden"}`}
-                >
-                  {/* Card Thumbnail / Player Preview */}
-                  <div className="video-player-wrap" onClick={() => setPreviewMedia(item)}>
-                    {isVideo ? (
-                      <video
-                        src={getEffectiveMediaUrl(item)}
-                        className="video-player-element"
-                        muted
-                        preload="metadata"
-                        playsInline
-                        onError={(e) => {
-                          const apiBase = API_BASE_URL;
-                          const fallback = `${apiBase}/api/media/content/${item.id}`;
-                          if (e.target.src !== fallback) e.target.src = fallback;
-                        }}
-                      />
-                    ) : (
-                      <img
-                        src={getEffectiveMediaUrl(item)}
-                        alt={item.altText || item.title}
-                        className="video-player-element"
-                        style={{ objectFit: "cover", objectPosition: item.focalPoint || "center" }}
-                        onError={(e) => {
-                          const apiBase = API_BASE_URL;
-                          const fallback = `${apiBase}/api/media/content/${item.id}`;
-                          if (e.target.src !== fallback) e.target.src = fallback;
-                        }}
-                      />
-                    )}
-
-                    <div className="video-overlay-badge">
-                      <span className="order-pill">#{itemDisplayOrder}</span>
-                      {isArchived ? (
-                        <span className="status-pill pill-archived">Archived</span>
-                      ) : (
-                        <span className={`status-pill ${itemIsPublished ? "pill-active" : "pill-hidden"}`}>
-                          {itemIsPublished ? "Published" : "Hidden"}
-                        </span>
-                      )}
-                      {itemIsFeatured && <span className="status-pill pill-featured">★ Featured</span>}
+              <div className="placement-preview-box">
+                {heroItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("hero-banner"), getPlacementById("hero-banner")?.slots?.[0], heroItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("hero-banner"), getPlacementById("hero-banner")?.slots?.[0], heroItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Hero Banner"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(heroItems[0])}
+                      alt={heroItems[0].title || "Hero banner"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="hero-preview-overlay">
+                      <div className="hero-preview-headline">MOVE BEYOND ORDINARY.</div>
                     </div>
-
-                    <button
-                      type="button"
-                      className="video-play-overlay-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewMedia(item);
-                      }}
-                      title="Enlarge Media"
-                    >
-                      {isVideo ? "▶" : "🔍"}
-                    </button>
-                  </div>
-
-                  {/* Media Metadata */}
-                  <div className="video-card-body">
-                    <div className="video-title-row">
-                      <h3 className="video-title" title={item.title}>
-                        {item.title}
-                      </h3>
-                    </div>
-
-                    {item.caption && <p className="video-desc">{item.caption}</p>}
-
-                    <div className="video-specs-meta">
-                      <span className="spec-tag">🏷️ {item.category || "General"}</span>
-                      <span className="spec-tag">📐 {item.layoutType || "Square"}</span>
-                      <span className="spec-tag">📁 {formatFileSize(item.fileSizeBytes)}</span>
-                      <span className="spec-tag">{isVideo ? "🎬 Video" : "📷 Photo"}</span>
-                      {item.focalPoint && item.focalPoint !== "center" && (
-                        <span className="spec-tag">🎯 {item.focalPoint}</span>
-                      )}
-                      {item.placements && item.placements.length > 0 && item.placements.map((p) => (
-                        <span key={p.id} className="spec-tag" style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", fontWeight: 600 }}>
-                          📌 {p.section}{!p.isPublished ? " (Hidden)" : ""}
-                        </span>
+                    <div className="hero-preview-dots">
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <span key={i} className={i === 0 ? "active" : ""} />
                       ))}
                     </div>
-                  </div>
-
-                  {/* Reorder and Management Controls */}
-                  <div className="video-card-actions">
-                    {!isArchived ? (
-                      <div className="order-buttons-group">
-                        <button
-                          type="button"
-                          className="btn-icon-order"
-                          disabled={isFirst}
-                          onClick={() => handleMoveOrder(item, "up")}
-                          title="Move Earlier"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-icon-order"
-                          disabled={isLast}
-                          onClick={() => handleMoveOrder(item, "down")}
-                          title="Move Later"
-                        >
-                          ▼
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="archived-indicator-label">Archived</div>
-                    )}
-
-                    <div className="crud-buttons-group">
-                      {!isArchived ? (
-                        <>
-                          <button
-                            type="button"
-                            className={`btn-sm-action ${itemIsPublished ? "btn-toggle-hide" : "btn-toggle-show"}`}
-                            onClick={() => handleTogglePublish(item)}
-                            title={itemIsPublished ? "Hide from website" : "Publish to website"}
-                          >
-                            {itemIsPublished ? "👁️ Hide" : "👁️ Show"}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-sm-action btn-edit"
-                            onClick={() => handleOpenEdit(item)}
-                            title="Edit metadata"
-                          >
-                            ✏️ Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-sm-action btn-archive"
-                            disabled={archivingId === item.id}
-                            onClick={() => handleArchive(item)}
-                            title="Move to archive (soft delete)"
-                          >
-                            {archivingId === item.id ? "..." : "📦 Archive"}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-sm-action btn-delete"
-                            onClick={() => handleOpenDelete(item)}
-                            title="Permanently delete from Cloudflare R2 & DB"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-sm-action btn-restore"
-                            disabled={archivingId === item.id}
-                            onClick={() => handleRestore(item)}
-                            title="Restore from archive"
-                          >
-                            {archivingId === item.id ? "..." : "♻️ Restore"}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-sm-action btn-delete"
-                            onClick={() => handleOpenDelete(item)}
-                            title="Permanently delete from Cloudflare R2 & DB"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </>
-                      )}
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <ImageIcon size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
 
-      {/* --- UPLOAD NEW MEDIA MODAL --- */}
-      {uploadModalOpen && (
-        <div className="admin-modal-backdrop" onClick={() => !uploading && setUploadModalOpen(false)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h2>Upload Media Asset</h2>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                  <span style={{ fontSize: "12px", color: "#64748b" }}>Target Section:</span>
-                  <span style={{ fontSize: "12px", fontWeight: "700", background: "#f1f5f9", padding: "2px 8px", borderRadius: "6px", color: "#0f172a" }}>
-                    {DISPLAY_SECTIONS.find((s) => s.id === uploadSection)?.label || uploadSection}
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{heroItems.length} / 6</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("hero-banner")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: Homepage Reels */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Homepage Reels</h4>
+                <p className="placement-card-desc">20 videos • Videos only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {reelItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("homepage-reels"), null, reelItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("homepage-reels"), null, reelItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Homepage Reels"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={reelItems[0].thumbnailUrl && reelItems[0].thumbnailUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? reelItems[0].thumbnailUrl : getMediaUrl(reelItems[0])}
+                      alt={reelItems[0].title || "Latest Reel"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-play-btn">
+                      <Play size={16} fill="#ffffff" />
+                    </div>
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Play size={24} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{reelItems.length} / 20</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("homepage-reels")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 3: We Are Ethos */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">We Are Ethos</h4>
+                <p className="placement-card-desc">3 images • Images only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {ethosItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("we-are-ethos"), getPlacementById("we-are-ethos")?.slots?.[0], ethosItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("we-are-ethos"), getPlacementById("we-are-ethos")?.slots?.[0], ethosItems[0]);
+                      }
+                    }}
+                    aria-label="Preview We Are Ethos"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(ethosItems[0])}
+                      alt={ethosItems[0].title || "We Are Ethos"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Camera size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{ethosItems.length} / 3</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("we-are-ethos")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 4: Founder */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Founder</h4>
+                <p className="placement-card-desc">1 image • Images only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {founderItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("founder"), getPlacementById("founder")?.slots?.[0], founderItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("founder"), getPlacementById("founder")?.slots?.[0], founderItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Founder"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(founderItems[0])}
+                      alt={founderItems[0].title || "Founder"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Users size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{founderItems.length} / 1</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("founder")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+            </>
+            )}
+
+            {/* Card 5: Trainers */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Trainers</h4>
+                <p className="placement-card-desc">4 images • Images only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {trainerItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("trainers"), getPlacementById("trainers")?.slots?.[0], trainerItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("trainers"), getPlacementById("trainers")?.slots?.[0], trainerItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Trainers"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(trainerItems[0])}
+                      alt={trainerItems[0].title || "Faculty"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Users size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{trainerItems.length} / 4</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("trainers")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ----------------------------------------------------------------------
+         2. GALLERY SECTION
+         ---------------------------------------------------------------------- */}
+      {(activeTab === "all" || activeTab === "gallery") && (
+        <section className="placement-section-container">
+          <div className="section-header-banner banner-gallery">
+            <div className="section-header-left">
+              <ImageIcon size={18} />
+              <span className="section-header-title">Gallery</span>
+            </div>
+            <a href="/gallery" target="_blank" rel="noopener noreferrer" className="section-live-link">
+              View Live Page <ExternalLink size={12} />
+            </a>
+          </div>
+
+          <div className="section-cards-grid grid-gallery">
+            {/* Card 1: Featured Slideshow */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Featured Slideshow</h4>
+                <p className="placement-card-desc">20 images • Images only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {slideshowItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("gallery-slideshow"), null, slideshowItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("gallery-slideshow"), null, slideshowItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Featured Slideshow"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(slideshowItems[0])}
+                      alt={slideshowItems[0].title || "Slideshow item"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Camera size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{slideshowItems.length} / 20</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("gallery-slideshow")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: Large Videos */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">Large Videos</h4>
+                <p className="placement-card-desc">8 videos • Videos only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {galleryVideoItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("gallery-videos"), null, galleryVideoItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("gallery-videos"), null, galleryVideoItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Large Videos"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={galleryVideoItems[0].thumbnailUrl && galleryVideoItems[0].thumbnailUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? galleryVideoItems[0].thumbnailUrl : getMediaUrl(galleryVideoItems[0])}
+                      alt={galleryVideoItems[0].title || "Large video"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-play-btn">
+                      <Play size={16} fill="#ffffff" />
+                    </div>
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Play size={24} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{galleryVideoItems.length} / 8</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("gallery-videos")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 3: All Gallery Photos */}
+            <div className="placement-card">
+              <div className="placement-card-header">
+                <h4 className="placement-card-title">All Gallery Photos</h4>
+                <p className="placement-card-desc">Categorized • Images only</p>
+              </div>
+
+              <div className="placement-preview-box">
+                {galleryAllPhotoItems[0] ? (
+                  <div
+                    className="single-preview-wrap"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenPreview(getPlacementById("gallery-all-photos"), null, galleryAllPhotoItems[0])}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleOpenPreview(getPlacementById("gallery-all-photos"), null, galleryAllPhotoItems[0]);
+                      }
+                    }}
+                    aria-label="Preview Gallery Photo"
+                    title="Click to preview"
+                  >
+                    <img
+                      src={getMediaUrl(galleryAllPhotoItems[0])}
+                      alt={galleryAllPhotoItems[0].title || "Gallery photo"}
+                      className="single-preview-img"
+                      onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                    />
+                    <div className="single-preview-hover-overlay">
+                      <Eye size={16} />
+                      <span>Click to Preview</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="single-preview-empty">
+                    <Camera size={26} className="empty-preview-icon" />
+                    <span className="empty-preview-text">Empty Slot</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="placement-card-footer">
+                <span className="placement-count-badge">{galleryAllPhotoItems.length} items</span>
+                <button
+                  type="button"
+                  className="btn-manage-placement"
+                  onClick={() => setManagingPlacementId("gallery-all-photos")}
+                >
+                  Manage <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ----------------------------------------------------------------------
+         3. OTHER: PROTECTED DEVELOPER ASSETS SECTION
+         ---------------------------------------------------------------------- */}
+      {(activeTab === "all" || activeTab === "other") && (
+        <section className="placement-section-container">
+          <div className="section-header-banner banner-other">
+            <div className="section-header-left">
+              <Shield size={18} />
+              <span className="section-header-title">Protected Code & Build Assets</span>
+            </div>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "#92400e" }}>
+              Read Only • Retained for Build & Offline Fallbacks
+            </span>
+          </div>
+
+          <div className="section-cards-grid grid-5">
+            {DEVELOPER_OWNED_ASSETS.map((asset) => (
+              <div key={asset.id} className="placement-card">
+                <div className="placement-card-header">
+                  <div style={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    color: "#b45309",
+                    background: "#fef3c7",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    display: "inline-block",
+                    marginBottom: "6px"
+                  }}>
+                    {asset.protectionBadge}
+                  </div>
+                  <h4 className="placement-card-title">{asset.name}</h4>
+                  <p className="placement-card-desc">{asset.relativePath}</p>
+                </div>
+
+                <div className="placement-preview-box" style={{ background: "#f8fafc" }}>
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    color: "#64748b",
+                    padding: "12px",
+                    textAlign: "center"
+                  }}>
+                    <Shield size={24} color="#f59e0b" />
+                    <span style={{ fontSize: "11px", fontWeight: "600" }}>{asset.dimensions}</span>
+                    <span style={{ fontSize: "10px", color: "#94a3b8" }}>
+                      {(asset.sizeBytes / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                </div>
+
+                <div className="placement-card-footer">
+                  <span className="placement-count-badge" style={{ fontSize: "11px", color: "#64748b" }}>
+                    Protected
+                  </span>
+                  <span style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af" }}>
+                    Locked
                   </span>
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ----------------------------------------------------------------------
+         5. BOTTOM INFORMATIONAL STRIP (3 COLUMNS)
+         ---------------------------------------------------------------------- */}
+      <div className="media-info-strip">
+        <div className="info-col">
+          <div className="info-icon-circle amber">
+            <Lightbulb size={20} />
+          </div>
+          <div className="info-text-wrap">
+            <span className="info-title">Need to update content?</span>
+            <p className="info-desc">
+              Simply select a section above, upload your media, and it will automatically appear on the website in the right place.
+            </p>
+          </div>
+        </div>
+
+        <div className="info-col">
+          <div className="info-icon-circle blue">
+            <FileText size={20} />
+          </div>
+          <div className="info-text-wrap">
+            <span className="info-title">Supported Formats</span>
+            <p className="info-desc">
+              Images: JPG, PNG, WebP (max 5MB)<br />
+              Videos: MP4, MOV (max 100MB)<br />
+              Recommended: 16:9 for banners, vertical 9:16 for reels
+            </p>
+          </div>
+        </div>
+
+        <div className="info-col">
+          <div className="info-icon-circle green">
+            <Shield size={20} />
+          </div>
+          <div className="info-text-wrap">
+            <span className="info-title">Secure & Reliable</span>
+            <p className="info-desc">
+              All media is stored securely on Cloudflare R2 and delivered with high performance.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ----------------------------------------------------------------------
+         6. FOOTER BAR
+         ---------------------------------------------------------------------- */}
+      <footer className="media-lib-footer">
+        <span>© 2026 Ethos Dance Studio. All rights reserved.</span>
+        <span>People Move Higher.</span>
+      </footer>
+
+      {/* ----------------------------------------------------------------------
+         PLACEMENT MANAGER DRAWER / MODAL
+         Opens when an admin clicks "Manage →" on any card
+         ---------------------------------------------------------------------- */}
+      {managingPlacement && (
+        <div className="placement-manager-modal-backdrop" onClick={() => setManagingPlacementId(null)}>
+          <div className="placement-manager-card" onClick={(e) => e.stopPropagation()}>
+            <div className="placement-manager-header">
+              <div className="manager-header-left">
+                <button
+                  type="button"
+                  className="btn-back-library"
+                  onClick={() => setManagingPlacementId(null)}
+                >
+                  <ArrowLeft size={14} />
+                  Back
+                </button>
+                <div className="manager-title-group">
+                  <h3>{managingPlacement.placement}</h3>
+                  <p>
+                    {managingPlacement.area} • {managingPlacement.aspectRatio} • {managingPlacement.allowedMediaLabel}
+                  </p>
+                </div>
+              </div>
+
+              <div className="manager-header-actions">
+                <button
+                  type="button"
+                  className="btn-upload-primary"
+                  onClick={() => handleOpenGlobalUpload(managingPlacement.id)}
+                >
+                  <Plus size={15} />
+                  Upload into {managingPlacement.placement}
+                </button>
+                <button
+                  type="button"
+                  className="btn-modal-close"
+                  onClick={() => setManagingPlacementId(null)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="placement-manager-body">
+              {/* Fixed slots layout */}
+              {managingPlacement.type === "fixed_slots" && managingPlacement.slots && (
+                <div className="slots-grid">
+                  {managingPlacement.slots.map((slot) => {
+                    const assignedItem = managingPlacementItems.find((item) => {
+                      const pl = item.placements?.find(
+                        (p) => p.section?.toLowerCase() === managingPlacement.sectionKey?.toLowerCase()
+                      );
+                      return (pl && Number(pl.displayOrder) === Number(slot.order)) || Number(item.displayOrder) === Number(slot.order);
+                    });
+
+                    return (
+                      <PlacementSlotCard
+                        key={slot.order}
+                        slot={slot}
+                        placement={managingPlacement}
+                        occupiedItem={assignedItem}
+                        onUploadClick={() => handleOpenSlotUpload(managingPlacement, slot)}
+                        onReplaceClick={() => handleOpenSlotReplace(managingPlacement, slot, assignedItem)}
+                        onEditClick={() => handleOpenEdit(assignedItem, managingPlacement.sectionKey)}
+                        onPreviewClick={(item) => handleOpenPreview(managingPlacement, slot, item || assignedItem)}
+                        onRemoveClick={() => handleClearSlot(managingPlacement, slot, assignedItem)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Collection layout */}
+              {managingPlacement.type !== "fixed_slots" && (
+                <div className="collection-grid">
+                  {managingPlacementItems.map((item, idx) => (
+                    <div key={item.id} className="collection-item-card">
+                      <div
+                        className="collection-item-thumb"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleOpenPreview(managingPlacement, null, item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleOpenPreview(managingPlacement, null, item);
+                          }
+                        }}
+                        aria-label={`Preview ${item.title || "media asset"}`}
+                        title="Click to preview"
+                        style={{ cursor: "pointer", position: "relative" }}
+                      >
+                        {item.mediaType === "Video" ? (
+                          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                            <img
+                              src={item.thumbnailUrl && item.thumbnailUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? item.thumbnailUrl : getMediaUrl(item)}
+                              alt={item.title}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                            />
+                            <div className="reel-play-circle" style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+                              <Play size={14} fill="#fff" />
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={getMediaUrl(item)}
+                            alt={item.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
+                          />
+                        )}
+                        <div className="preview-hover-overlay">
+                          <Eye size={18} />
+                          <span style={{ fontSize: 11 }}>Click to Preview</span>
+                        </div>
+                      </div>
+
+                      <div className="collection-item-info">
+                        <h5 className="collection-item-title">{item.title || "Untitled"}</h5>
+                        <p className="collection-item-meta">
+                          {item.mediaType} • {((item.fileSizeBytes || 0) / (1024 * 1024)).toFixed(2)} MB • {item.category || "General"}
+                        </p>
+                      </div>
+
+                      <div className="collection-item-actions">
+                        <div className="collection-reorder-btns">
+                          <button
+                            type="button"
+                            className="btn-icon-tiny"
+                            title="Move Up"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveOrder(item, "up", managingPlacementItems, managingPlacement.sectionKey)}
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon-tiny"
+                            title="Move Down"
+                            disabled={idx === managingPlacementItems.length - 1}
+                            onClick={() => handleMoveOrder(item, "down", managingPlacementItems, managingPlacement.sectionKey)}
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            type="button"
+                            className="btn-icon-tiny"
+                            title="Edit details"
+                            onClick={() => handleOpenEdit(item, managingPlacement.sectionKey)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon-tiny"
+                            title="Delete item"
+                            onClick={() => {
+                              setItemToDelete(item);
+                              setDeleteModalOpen(true);
+                            }}
+                          >
+                            <Trash2 size={13} color="#ef4444" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {managingPlacementItems.length === 0 && (
+                    <div style={{
+                      gridColumn: "1 / -1",
+                      textAlign: "center",
+                      padding: "48px 24px",
+                      background: "#ffffff",
+                      border: "2px dashed #cbd5e1",
+                      borderRadius: "12px",
+                      color: "#6b7280"
+                    }}>
+                      <Upload size={32} color="#94a3b8" style={{ marginBottom: "12px" }} />
+                      <h4 style={{ margin: "0 0 6px 0", color: "#111827", fontSize: "16px" }}>
+                        No media in {managingPlacement.placement} yet
+                      </h4>
+                      <p style={{ margin: "0 0 16px 0", fontSize: "13px" }}>
+                        Click below to upload images or videos for this placement.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn-upload-primary"
+                        onClick={() => handleOpenGlobalUpload(managingPlacement.id)}
+                      >
+                        <Plus size={15} /> Upload Media Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------------------
+         GLOBAL UPLOAD MODAL
+         ---------------------------------------------------------------------- */}
+      {uploadModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => !uploading && setUploadModalOpen(false)}>
+          <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Upload Media</h3>
               <button
                 type="button"
-                className="modal-close-btn"
+                className="btn-modal-close"
                 disabled={uploading}
                 onClick={() => setUploadModalOpen(false)}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleUploadSubmit} className="modal-form">
-              {uploadError && <div className="alert alert-danger">{uploadError}</div>}
+            <form onSubmit={handleUploadSubmit}>
+              <div className="admin-modal-body">
+                {uploadError && (
+                  <div style={{
+                    background: "#fef2f2",
+                    border: "1px solid #ef4444",
+                    color: "#b91c1c",
+                    padding: "10px 14px",
+                    borderRadius: "6px",
+                    fontSize: "12.5px",
+                    marginBottom: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}>
+                    <AlertCircle size={16} />
+                    {uploadError}
+                  </div>
+                )}
 
-              {/* Only show target selector if user is on 'All Active' tab */}
-              {activeTab === "all" && (
+                {/* Placement selector */}
                 <div className="form-group">
-                  <label>Section Placement *</label>
+                  <label>Target Website Placement</label>
                   <select
-                    className="form-control"
-                    value={uploadSection}
-                    onChange={(e) => setUploadSection(e.target.value)}
+                    className="form-select"
+                    value={uploadPlacementId}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setUploadPlacementId(newId);
+                      setTargetSlot(null);
+                      const pl = getPlacementById(newId);
+                      if (pl) {
+                        const defLayout = (pl.aspectRatio?.includes("9:16") || pl.aspectRatio?.includes("Portrait")) ? "Portrait" : "Landscape";
+                        setUploadLayout(defLayout);
+                      }
+                    }}
                   >
-                    {DISPLAY_SECTIONS.map((sec) => (
-                      <option key={sec.id} value={sec.id}>
-                        {sec.icon} {sec.label}
+                    {MEDIA_PLACEMENTS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.area} → {p.placement} ({p.allowedMediaLabel})
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
 
-              {/* Target Section Rules & Specification Guidelines */}
-              {(() => {
-                const secObj = DISPLAY_SECTIONS.find((s) => s.id === uploadSection);
-                if (!secObj) return null;
-                return (
-                  <div className="section-specs-banner">
-                    <div className="section-specs-header">
-                      <span className="specs-icon">{secObj.icon}</span>
-                      <div>
-                        <strong>Section Placement: {secObj.label}</strong>
-                        <p>{secObj.hint}</p>
+                {/* Slot selector if fixed slots */}
+                {(() => {
+                  const currPl = getPlacementById(uploadPlacementId);
+                  if (currPl && currPl.type === "fixed_slots" && currPl.slots) {
+                    return (
+                      <div className="form-group">
+                        <label>Assigned Slot</label>
+                        <select
+                          className="form-select"
+                          value={uploadOrder}
+                          onChange={(e) => setUploadOrder(parseInt(e.target.value, 10))}
+                        >
+                          {currPl.slots.map((s) => (
+                            <option key={s.order} value={s.order}>
+                              Slot {s.order < 10 ? `0${s.order}` : s.order}: {s.label} ({s.recommended})
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    </div>
-                  </div>
-                );
-              })()}
+                    );
+                  }
+                  return null;
+                })()}
 
-              {/* Drag & Drop Upload Zone */}
-              <div className="form-group">
-                <label>Media File (Image or Video) *</label>
+                {/* File Dropzone */}
                 <div
-                  className={`media-upload-dropzone ${isDragging ? "is-dragging" : ""} ${uploadFile ? "has-file" : ""}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                  }}
+                  className={`dropzone-container ${isDragging ? "dragging" : ""}`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
                   onDrop={(e) => {
                     e.preventDefault();
                     setIsDragging(false);
-                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                      handleFileChange(e.dataTransfer.files[0]);
-                    }
+                    if (e.dataTransfer.files?.[0]) handleFileChange(e.dataTransfer.files[0]);
                   }}
-                  onClick={() => !uploadFile && fileInputRef.current?.click()}
+                  onClick={() => {
+                    if (!uploadFile) fileInputRef.current?.click();
+                  }}
                 >
                   <input
                     type="file"
                     ref={fileInputRef}
                     style={{ display: "none" }}
-                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                    onChange={(e) => handleFileChange(e.target.files?.[0])}
+                    accept="image/png,image/jpeg,image/webp,image/jpg,video/mp4,video/webm,video/quicktime"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) handleFileChange(e.target.files[0]);
+                      e.target.value = "";
+                    }}
                   />
-
-                  {!uploadFile ? (
-                    <div className="dropzone-empty-content">
-                      <div className="dropzone-upload-icon">☁️</div>
-                      <div className="dropzone-text-group">
-                        <strong className="dropzone-title">Drag & drop your file here, or click to browse</strong>
-                        <span className="dropzone-subtitle">Select high quality images or videos for Ethos Studio</span>
+                  {uploadPreviewUrl && uploadFile ? (
+                    <div className="dropzone-cropped-card" onClick={(e) => e.stopPropagation()}>
+                      <div className="dropzone-cropped-thumb-wrap">
+                        <img src={uploadPreviewUrl} alt="Cropped preview" className="dropzone-cropped-thumb" />
                       </div>
-                      <div className="dropzone-specs-pills">
-                        <span className="spec-pill img-spec">📸 JPG, PNG, WEBP (≤ 35MB)</span>
-                        <span className="spec-pill vid-spec">🎥 MP4, WEBM (≤ 100MB)</span>
-                        <span className="spec-pill reels-spec">📱 Homepage Reels: 9:16 Vertical (≤ 25MB, ≤ 40s)</span>
+                      <div className="dropzone-cropped-info">
+                        <div className="dropzone-cropped-badge">
+                          <CheckCircle size={12} />
+                          <span>Cropped & Ready for R2</span>
+                        </div>
+                        <div className="dropzone-cropped-filename" title={uploadFile.name}>
+                          {uploadFile.name}
+                        </div>
+                        <div className="dropzone-cropped-meta">
+                          {(uploadFile.size / 1024).toFixed(0)} KB • JPEG
+                        </div>
+                      </div>
+                      <div className="dropzone-cropped-actions">
+                        <button
+                          type="button"
+                          className="btn-dropzone-action primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReCrop();
+                          }}
+                          title="Re-adjust crop area and zoom"
+                        >
+                          <Edit2 size={12} />
+                          <span>Re-crop</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-dropzone-action"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                          }}
+                          title="Choose a different image file"
+                        >
+                          <Upload size={12} />
+                          <span>Replace</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : uploadFile ? (
+                    <div onClick={() => fileInputRef.current?.click()}>
+                      <div style={{ fontWeight: "700", color: "#111827", fontSize: "13.5px" }}>
+                        {uploadFile.name}
+                      </div>
+                      <div style={{ color: "#6b7280", fontSize: "12px", marginTop: "2px" }}>
+                        {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB • Click to change file
                       </div>
                     </div>
                   ) : (
-                    <div className="dropzone-file-selected-card">
-                      <div className="selected-file-thumbnail">
-                        {uploadFile.type?.startsWith("image/") ? (
-                          <img src={URL.createObjectURL(uploadFile)} alt="Preview" />
-                        ) : (
-                          <div className="video-file-icon">🎬</div>
-                        )}
+                    <div>
+                      <Upload size={28} color="#94a3b8" style={{ marginBottom: "8px" }} />
+                      <div style={{ fontWeight: "600", color: "#111827", fontSize: "13px" }}>
+                        Click to select or drag and drop file
                       </div>
-                      <div className="selected-file-info">
-                        <strong className="file-name-text">{uploadFile.name}</strong>
-                        <div className="file-meta-row">
-                          <span className="file-size-badge">{formatFileSize(uploadFile.size)}</span>
-                          <span className="file-type-badge">{uploadFile.type || "Media File"}</span>
-                          <span className="file-status-badge">✅ File Selected</span>
-                        </div>
+                      <div style={{ color: "#6b7280", fontSize: "11.5px", marginTop: "4px" }}>
+                        Images (.jpg, .png, .webp) will open the crop tool • Videos (.mp4, .mov) upload directly
                       </div>
-                      <button
-                        type="button"
-                        className="btn-change-file"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUploadFile(null);
-                        }}
-                      >
-                        Change File
-                      </button>
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label>Title *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="e.g. Urban Grooves Choreography Showcase"
-                  required
-                />
-              </div>
+                {/* Title & Category */}
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>Title</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Master Faculty Movement"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label>Caption / Description</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={uploadCaption}
-                  onChange={(e) => setUploadCaption(e.target.value)}
-                  placeholder="Optional brief description for gallery and cards"
-                />
-              </div>
-
-              <div className="form-grid-2col">
-                <div className="form-group">
-                  <label>Category</label>
-                  <select
-                    className="form-control"
-                    value={uploadCategory}
-                    onChange={(e) => setUploadCategory(e.target.value)}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="form-group">
+                    <label>Gallery Category</label>
+                    <select
+                      className="form-select"
+                      value={uploadCategory}
+                      onChange={(e) => setUploadCategory(e.target.value)}
+                    >
+                      {GALLERY_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
+                {/* Caption */}
                 <div className="form-group">
-                  <label>Layout Type</label>
-                  <select
-                    className="form-control"
-                    value={uploadLayout}
-                    onChange={(e) => setUploadLayout(e.target.value)}
-                  >
-                    {LAYOUT_TYPES.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid-2col">
-                <div className="form-group">
-                  <label>Display Order</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={uploadOrder}
-                    onChange={(e) => setUploadOrder(e.target.value)}
-                    min={1}
+                  <label>Caption / Narrative</label>
+                  <textarea
+                    className="form-textarea"
+                    placeholder="Short description for accessibility and overlays..."
+                    value={uploadCaption}
+                    onChange={(e) => setUploadCaption(e.target.value)}
                   />
                 </div>
 
-                <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <label className="checkbox-label" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "16px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={uploadIsPublished}
-                      onChange={(e) => setUploadIsPublished(e.target.checked)}
-                    />
-                    <span>Publish Immediately to Website</span>
-                  </label>
-                </div>
+                {/* Progress bar if direct R2 upload */}
+                {uploadProgress !== null && (
+                  <div style={{ marginTop: "12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
+                      <span>Uploading directly to Cloudflare R2...</span>
+                      <span style={{ fontWeight: "700" }}>{uploadProgress}%</span>
+                    </div>
+                    <div style={{ height: "6px", background: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ width: `${uploadProgress}%`, height: "100%", background: "#e07a5f", transition: "width 0.2s" }} />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="modal-actions">
+              <div className="admin-modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn-secondary"
                   disabled={uploading}
                   onClick={() => setUploadModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={uploading}>
-                  {uploading ? "Uploading to Cloudflare R2..." : "Upload Media Asset"}
+                <button
+                  type="submit"
+                  className="btn-upload-primary"
+                  disabled={uploading || !uploadFile}
+                >
+                  {uploading ? "Uploading..." : "Save to Cloud"}
                 </button>
               </div>
             </form>
@@ -1014,136 +1758,102 @@ export default function AdminVideos() {
         </div>
       )}
 
-      {/* --- EDIT MEDIA METADATA MODAL --- */}
-      {editModalOpen && selectedItem && (
-        <div className="admin-modal-backdrop" onClick={() => !editing && setEditModalOpen(false)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h2>Edit Media Details</h2>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>ID: {selectedItem.id}</span>
-              </div>
+      {/* ----------------------------------------------------------------------
+         EDIT METADATA MODAL
+         ---------------------------------------------------------------------- */}
+      {editModalOpen && itemToEdit && (
+        <div className="admin-modal-overlay" onClick={() => !editing && setEditModalOpen(false)}>
+          <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Edit Media Details</h3>
               <button
                 type="button"
-                className="modal-close-btn"
+                className="btn-modal-close"
                 disabled={editing}
                 onClick={() => setEditModalOpen(false)}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Title *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Caption / Description</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={editCaption}
-                  onChange={(e) => setEditCaption(e.target.value)}
-                />
-              </div>
-
-              <div className="form-grid-2col">
+            <form onSubmit={handleEditSubmit}>
+              <div className="admin-modal-body">
                 <div className="form-group">
-                  <label>Category</label>
-                  <select
-                    className="form-control"
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Layout Type</label>
-                  <select
-                    className="form-control"
-                    value={editLayout}
-                    onChange={(e) => setEditLayout(e.target.value)}
-                  >
-                    {LAYOUT_TYPES.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid-2col">
-                <div className="form-group">
-                  <label>Display Order (Current Section)</label>
+                  <label>Title</label>
                   <input
-                    type="number"
-                    className="form-control"
-                    value={editOrder}
-                    onChange={(e) => setEditOrder(e.target.value)}
+                    type="text"
+                    className="form-input"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Focal Point</label>
-                  <select
-                    className="form-control"
-                    value={editFocalPoint}
-                    onChange={(e) => setEditFocalPoint(e.target.value)}
-                  >
-                    {FOCAL_POINTS.map((fp) => (
-                      <option key={fp.id} value={fp.id}>
-                        {fp.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>Category</label>
+                    <select
+                      className="form-select"
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                    >
+                      {GALLERY_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="form-group" style={{ display: "flex", gap: "20px" }}>
-                <label className="checkbox-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                  <div className="form-group">
+                    <label>Layout</label>
+                    <select
+                      className="form-select"
+                      value={editLayout}
+                      onChange={(e) => setEditLayout(e.target.value)}
+                    >
+                      <option value="Landscape">Landscape (16:9)</option>
+                      <option value="Portrait">Portrait (3:4 / 9:16)</option>
+                      <option value="Square">Square (1:1)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Caption</label>
+                  <textarea
+                    className="form-textarea"
+                    value={editCaption}
+                    onChange={(e) => setEditCaption(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
                   <input
                     type="checkbox"
+                    id="editPublished"
                     checked={editIsPublished}
                     onChange={(e) => setEditIsPublished(e.target.checked)}
                   />
-                  <span>Published in Current Section</span>
-                </label>
-                <label className="checkbox-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={editIsFeatured}
-                    onChange={(e) => setEditIsFeatured(e.target.checked)}
-                  />
-                  <span>Featured Asset</span>
-                </label>
+                  <label htmlFor="editPublished" style={{ margin: 0, cursor: "pointer" }}>
+                    Visible on public website
+                  </label>
+                </div>
               </div>
 
-              <div className="modal-actions">
+              <div className="admin-modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn-secondary"
                   disabled={editing}
                   onClick={() => setEditModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={editing}>
-                  {editing ? "Saving Changes..." : "Save Changes"}
+                <button
+                  type="submit"
+                  className="btn-upload-primary"
+                  disabled={editing}
+                >
+                  {editing ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -1151,58 +1861,37 @@ export default function AdminVideos() {
         </div>
       )}
 
-      {/* --- PERMANENT DELETE CONFIRMATION MODAL --- */}
-      {deleteModalOpen && selectedItem && (
-        <div className="admin-modal-backdrop" onClick={() => !deleting && setDeleteModalOpen(false)}>
-          <div className="admin-modal-card modal-danger" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Delete "{selectedItem.title}"?</h2>
+      {/* ----------------------------------------------------------------------
+         DELETE CONFIRMATION MODAL
+         ---------------------------------------------------------------------- */}
+      {deleteModalOpen && itemToDelete && (
+        <div className="admin-modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
+          <div className="admin-modal-content" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 style={{ color: "#b91c1c" }}>Delete Media Item</h3>
               <button
                 type="button"
-                className="modal-close-btn"
+                className="btn-modal-close"
                 disabled={deleting}
                 onClick={() => setDeleteModalOpen(false)}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
-            <div className="delete-body" style={{ padding: "20px 24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>
-                  File Size: <strong style={{ color: "#0f172a" }}>{formatFileSize(selectedItem.fileSizeBytes)}</strong>
-                </span>
-                {(selectedItem.fileSizeBytes || 0) > 25 * 1024 * 1024 && (
-                  <span style={{ background: "#fef2f2", color: "#991b1b", fontSize: "11px", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
-                    ⚠️ High Storage Asset ({formatFileSize(selectedItem.fileSizeBytes)})
-                  </span>
-                )}
-              </div>
-
-              <div className="delete-warning-banner" style={{ background: "#fff5f5", border: "1px solid #feb2b2", borderRadius: "10px", padding: "14px 16px", color: "#7f1d1d" }}>
-                <strong style={{ fontSize: "14px", display: "block", marginBottom: "8px", color: "#991b1b" }}>
-                  This will permanently delete:
-                </strong>
-                <ul style={{ margin: "0 0 10px 18px", padding: 0, fontSize: "13px", lineHeight: "1.6" }}>
-                  <li>Media database record & all section placements (Neon PostgreSQL)</li>
-                  <li>Original object file from Cloudflare R2 storage (<code>{selectedItem.objectKey}</code>)</li>
-                  {selectedItem.thumbnailObjectKey && <li>Associated thumbnail file (<code>{selectedItem.thumbnailObjectKey}</code>)</li>}
-                  {selectedItem.posterObjectKey && <li>Associated poster/preview file (<code>{selectedItem.posterObjectKey}</code>)</li>}
-                </ul>
-                <div style={{ fontSize: "12px", color: "#991b1b", fontWeight: "700", marginTop: "8px", borderTop: "1px solid #fecaca", paddingTop: "8px" }}>
-                  ⚠️ Note: If this media is currently published or referenced by Homepage Hero, Workshop Posters, or Trainer Profiles, permanent deletion will be safely blocked until unpublished.
-                </div>
-              </div>
-
-              <p style={{ marginTop: "14px", marginBottom: 0, fontSize: "13px", fontWeight: "700", color: "#dc2626", textAlign: "center" }}>
-                This action cannot be undone.
+            <div className="admin-modal-body">
+              <p style={{ margin: "0 0 12px 0", fontSize: "13.5px", color: "#374151" }}>
+                Are you sure you want to delete <strong>{itemToDelete.title || "this item"}</strong>?
+              </p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280" }}>
+                This will remove the item from all website placements.
               </p>
             </div>
 
-            <div className="modal-actions" style={{ padding: "16px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+            <div className="admin-modal-footer">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn-secondary"
                 disabled={deleting}
                 onClick={() => setDeleteModalOpen(false)}
               >
@@ -1210,113 +1899,41 @@ export default function AdminVideos() {
               </button>
               <button
                 type="button"
-                className="btn btn-danger"
+                className="btn-danger"
                 disabled={deleting}
                 onClick={handleDeleteConfirm}
-                style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
               >
-                {deleting ? "Purging R2 Storage & DB..." : "Delete Permanently"}
+                {deleting ? "Deleting..." : "Delete Media"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- LIGHTBOX PREVIEW MODAL --- */}
+      {/* ----------------------------------------------------------------------
+         UNIVERSAL MEDIA PREVIEW MODAL (All Placements)
+         ---------------------------------------------------------------------- */}
       {previewMedia && (
-        <div className="admin-modal-backdrop" onClick={() => setPreviewMedia(null)}>
-          <div className="video-preview-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="preview-header">
-              <div>
-                <h3>{previewMedia.title}</h3>
-                <span style={{ fontSize: "12px", color: "#a1a1aa", marginTop: "2px", display: "block" }}>
-                  ID: {previewMedia.id}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setPreviewMedia(null)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="preview-player-container">
-              {(previewMedia.mediaType || "").toLowerCase() === "video" ? (
-                <video
-                  src={getEffectiveMediaUrl(previewMedia)}
-                  controls
-                  autoPlay
-                  className="full-preview-player"
-                  onError={(e) => {
-                    const apiBase = API_BASE_URL;
-                    const fallback = `${apiBase}/api/media/content/${previewMedia.id}`;
-                    if (e.target.src !== fallback) e.target.src = fallback;
-                  }}
-                />
-              ) : (
-                <img
-                  src={getEffectiveMediaUrl(previewMedia)}
-                  alt={previewMedia.altText || previewMedia.title}
-                  onError={(e) => {
-                    const apiBase = API_BASE_URL;
-                    const fallback = `${apiBase}/api/media/content/${previewMedia.id}`;
-                    if (e.target.src !== fallback) e.target.src = fallback;
-                  }}
-                />
-              )}
-            </div>
-
-            <div className="preview-footer-meta">
-              <div className="preview-tags-grid">
-                <div className="preview-meta-badge section-badge">
-                  <span className="meta-badge-label">Section Placement</span>
-                  <span className="meta-badge-value">
-                    {previewMedia.placements && previewMedia.placements.length > 0
-                      ? previewMedia.placements.map((p) => {
-                          const sec = DISPLAY_SECTIONS.find((s) => s.id === p.section);
-                          return sec ? `${sec.icon} ${sec.label}` : p.section;
-                        }).join(", ")
-                      : (DISPLAY_SECTIONS.find((s) => s.id === previewMedia.section)?.label
-                          ? `${DISPLAY_SECTIONS.find((s) => s.id === previewMedia.section).icon} ${DISPLAY_SECTIONS.find((s) => s.id === previewMedia.section).label}`
-                          : previewMedia.section || "Draft")}
-                  </span>
-                </div>
-
-                <div className="preview-meta-badge category-badge">
-                  <span className="meta-badge-label">Category</span>
-                  <span className="meta-badge-value">{previewMedia.category || "General"}</span>
-                </div>
-
-                <div className="preview-meta-badge layout-badge">
-                  <span className="meta-badge-label">Layout Type</span>
-                  <span className="meta-badge-value">{previewMedia.layoutType || "Square"}</span>
-                </div>
-
-                <div className="preview-meta-badge order-badge">
-                  <span className="meta-badge-label">Display Order</span>
-                  <span className="meta-badge-value">#{previewMedia.displayOrder ?? 1}</span>
-                </div>
-
-                {previewMedia.focalPoint && (
-                  <div className="preview-meta-badge focal-badge">
-                    <span className="meta-badge-label">Focal Point</span>
-                    <span className="meta-badge-value">{previewMedia.focalPoint}</span>
-                  </div>
-                )}
-              </div>
-
-              {previewMedia.caption && (
-                <div className="preview-caption-box">
-                  <strong>Caption / Description</strong>
-                  <p>{previewMedia.caption}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <AdminMediaPreviewModal
+          media={previewMedia}
+          placement={previewContext?.placement}
+          slot={previewContext?.slot}
+          onClose={handleClosePreview}
+        />
       )}
+
+      {/* ----------------------------------------------------------------------
+         UNIVERSAL IMAGE CROPPER MODAL (All Image Placements)
+         ---------------------------------------------------------------------- */}
+      <ImageCropperModal
+        isOpen={cropperModal.isOpen}
+        aspectRatio={cropperModal.aspectRatio}
+        allowedRatios={cropperModal.allowedRatios}
+        title={cropperModal.title}
+        initialImage={cropperModal.initialImage}
+        onCrop={handleCropComplete}
+        onClose={() => setCropperModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

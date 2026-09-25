@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../../styles/trainers.css";
-
-import trainer01 from "../../assets/trainers/trainer-01.jpg";
-import trainer02 from "../../assets/trainers/trainer-02.jpg";
-import trainer03 from "../../assets/trainers/trainer-03.jpg";
-import trainer04 from "../../assets/trainers/trainer-04.jpg";
+import { publicApi } from "../../services/publicApi";
+import { getMediaUrl, handleTrainerImgError } from "../../utils/mediaUrl";
 
 import ethosEmblem from "../../assets/brand/ethos-emblem.png";
 
-const trainers = [
+function getInitials(name) {
+  if (!name) return "E";
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase();
+}
+
+const defaultTrainers = [
   {
     id: 1,
-    image: trainer01,
+    image: null,
     role: "Co-Founder & Lead Choreographer",
     name: "Sujith Kumar",
     bio: "A movement-driven choreographer focused on creating powerful performances, developing dancers and helping every student find confidence through movement.",
@@ -20,7 +27,7 @@ const trainers = [
   },
   {
     id: 2,
-    image: trainer02,
+    image: null,
     role: "Co-Founder & Executive Director",
     name: "Tejaswini",
     bio: "Bringing together creative direction, performance and community, with a focus on creating an environment where dancers can learn, grow and belong.",
@@ -29,19 +36,19 @@ const trainers = [
   },
   {
     id: 3,
-    image: trainer03,
+    image: null,
     role: "Assistant Choreographer",
-    name: "Ethos Crew Lead",
-    bio: "A passionate performer and choreographer who brings energy, discipline and individuality into every session while helping dancers build their own movement language.",
+    name: "Rahul Roy",
+    bio: "Focused on technical precision, musical timing and mentoring intermediate dancers to elevate their routine execution.",
     instagram: "https://instagram.com",
     youtube: "https://youtube.com",
   },
   {
     id: 4,
-    image: trainer04,
-    role: "Classical & Contemporary Trainer",
-    name: "Senior Resident Faculty",
-    bio: "Combining classical foundations with expressive movement, helping dancers develop technique, musicality and a deeper connection with their art.",
+    image: null,
+    role: "Urban & Foundations Instructor",
+    name: "Priya Sharma",
+    bio: "Passionate about building solid movement foundations, groove culture, and welcoming absolute beginners onto the dance floor.",
     instagram: "https://instagram.com",
     youtube: "https://youtube.com",
   },
@@ -49,6 +56,33 @@ const trainers = [
 
 function Trainers() {
   const [openTrainer, setOpenTrainer] = useState(null);
+  const [trainerList, setTrainerList] = useState(defaultTrainers);
+
+  useEffect(() => {
+    let isMounted = true;
+    publicApi
+      .getPublicMedia({ section: "Trainers" })
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setTrainerList(
+            defaultTrainers.map((t, idx) => {
+              const slotOrder = idx + 1;
+              const cloudTrainer = data.find((m) => Number(m.displayOrder) === slotOrder);
+              return cloudTrainer
+                ? { ...t, image: getMediaUrl(cloudTrainer.publicUrl, cloudTrainer.id) }
+                : { ...t, image: null };
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("[Trainers] Public media fetch failed:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleTrainer = (id) => {
     setOpenTrainer((current) => (current === id ? null : id));
@@ -87,9 +121,10 @@ function Trainers() {
         </div>
 
         {/* TRAINER GRID */}
-        <div className="trainers-grid">
-          {trainers.map((trainer) => {
-            const isOpen = openTrainer === trainer.id;
+        {trainerList.length > 0 ? (
+          <div className="trainers-grid">
+            {trainerList.map((trainer) => {
+              const isOpen = openTrainer === trainer.id;
 
             return (
               <article
@@ -111,14 +146,28 @@ function Trainers() {
                   aria-expanded={isOpen}
                   aria-label={`Read bio for ${trainer.name}`}
                 >
-                  <div className="trainer-card__image-wrapper">
-                    <img
-                      src={trainer.image}
-                      alt={trainer.name}
-                      className="trainer-card__image"
-                    />
-                    <div className="trainer-card__image-overlay" />
-                  </div>
+                  {trainer.image ? (
+                    <div className="trainer-card__image-wrapper">
+                      <img
+                        src={trainer.image}
+                        alt={trainer.name}
+                        className="trainer-card__image"
+                        onError={(e) => handleTrainerImgError(e)}
+                      />
+                      <div className="trainer-card__image-overlay" />
+                    </div>
+                  ) : (
+                    <div className="trainer-card__placeholder">
+                      <img
+                        src={ethosEmblem}
+                        alt=""
+                        className="trainer-card__placeholder-emblem"
+                      />
+                      <span className="trainer-card__placeholder-initials">
+                        {getInitials(trainer.name)}
+                      </span>
+                    </div>
+                  )}
 
                   {/* EMBLEM */}
                   <div className="trainer-card__mark">
@@ -197,6 +246,15 @@ function Trainers() {
             );
           })}
         </div>
+      ) : (
+          <div className="trainers-empty-state">
+            <img src={ethosEmblem} alt="" className="trainers-empty-state__emblem" />
+            <h3 className="trainers-empty-state__title">FACULTY ROSTER</h3>
+            <p className="trainers-empty-state__text">
+              Our faculty roster is being finalized for the upcoming season.
+            </p>
+          </div>
+        )}
 
         {/* FOOTER STATEMENT */}
         <div className="trainers-footer">

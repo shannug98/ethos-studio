@@ -53,8 +53,16 @@ public class WorkshopResponse
     public string? City { get; set; }
     public string? Area { get; set; }
     public string? VenueAddress { get; set; }
+    public string? LocationUrl { get; set; }
     public string? ShortDescription { get; set; }
     public bool PublicVisibility { get; set; } = true;
     public DateTime? StartUtc { get; set; }
     public DateTime? EndUtc { get; set; }
+    public TimeSpan? BookingCutoffTime { get; set; }
+    public DateTime? BookingCutoffUtc { get; set; }
+    public bool IsBookingClosed { get; set; }
+
+    public List<WorkshopTrainerDto> Trainers { get; set; } = new();
+    public List<WorkshopSessionDto> Sessions { get; set; } = new();
+    public List<WorkshopPassTypeDto> PassTypes { get; set; } = new();
 }

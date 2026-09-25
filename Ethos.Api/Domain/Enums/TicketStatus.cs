@@ -5,5 +5,6 @@ public enum TicketStatus
     Issued,
     Cancelled,
     Refunded,
-    Expired
+    Expired,
+    Replaced
 }

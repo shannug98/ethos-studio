@@ -16,6 +16,7 @@ import { TRAINER_PERMISSIONS } from "../../constants/trainerPermissions";
 import { trainerApi } from "../../services/trainerApi";
 import { trainerStateSync } from "../../services/trainerStateSync";
 import { getMediaUrl } from "../../utils/mediaUrl";
+import TrainerAvatar from "../common/TrainerAvatar";
 import ethosEmblem from "../../assets/brand/ethos-emblem.png";
 
 const navigation = [
@@ -180,17 +181,13 @@ export default function TrainerSidebar() {
         </div>
 
         <div className="trainer-sidebar-profile">
-          <div className="trainer-avatar" style={{ overflow: "hidden" }}>
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={displayName}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              displayName.charAt(0).toUpperCase()
-            )}
-          </div>
+          <TrainerAvatar
+            trainer={photoUrl}
+            name={displayName}
+            size={40}
+            bordered
+            borderColor="#FF5500"
+          />
 
           <div>
             <strong>{displayName}</strong>

@@ -1,27 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { publicApi } from "../../services/publicApi";
 import { getMediaUrl } from "../../utils/mediaUrl";
-import visualReel from "../../assets/gallery/ethos-visual-reel.mp4";
-import heroVideo from "../../assets/hero/hero-video.mp4";
 import "./ShortDanceVideos.css";
 
-const DEFAULT_SHORT_VIDEOS = [
-  {
-    id: "default-reel-1",
-    title: "Contemporary Routine Reel",
-    description: "Flow, control and musicality in our advanced routine session.",
-    publicUrl: visualReel,
-  },
-  {
-    id: "default-reel-2",
-    title: "Urban Showcase Reel",
-    description: "High energy routines, footwork and student combinations.",
-    publicUrl: heroVideo,
-  },
-];
-
 export default function ShortDanceVideos() {
-  const [videos, setVideos] = useState(DEFAULT_SHORT_VIDEOS);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeModalVideo, setActiveModalVideo] = useState(null);
   const [mutedStates, setMutedStates] = useState({});
@@ -36,8 +19,7 @@ export default function ShortDanceVideos() {
             ...d,
             publicUrl: getMediaUrl(d.publicUrl, d.id),
           }));
-          // Prepend cloud reels to default studio reels
-          setVideos([...formattedData, ...DEFAULT_SHORT_VIDEOS]);
+          setVideos(formattedData);
         }
       })
       .catch((err) => {
@@ -71,51 +53,57 @@ export default function ShortDanceVideos() {
       </div>
 
       <div className="short-videos-scroll-container">
-        <div className="short-videos-track">
-          {videos.map((video) => {
-            const isMuted = mutedStates[video.id] !== false; // Default muted for auto-play
+        {videos.length > 0 ? (
+          <div className="short-videos-track">
+            {videos.map((video) => {
+              const isMuted = mutedStates[video.id] !== false; // Default muted for auto-play
 
-            return (
-              <div
-                key={video.id}
-                className="short-video-reel-card"
-                onClick={() => setActiveModalVideo(video)}
-              >
-                <div className="reel-video-wrapper">
-                  <video
-                    src={video.publicUrl}
-                    className="reel-video-element"
-                    muted={isMuted}
-                    loop
-                    playsInline
-                    autoPlay
-                    preload="metadata"
-                  />
+              return (
+                <div
+                  key={video.id}
+                  className="short-video-reel-card"
+                  onClick={() => setActiveModalVideo(video)}
+                >
+                  <div className="reel-video-wrapper">
+                    <video
+                      src={video.publicUrl}
+                      className="reel-video-element"
+                      muted={isMuted}
+                      loop
+                      playsInline
+                      autoPlay
+                      preload="metadata"
+                    />
 
-                  {/* Gradient Overlay & Controls */}
-                  <div className="reel-overlay-scrim"></div>
+                    {/* Gradient Overlay & Controls */}
+                    <div className="reel-overlay-scrim"></div>
 
-                  <button
-                    type="button"
-                    className="reel-sound-toggle-btn"
-                    onClick={(e) => toggleMute(video.id, e)}
-                    title={isMuted ? "Unmute audio" : "Mute audio"}
-                  >
-                    {isMuted ? "🔇" : "🔊"}
-                  </button>
+                    <button
+                      type="button"
+                      className="reel-sound-toggle-btn"
+                      onClick={(e) => toggleMute(video.id, e)}
+                      title={isMuted ? "Unmute audio" : "Mute audio"}
+                    >
+                      {isMuted ? "🔇" : "🔊"}
+                    </button>
 
-                  <div className="reel-meta-overlay">
-                    <span className="reel-badge">DANCE REEL</span>
-                    <h3 className="reel-title">{video.title}</h3>
-                    {video.description && (
-                      <p className="reel-desc">{video.description}</p>
-                    )}
+                    <div className="reel-meta-overlay">
+                      <span className="reel-badge">DANCE REEL</span>
+                      <h3 className="reel-title">{video.title}</h3>
+                      {video.description && (
+                        <p className="reel-desc">{video.description}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="short-videos-empty-state">
+            <p className="short-videos-empty-text">Studio reels and routine previews coming soon.</p>
+          </div>
+        )}
       </div>
 
       {/* Fullscreen Video Modal */}

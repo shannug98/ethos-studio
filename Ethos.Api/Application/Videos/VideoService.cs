@@ -14,8 +14,8 @@ public class VideoService : IVideoService
     private readonly ICloudflareR2StorageService _r2Service;
     private readonly ILogger<VideoService> _logger;
 
-    private const long ShortVideosMaxSizeBytes = 25 * 1024 * 1024; // 25 MB
-    private const long GalleryMaxSizeBytes = 100 * 1024 * 1024;     // 100 MB
+    private const long ShortVideosMaxSizeBytes = 100L * 1024 * 1024; // 100 MB
+    private const long GalleryMaxSizeBytes = 500L * 1024 * 1024;     // 500 MB
 
     public VideoService(
         AppDbContext db,

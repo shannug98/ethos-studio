@@ -51,8 +51,22 @@ public class WorkshopBookingConfiguration : IEntityTypeConfiguration<WorkshopBoo
         builder.Property(x => x.ReservationExpiresAt)
             .HasColumnType("timestamptz");
 
+        builder.Property(x => x.WorkshopPassTypeId);
+
+        builder.Property(x => x.PassName)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.PassPrice)
+            .HasPrecision(18, 2);
+
+        builder.Property(x => x.SessionsIncludedCount);
+
+        builder.Property(x => x.SelectedSessionIdsJson)
+            .HasColumnType("text");
+
         builder.HasIndex(x => new { x.WorkshopId, x.StudentProfileId });
         builder.HasIndex(x => x.IdempotencyKey).IsUnique();
+        builder.HasIndex(x => x.WorkshopPassTypeId);
 
         builder.HasOne(x => x.Workshop)
             .WithMany(x => x.Bookings)
@@ -63,5 +77,10 @@ public class WorkshopBookingConfiguration : IEntityTypeConfiguration<WorkshopBoo
             .WithMany(x => x.WorkshopBookings)
             .HasForeignKey(x => x.StudentProfileId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.WorkshopPassType)
+            .WithMany()
+            .HasForeignKey(x => x.WorkshopPassTypeId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

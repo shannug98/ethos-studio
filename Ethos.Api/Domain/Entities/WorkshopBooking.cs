@@ -34,9 +34,25 @@ public class WorkshopBooking
 
     public DateTime? CancelledAt { get; set; }
 
+    public Guid? WorkshopPassTypeId { get; set; }
+
+    public string? PassName { get; set; }
+
+    public decimal? PassPrice { get; set; }
+
+    public int? SessionsIncludedCount { get; set; }
+
+    // Read-only / audit snapshot
+    public string? SelectedSessionIdsJson { get; set; }
+
     public Workshop Workshop { get; set; } = null!;
 
     public StudentProfile StudentProfile { get; set; } = null!;
+
+    public WorkshopPassType? WorkshopPassType { get; set; }
+
+    public ICollection<WorkshopBookingSession> BookingSessions { get; set; }
+        = new List<WorkshopBookingSession>();
 
     public ICollection<WorkshopTicket> Tickets { get; set; }
         = new List<WorkshopTicket>();

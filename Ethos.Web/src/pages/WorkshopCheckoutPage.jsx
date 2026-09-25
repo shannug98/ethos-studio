@@ -7,9 +7,11 @@ import { workshopsApi } from "../services/workshopsApi";
 import { createSlug } from "../utils/createSlug";
 import { useAuth } from "../context/AuthContext";
 import WorkshopPassModal from "../components/student/WorkshopPassModal";
+import { getWorkshopTimingDisplay } from "../utils/workshopPresentation";
+import { ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
 import "./WorkshopCheckoutPage.css";
 
-import fallbackImage from "../assets/workshops/workshop-01.jpg";
+const fallbackImage = ETHOS_MEDIA_FALLBACK_SVG;
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -37,6 +39,11 @@ export default function WorkshopCheckoutPage() {
   const [pricing, setPricing] = useState(stateData.pricing || null);
   const [quantity, setQuantity] = useState(stateData.quantity || 1);
   const [quote, setQuote] = useState(stateData.quote || null);
+
+  const passTypeId = stateData.passTypeId || null;
+  const passName = stateData.passName || null;
+  const selectedSessionIds = stateData.selectedSessionIds || [];
+  const selectedSessions = stateData.selectedSessions || [];
 
   const STORAGE_KEY = "ethos_booking_contact";
 
@@ -198,7 +205,7 @@ export default function WorkshopCheckoutPage() {
     }
   }, [identifier, workshop, pricing, navigate]);
 
-  const baseTotal = quote?.totalAmount || ((pricing?.currentPrice || workshop?.price || 599) * quantity);
+  const baseTotal = stateData.totalPayable || quote?.totalAmount || ((pricing?.currentPrice || workshop?.price || 599) * quantity);
   const platformFee = 0; // Final all-inclusive price with no added platform fees
   const netTotal = baseTotal;
 
@@ -241,16 +248,24 @@ export default function WorkshopCheckoutPage() {
 
     try {
       // 1. Authoritative order creation on backend
-      const order = await workshopsApi.createWorkshopOrder(workshop.id, {
+      const orderPayload = {
         quantity,
         fullName: fullName.trim(),
         phone: phone.trim(),
         email: email.trim(),
         idempotencyKey,
-      });
+      };
+      if (passTypeId) {
+        orderPayload.passTypeId = passTypeId;
+      }
+      if (selectedSessionIds && selectedSessionIds.length > 0) {
+        orderPayload.selectedSessionIds = selectedSessionIds;
+      }
 
-      // 2. Test mode / sandbox handling when Razorpay live key is unconfigured or test order is issued
-      const isTestOrder = !order.razorpayKeyId || order.razorpayKeyId === "rzp_test_placeholder" || order.razorpayOrderId?.startsWith("order_test_");
+      const order = await workshopsApi.createWorkshopOrder(workshop.id, orderPayload);
+
+      // 2. Test mode / sandbox handling strictly in development mode
+      const isTestOrder = Boolean(import.meta.env.DEV) && (!order.razorpayKeyId || order.razorpayKeyId === "rzp_test_placeholder" || order.razorpayOrderId?.startsWith("order_test_"));
       if (isTestOrder) {
         try {
           const bookingResult = await workshopsApi.verifyWorkshopPayment(workshop.id, {
@@ -277,7 +292,7 @@ export default function WorkshopCheckoutPage() {
         amount: Math.round(order.amount * 100),
         currency: order.currency || "INR",
         name: "ETHOS DANCE STUDIO",
-        description: `${workshop.title} (${quantity} ${quantity === 1 ? "Ticket" : "Tickets"})`,
+        description: passName ? `${workshop.title} - ${passName}` : `${workshop.title} (${quantity} ${quantity === 1 ? "Ticket" : "Tickets"})`,
         order_id: order.razorpayOrderId,
         prefill: {
           name: fullName.trim(),
@@ -323,7 +338,11 @@ export default function WorkshopCheckoutPage() {
       rzp.open();
     } catch (err) {
       console.error("Order creation error:", err);
-      setErrorMsg(err?.data?.message || err?.message || "Failed to start checkout.");
+      const rawMsg = err?.data?.message || err?.data?.Message || err?.message || "Failed to start checkout.";
+      const cleanMsg = (/42P01|relation|syntax error|Microsoft\.EntityFrameworkCore|at System\./i.test(rawMsg))
+        ? "The studio server encountered a temporary configuration error. Please try again shortly or contact support."
+        : rawMsg;
+      setErrorMsg(cleanMsg);
       setIsSubmitting(false);
     }
   };
@@ -413,11 +432,78 @@ export default function WorkshopCheckoutPage() {
 
           <div className="summary-info-item">
             <Calendar size={16} className="summary-icon" />
-            <span>{formatDate(workshop.workshopDate)} • {workshop.startTime ? workshop.startTime.slice(0, 5) : "5:00 PM"} - {workshop.endTime ? workshop.endTime.slice(0, 5) : "9:00 PM"}</span>
+            <span>
+              {(() => {
+                const sessionsToConsider = (selectedSessions && selectedSessions.length > 0)
+                  ? selectedSessions
+                  : (workshop.sessions && workshop.sessions.length > 0 ? workshop.sessions : []);
+
+                if (sessionsToConsider.length > 0) {
+                  const dates = Array.from(new Set(sessionsToConsider.map((s) => s.sessionDate ? s.sessionDate.split("T")[0] : ""))).filter(Boolean).sort();
+                  const timing = getWorkshopTimingDisplay(sessionsToConsider, workshop.startTime, workshop.endTime);
+                  const dateText = dates.length > 1
+                    ? `${formatDate(dates[0])} – ${formatDate(dates[dates.length - 1])}`
+                    : formatDate(dates[0] || workshop.workshopDate);
+                  return `${dateText} • ${timing}`;
+                }
+                return `${formatDate(workshop.workshopDate)} • ${workshop.startTime ? workshop.startTime.slice(0, 5) : "5:00 PM"} - ${workshop.endTime ? workshop.endTime.slice(0, 5) : "9:00 PM"}`;
+              })()}
+            </span>
           </div>
 
-          {/* SPLIT TIER BREAKDOWN IF APPLICABLE */}
-          {quote?.isSplitTier ? (
+          {/* SPLIT TIER BREAKDOWN OR PASS BREAKDOWN */}
+          {passName ? (
+            <div className="checkout-pass-summary-box">
+              <div className="summary-ticket-row pass-row">
+                <span className="ticket-pill-black pass-pill">🎟️ {passName} ({quantity}x)</span>
+                <span className="ticket-row-price">₹{Number(baseTotal).toLocaleString("en-IN")}</span>
+              </div>
+              <div className="reservation-hold-note" style={{ fontSize: "12px", color: "#10b981", margin: "6px 0 10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>⏱️</span> Your seats are temporarily reserved for 15 minutes during checkout.
+              </div>
+              {quote?.isSplitTier && (
+                <div className="split-summary-box" style={{ marginBottom: "12px" }}>
+                  <div className="split-summary-label">
+                    <AlertCircle size={14} /> Dynamic Pricing Breakdown:
+                  </div>
+                  {quote.breakdown.map((item, idx) => (
+                    <div key={idx} className="summary-ticket-row split-item">
+                      <span className="ticket-pill-black">{item.tierName} {item.quantity}x</span>
+                      <span className="ticket-row-price">₹{item.subtotal}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedSessions && selectedSessions.length > 0 ? (
+                <div className="checkout-selected-sessions-wrap">
+                  <span className="sessions-list-header">Selected Sessions ({selectedSessions.length}):</span>
+                  {selectedSessions.map((session, idx) => (
+                    <div key={session.id || idx} className="checkout-session-pill">
+                      <div className="session-pill-main" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ color: "#10b981", fontWeight: 700 }}>✓</span>
+                        <strong className="session-pill-title">{session.title}</strong>
+                      </div>
+                      <div className="session-pill-meta" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span>{formatDate(session.sessionDate)}</span>
+                        <span>•</span>
+                        <span>{session.startTime ? session.startTime.slice(0, 5) : ""} – {session.endTime ? session.endTime.slice(0, 5) : ""}</span>
+                        {session.trainerName && (
+                          <>
+                            <span>•</span>
+                            <span className="session-pill-trainer" style={{ color: "#df806c" }}>{session.trainerName}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="checkout-all-access-badge">
+                  ✦ All-Access: Covers all active sessions in this workshop
+                </div>
+              )}
+            </div>
+          ) : quote?.isSplitTier ? (
             <div className="split-summary-box">
               <div className="split-summary-label">
                 <AlertCircle size={14} /> Split Pricing Breakdown:
@@ -514,6 +600,12 @@ export default function WorkshopCheckoutPage() {
           </label>
         </div>
 
+        {workshop?.isBookingClosed && (
+          <div className="checkout-error-banner" style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#fca5a5" }}>
+            <AlertCircle size={16} /> Bookings for this workshop are closed as the booking cutoff time has passed.
+          </div>
+        )}
+
         {errorMsg && (
           <div className="checkout-error-banner">
             <AlertCircle size={16} /> {errorMsg}
@@ -522,50 +614,55 @@ export default function WorkshopCheckoutPage() {
       </div>
 
       {/* STICKY BOTTOM BAR */}
-      <div className="checkout-sticky-footer">
-        <div className="sticky-footer-inner">
-          <div className="footer-price-col">
+      {!confirmedBooking && !isPassModalOpen && (
+        <div className="checkout-sticky-footer">
+          <div className="sticky-footer-inner">
+            <div className="footer-price-col">
+              <button
+                type="button"
+                className="toggle-breakdown-btn"
+                onClick={() => setShowBreakdown((prev) => !prev)}
+              >
+                View details {showBreakdown ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              </button>
+              <div className="footer-total-price">
+                ₹{Number(netTotal).toLocaleString("en-IN")} <span>{quantity} {quantity === 1 ? "ticket" : "tickets"}</span>
+              </div>
+            </div>
+
             <button
               type="button"
-              className="toggle-breakdown-btn"
-              onClick={() => setShowBreakdown((prev) => !prev)}
+              className="checkout-pay-btn"
+              disabled={isSubmitting || workshop?.isBookingClosed || !fullName.trim() || !phone.trim() || !email.trim()}
+              onClick={handlePayment}
+              style={workshop?.isBookingClosed ? { background: "rgba(239, 68, 68, 0.2)", color: "#f87171", cursor: "not-allowed", border: "1px solid rgba(239, 68, 68, 0.3)" } : {}}
             >
-              View details {showBreakdown ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              {workshop?.isBookingClosed
+                ? "Bookings Closed"
+                : isSubmitting
+                ? "Processing..."
+                : `Pay ₹${Number(netTotal).toLocaleString("en-IN")}`}
             </button>
-            <div className="footer-total-price">
-              ₹{Number(netTotal).toLocaleString("en-IN")} <span>{quantity} {quantity === 1 ? "ticket" : "tickets"}</span>
-            </div>
           </div>
 
-          <button
-            type="button"
-            className="checkout-pay-btn"
-            disabled={isSubmitting || !fullName.trim() || !phone.trim() || !email.trim()}
-            onClick={handlePayment}
-          >
-            {isSubmitting
-              ? "Processing..."
-              : `Pay ₹${Number(netTotal).toLocaleString("en-IN")}`}
-          </button>
+          {showBreakdown && (
+            <div className="breakdown-slideup">
+              <div className="breakdown-row">
+                <span>Ticket Total ({quantity}x)</span>
+                <span>₹{Number(baseTotal).toLocaleString("en-IN")}</span>
+              </div>
+              <div className="breakdown-row" style={{ color: "#16a34a" }}>
+                <span>Taxes & Platform Fees</span>
+                <span>Included (₹0)</span>
+              </div>
+              <div className="breakdown-row breakdown-total">
+                <span>Final Payable</span>
+                <span>₹{Number(netTotal).toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          )}
         </div>
-
-        {showBreakdown && (
-          <div className="breakdown-slideup">
-            <div className="breakdown-row">
-              <span>Ticket Total ({quantity}x)</span>
-              <span>₹{Number(baseTotal).toLocaleString("en-IN")}</span>
-            </div>
-            <div className="breakdown-row" style={{ color: "#16a34a" }}>
-              <span>Taxes & Platform Fees</span>
-              <span>Included (₹0)</span>
-            </div>
-            <div className="breakdown-row breakdown-total">
-              <span>Final Payable</span>
-              <span>₹{Number(netTotal).toLocaleString("en-IN")}</span>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* CONFIRMATION PASS MODAL WITH QR CODE */}
       {confirmedBooking && (

@@ -22,14 +22,20 @@ body,
 }
 
 .admin-app-container {
+  height: 100vh;
+  max-height: 100vh;
   min-height: 100vh;
   display: flex;
+  overflow: hidden;
 }
 
 .admin-app-shell {
   display: flex;
+  height: 100vh;
+  max-height: 100vh;
   min-height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
 .admin-app-body,
@@ -37,6 +43,8 @@ body,
   display: flex;
   flex: 1;
   min-width: 0;
+  height: 100vh;
+  max-height: 100vh;
   flex-direction: column;
   overflow: hidden;
   background: #f8fafc;
@@ -384,38 +392,39 @@ select {
 @media (max-width: 768px) {
   .admin-app-body,
   .admin-main-shell {
-    margin-left: 68px;
-    width: calc(100% - 68px);
-    min-width: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .admin-sidebar-backdrop {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(2px);
-    z-index: 90;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 1000;
+  }
+
+  .admin-app-content,
+  .admin-content-shell {
+    padding: 12px 14px 110px !important;
   }
 }
 
 @media (max-width: 760px) {
   .admin-page-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
   }
 
   .admin-page-actions {
     justify-content: flex-start;
-  }
-
-  .admin-app-content,
-  .admin-content-shell {
-    padding: 20px 16px 30px;
+    width: 100%;
   }
 
   .admin-panel {
-    padding: 16px;
+    padding: 14px 12px;
     border-radius: 10px;
   }
 
@@ -423,5 +432,7 @@ select {
   .admin-panel-header {
     align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
 }
+

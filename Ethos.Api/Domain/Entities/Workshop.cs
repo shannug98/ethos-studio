@@ -22,6 +22,8 @@ public class Workshop
 
     public TimeSpan EndTime { get; set; }
 
+    public TimeSpan? BookingCutoffTime { get; set; }
+
     public string Venue { get; set; } = string.Empty;
 
     public decimal Price { get; set; }
@@ -54,6 +56,7 @@ public class Workshop
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? VenueAddress { get; set; }
+    public string? LocationUrl { get; set; }
 
     public string Timezone { get; set; } = "Asia/Kolkata";
     public DateTime? StartUtc { get; set; }
@@ -80,6 +83,73 @@ public class Workshop
     public ICollection<WorkshopPricingTier> PricingTiers { get; set; }
         = new List<WorkshopPricingTier>();
 
+    public ICollection<WorkshopTrainer> WorkshopTrainers { get; set; }
+        = new List<WorkshopTrainer>();
+
+    public ICollection<WorkshopSession> Sessions { get; set; }
+        = new List<WorkshopSession>();
+
+    public ICollection<WorkshopPassType> PassTypes { get; set; }
+        = new List<WorkshopPassType>();
+
     public ICollection<WorkshopFeedback> Feedbacks { get; set; }
         = new List<WorkshopFeedback>();
+
+    public DateTime GetBookingCutoffUtc()
+    {
+        var tzId = string.IsNullOrWhiteSpace(Timezone) ? "Asia/Kolkata" : Timezone;
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+
+        var dateUnspecified = DateTime.SpecifyKind(WorkshopDate.Date, DateTimeKind.Unspecified);
+
+        if (BookingCutoffTime.HasValue)
+        {
+            var cutoffLocal = dateUnspecified + BookingCutoffTime.Value;
+            return TimeZoneInfo.ConvertTimeToUtc(cutoffLocal, tz);
+        }
+
+        if (StartUtc.HasValue)
+        {
+            return StartUtc.Value;
+        }
+
+        var effectiveStart = StartTime;
+        var startLocal = dateUnspecified + effectiveStart;
+        return TimeZoneInfo.ConvertTimeToUtc(startLocal, tz);
+    }
+
+    public bool IsBookingClosed(DateTime? nowUtc = null)
+    {
+        var now = nowUtc ?? DateTime.UtcNow;
+        if (Sessions != null && Sessions.Count > 0)
+        {
+            return Sessions.All(s => s.IsBookingClosed(now));
+        }
+
+        // If an explicit cutoff is set, enforce it strictly
+        if (BookingCutoffTime.HasValue)
+        {
+            return now >= GetBookingCutoffUtc();
+        }
+
+        if (EndUtc.HasValue)
+        {
+            return now >= EndUtc.Value;
+        }
+
+        if (EndTime > TimeSpan.Zero)
+        {
+            var tzId = string.IsNullOrWhiteSpace(Timezone) ? "Asia/Kolkata" : Timezone;
+            TimeZoneInfo tz;
+            try { tz = TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+            catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+            var dateUnspecified = DateTime.SpecifyKind(WorkshopDate.Date, DateTimeKind.Unspecified);
+            var endLocal = dateUnspecified + EndTime;
+            return now >= TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
+        }
+
+        return now >= GetBookingCutoffUtc();
+    }
 }

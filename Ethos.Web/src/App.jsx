@@ -1,5 +1,5 @@
-import { useState, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import { useState, useEffect, lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -8,20 +8,21 @@ import EchoBot from "./components/EchoBot/EchoBot";
 import PolicyModal from "./components/PolicyModal";
 import RouteLoadingFallback from "./components/common/RouteLoadingFallback";
 
+import { FEATURE_FLAGS } from "./constants/featureFlags";
+
 // Public Marketing & Auth Pages (Eagerly load light Home, lazy-load remaining)
 import Home from "./pages/Home";
 const Classes = lazy(() => import("./pages/Classes"));
+const ClassesComingSoon = lazy(() => import("./pages/ClassesComingSoon"));
 const WorkshopsPage = lazy(() => import("./pages/WorkshopsPage"));
 const WorkshopDetailsPage = lazy(() => import("./pages/WorkshopDetailsPage"));
 const WorkshopCheckoutPage = lazy(() => import("./pages/WorkshopCheckoutPage"));
 const Events = lazy(() => import("./pages/Events"));
+const EventsComingSoon = lazy(() => import("./pages/EventsComingSoon"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const GuestWorkshopFeedback = lazy(() => import("./pages/GuestWorkshopFeedback"));
-
-// Member Services (Student & Trainer Portals) launch gating flag
-const ENABLE_MEMBER_PORTALS = false;
 
 // Student Portal Layout & Shell (Eager layout/guard, lazy pages)
 import StudentLayout from "./components/student/StudentLayout";
@@ -94,6 +95,7 @@ const AdminWorkshopDetails = lazy(() => import("./pages/admin/workshops/AdminWor
 const AdminWorkshopScanner = lazy(() => import("./pages/admin/workshops/AdminWorkshopScanner"));
 const AdminWorkshopAttendees = lazy(() => import("./pages/admin/workshops/AdminWorkshopAttendees"));
 const AdminWorkshopBookings = lazy(() => import("./pages/admin/workshops/AdminWorkshopBookings"));
+const AdminWorkshopBookingsAttendees = lazy(() => import("./pages/admin/workshops/AdminWorkshopBookingsAttendees"));
 const AdminWorkshopFeedback = lazy(() => import("./pages/admin/workshops/AdminWorkshopFeedback"));
 const AdminWorkshopEdit = lazy(() => import("./pages/admin/workshops/AdminWorkshopEdit"));
 const AdminWorkshopWizard = lazy(() => import("./pages/admin/workshops/wizard/AdminWorkshopWizard"));
@@ -140,19 +142,50 @@ function PublicLayout() {
   );
 }
 
+import { getRouteTitle } from "./utils/routeTitles";
+
+export function ScrollToTop() {
+  const { pathname, state } = useLocation();
+
+  useEffect(() => {
+    // If navigating to homepage with a target section ID, let Home.jsx's section scroller handle it
+    if (pathname === "/" && state?.scrollTo) {
+      return;
+    }
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname, state]);
+
+  return null;
+}
+
+export function RouteTitleSync() {
+  const location = useLocation();
+
+  useEffect(() => {
+    document.title = getRouteTitle(location.pathname, location.hash);
+  }, [location.pathname, location.hash]);
+
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
+      <RouteTitleSync />
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* PUBLIC WEBSITE ROUTES */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
-          <Route path="/classes" element={<Classes />} />
+          <Route path="/classes" element={FEATURE_FLAGS.CLASSES_COMING_SOON ? <ClassesComingSoon /> : <Classes />} />
           <Route path="/workshops" element={<WorkshopsPage />} />
           <Route path="/workshops/:slug" element={<WorkshopDetailsPage />} />
           <Route path="/workshops/:slug/checkout" element={<WorkshopCheckoutPage />} />
-          <Route path="/events" element={<Events />} />
+          <Route path="/events" element={FEATURE_FLAGS.EVENTS_COMING_SOON ? <EventsComingSoon /> : <Events />} />
           <Route path="/gallery" element={<Gallery />} />
 
           <Route path="/login" element={<Login />} />
@@ -163,7 +196,7 @@ function App() {
         </Route>
 
         {/* MEMBER SERVICES (STUDENT & TRAINER PORTALS) - CONTROLLED VIA GATING FLAG */}
-        {ENABLE_MEMBER_PORTALS ? (
+        {FEATURE_FLAGS.ENABLE_MEMBER_PORTALS ? (
           <>
             {/* TRAINER AUTH / PRE-LOGIN ROUTES */}
             <Route path="/trainer/login" element={<TrainerLogin />} />
@@ -398,8 +431,9 @@ function App() {
               <Route path="overview" element={<AdminWorkshopOverview />} />
               <Route path="details" element={<AdminWorkshopDetails />} />
               <Route path="scanner" element={<AdminWorkshopScanner />} />
-              <Route path="attendees" element={<AdminWorkshopAttendees />} />
-              <Route path="bookings" element={<AdminWorkshopBookings />} />
+              <Route path="bookings-attendees" element={<AdminWorkshopBookingsAttendees />} />
+              <Route path="attendees" element={<Navigate to="../bookings-attendees?view=attendees" replace />} />
+              <Route path="bookings" element={<Navigate to="../bookings-attendees?view=bookings" replace />} />
               <Route path="feedback" element={<AdminWorkshopFeedback />} />
               <Route path="edit" element={<AdminWorkshopEdit />} />
             </Route>

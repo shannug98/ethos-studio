@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -17,6 +18,11 @@ namespace Ethos.Api.Application.Payments;
 
 public class PaymentFulfillmentService : IPaymentFulfillmentService
 {
+    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> InMemoryWorkshopLocks = new();
+
+    private static SemaphoreSlim GetInMemoryLock(Guid workshopId) =>
+        InMemoryWorkshopLocks.GetOrAdd(workshopId, _ => new SemaphoreSlim(1, 1));
+
     private readonly AppDbContext _dbContext;
     private readonly IWorkshopTicketService _ticketService;
     private readonly RazorpaySettings _razorpaySettings;
@@ -54,6 +60,10 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
 
             var existingBooking = await _dbContext.WorkshopBookings
                 .Include(b => b.Workshop)
+                .Include(b => b.WorkshopPassType)
+                .Include(b => b.BookingSessions)
+                    .ThenInclude(bs => bs.WorkshopSession)
+                        .ThenInclude(ws => ws.TrainerProfile)
                 .Include(b => b.StudentProfile)
                     .ThenInclude(sp => sp!.User)
                 .FirstOrDefaultAsync(b => b.Id == transaction.ReferenceId, cancellationToken);
@@ -76,6 +86,10 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
 
         var booking = await _dbContext.WorkshopBookings
             .Include(b => b.Workshop)
+            .Include(b => b.WorkshopPassType)
+            .Include(b => b.BookingSessions)
+                .ThenInclude(bs => bs.WorkshopSession)
+                    .ThenInclude(ws => ws.TrainerProfile)
             .Include(b => b.StudentProfile)
                 .ThenInclude(sp => sp!.User)
             .FirstOrDefaultAsync(b => b.Id == transaction.ReferenceId, cancellationToken);
@@ -85,29 +99,78 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
             throw new InvalidOperationException("Associated workshop booking was not found.");
         }
 
-        // PostgreSQL row-level lock on the parent Workshop row to guarantee serialization
-        if (_dbContext.Database.IsNpgsql())
+        SemaphoreSlim? inMemoryLock = null;
+        if (!_dbContext.Database.IsRelational())
         {
-            await _dbContext.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT \"Id\" FROM \"Workshops\" WHERE \"Id\" = {booking.WorkshopId} FOR UPDATE",
-                cancellationToken);
+            inMemoryLock = GetInMemoryLock(booking.WorkshopId);
+            await inMemoryLock.WaitAsync(cancellationToken);
         }
 
-        // Re-check after acquiring lock in case concurrent thread completed it
-        if (booking.Status == WorkshopBookingStatus.Confirmed && transaction.Status == PaymentStatus.Paid)
+        try
         {
-            await dbTx.RollbackAsync(cancellationToken);
-            var tickets = await _ticketService.GetTicketsForBookingAsync(booking.Id, transaction.UserId, cancellationToken);
-            return MapToBookingResponse(booking, tickets);
-        }
+            // PostgreSQL row-level lock on the parent Workshop row to guarantee serialization
+            if (_dbContext.Database.IsNpgsql())
+            {
+                await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT \"Id\" FROM workshops WHERE \"Id\" = {booking.WorkshopId} FOR UPDATE",
+                    cancellationToken);
+            }
+
+            // Authoritative reload of booking and transaction after acquiring lock in case concurrent thread completed it
+            await _dbContext.Entry(booking).ReloadAsync(cancellationToken);
+            await _dbContext.Entry(transaction).ReloadAsync(cancellationToken);
+
+            if (booking.Status == WorkshopBookingStatus.Confirmed || transaction.Status == PaymentStatus.Paid)
+            {
+                await dbTx.RollbackAsync(cancellationToken);
+                var tickets = await _ticketService.GetTicketsForBookingAsync(booking.Id, transaction.UserId, cancellationToken);
+                return MapToBookingResponse(booking, tickets);
+            }
 
         // 3. Invariant check: Confirmed seats must never exceed capacity
-        var currentConfirmed = await _dbContext.WorkshopBookings
-            .Where(b => b.WorkshopId == booking.WorkshopId &&
-                       (b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended))
-            .SumAsync(b => b.Quantity, cancellationToken);
+        bool isOversold = false;
+        string oversoldReason = string.Empty;
 
-        if (currentConfirmed + booking.Quantity > booking.Workshop.Capacity)
+        if (booking.WorkshopPassTypeId.HasValue && booking.BookingSessions.Any())
+        {
+            var sessionIds = booking.BookingSessions.Select(bs => bs.WorkshopSessionId).ToList();
+            var sessions = await _dbContext.WorkshopSessions
+                .Where(s => sessionIds.Contains(s.Id))
+                .ToListAsync(cancellationToken);
+
+            foreach (var s in sessions)
+            {
+                var confirmedForSession = await _dbContext.WorkshopBookingSessions
+                    .Where(bs => bs.WorkshopSessionId == s.Id &&
+                                 bs.WorkshopBookingId != booking.Id &&
+                                 (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                                  bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended) &&
+                                 bs.Status == WorkshopBookingSessionStatus.Booked)
+                    .CountAsync(cancellationToken);
+
+                if (confirmedForSession + booking.Quantity > s.Capacity)
+                {
+                    isOversold = true;
+                    oversoldReason = $"Session '{s.Title}' reached capacity ({s.Capacity}). Confirmed: {confirmedForSession}, Requested: {booking.Quantity}.";
+                    break;
+                }
+            }
+        }
+        else
+        {
+            var currentConfirmed = await _dbContext.WorkshopBookings
+                .Where(b => b.WorkshopId == booking.WorkshopId &&
+                           (b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended))
+                .SumAsync(b => b.Quantity, cancellationToken);
+
+            if (currentConfirmed + booking.Quantity > booking.Workshop.Capacity)
+            {
+                isOversold = true;
+                oversoldReason = $"Workshop '{booking.Workshop.Title}' ({booking.WorkshopId}) is full. Capacity={booking.Workshop.Capacity}, Confirmed={currentConfirmed}, Requested={booking.Quantity}.";
+            }
+        }
+
+        if (isOversold)
         {
             // CRITICAL SAFEGUARD: Do NOT orphan captured payment!
             // Flag transaction as OversoldRefundRequired for automated/manual refund queue
@@ -122,7 +185,7 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
                 Id = Guid.NewGuid(),
                 PaymentTransactionId = transaction.Id,
                 EventType = "OversoldRefundRequired",
-                Payload = $"Workshop '{booking.Workshop.Title}' ({booking.WorkshopId}) is full. Capacity={booking.Workshop.Capacity}, Confirmed={currentConfirmed}, Requested={booking.Quantity}. Payment {razorpayPaymentId} must be refunded.",
+                Payload = $"{oversoldReason} Payment {razorpayPaymentId} must be refunded.",
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -249,6 +312,11 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
             source);
 
         return MapToBookingResponse(booking, issuedTickets);
+        }
+        finally
+        {
+            inMemoryLock?.Release();
+        }
     }
 
     public async Task FulfillNonWorkshopPaymentAsync(
@@ -494,6 +562,21 @@ public class PaymentFulfillmentService : IPaymentFulfillmentService
             CustomerEmail = booking.GuestEmail ?? booking.StudentProfile?.User?.Email ?? "",
             Status = booking.Status,
             BookedAt = booking.BookedAt,
+            WorkshopPassTypeId = booking.WorkshopPassTypeId,
+            PassName = booking.WorkshopPassType?.Name,
+            BookingSessions = booking.BookingSessions?.Select(bs => new WorkshopBookingSessionDto
+            {
+                Id = bs.Id,
+                WorkshopSessionId = bs.WorkshopSessionId,
+                SessionTitle = bs.WorkshopSession?.Title ?? string.Empty,
+                SessionDate = bs.WorkshopSession?.SessionDate ?? DateTime.UtcNow,
+                StartTime = bs.WorkshopSession?.StartTime ?? TimeSpan.Zero,
+                EndTime = bs.WorkshopSession?.EndTime ?? TimeSpan.Zero,
+                TrainerName = bs.WorkshopSession?.TrainerProfile?.FullName ?? string.Empty,
+                Status = bs.Status,
+                OriginalSessionId = bs.OriginalSessionId,
+                ReplacedAt = bs.ReplacedAt
+            }).ToList() ?? new List<WorkshopBookingSessionDto>(),
             Tickets = tickets.ToList()
         };
     }

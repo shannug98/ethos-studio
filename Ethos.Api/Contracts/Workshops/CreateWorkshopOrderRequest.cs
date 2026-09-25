@@ -12,4 +12,8 @@ public class CreateWorkshopOrderRequest
     public string? Email { get; set; }
 
     public string? IdempotencyKey { get; set; }
+
+    public Guid? PassTypeId { get; set; }
+
+    public List<Guid>? SelectedSessionIds { get; set; }
 }

@@ -30,6 +30,9 @@ public class OutboxRetryAndFailureTests
         public Task<Msg91DispatchResult> SendTicketPdfAsync(TicketPdfData data, string recipientPhone, CancellationToken cancellationToken = default) =>
             Task.FromResult(Msg91DispatchResult.Transient(503, "MSG91 Gateway Unavailable"));
 
+        public Task<Msg91DispatchResult> SendAdminPasswordResetAsync(string resetUrl, string recipientPhone, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Msg91DispatchResult.Transient(503, "MSG91 Gateway Unavailable"));
+
         public bool TryNormalizePhoneNumber(string? rawPhone, out string normalizedPhone, out string? failureReason, string defaultCountryCode = "91")
         {
             normalizedPhone = "919876543210";

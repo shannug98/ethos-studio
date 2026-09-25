@@ -4,7 +4,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/authApi";
 import { trainerApi } from "../../services/trainerApi";
-import trainerLoginHero from "../../assets/trainer/trainer-login-hero.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const trainerLoginHero = MEDIA_ASSETS.trainers.loginHero;
 import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./TrainerLogin.css";
 
@@ -135,7 +136,7 @@ export default function TrainerLogin() {
       <section className="trainer-login-visual" aria-label="Ethos Trainer Studio">
         <div
           className="trainer-login-visual-image"
-          style={{ backgroundImage: `url(${trainerLoginHero})` }}
+          style={{ backgroundImage: trainerLoginHero ? `url(${trainerLoginHero})` : "linear-gradient(135deg, #181514 0%, #0d0c0b 100%)" }}
         />
 
         <div className="trainer-login-visual-overlay" />

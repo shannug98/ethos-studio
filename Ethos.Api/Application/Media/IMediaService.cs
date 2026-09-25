@@ -97,5 +97,20 @@ public interface IMediaService
         bool permanent,
         Guid adminUserId,
         CancellationToken cancellationToken = default);
+
+    Task<PresignGalleryUploadResponse> PresignGalleryVideoUploadAsync(
+        PresignGalleryUploadRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MediaUploadResponse> ConfirmGalleryVideoUploadAsync(
+        ConfirmGalleryUploadRequest request,
+        Guid adminUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReactAssetMigrationResponse> MigrateReactAssetsAsync(
+        string? webRootPath,
+        Guid adminUserId,
+        CancellationToken cancellationToken = default);
 }
 

@@ -21,13 +21,15 @@ import {
   ChevronRight,
   Filter,
   MoreHorizontal,
+  Globe,
+  Trash2,
 } from "lucide-react";
 import { adminApi } from "../../services/adminApi";
 import AdminWorkshopFormModal from "../../components/admin/AdminWorkshopFormModal";
 import "./AdminWorkshops.css";
 
 const TABS = [
-  { key: "pending", label: "Pending Review", countKey: "pendingReview", phaseParam: "PendingReview" },
+  { key: "draft", label: "Draft", countKey: "draft", phaseParam: "Draft" },
   { key: "upcoming", label: "Upcoming", countKey: "upcoming", phaseParam: "Upcoming" },
   { key: "ongoing", label: "Ongoing", countKey: "ongoing", phaseParam: "Ongoing" },
   { key: "completed", label: "Completed", countKey: "completed", phaseParam: "Completed" },
@@ -43,16 +45,25 @@ export default function AdminWorkshops() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Active standalone wizard draft state (resumable creation)
+  const [activeWizardDraft, setActiveWizardDraft] = useState(null);
+  const [loadingDraft, setLoadingDraft] = useState(false);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("all");
   const [dateFilter, setDateFilter] = useState("all"); // "all" | "today" | "week" | "month"
 
+  // Pagination State (Default 9 cards per page from img 1)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+
   // Counts from backend
   const [counts, setCounts] = useState({
-    pendingReview: 0,
+    draft: 0,
     upcoming: 0,
     ongoing: 0,
+    ended: 0,
     completed: 0,
     cancelled: 0,
     all: 0,
@@ -147,10 +158,11 @@ export default function AdminWorkshops() {
       const res = await adminApi.getWorkshopCounts();
       if (res) {
         setCounts({
-          pendingReview: res.pendingReview ?? 0,
+          draft: res.draft ?? 0,
           upcoming: res.upcoming ?? 0,
           ongoing: res.ongoing ?? 0,
-          completed: res.completed ?? 0,
+          ended: res.ended ?? 0,
+          completed: (res.completed ?? 0) + (res.ended ?? 0),
           cancelled: res.cancelled ?? 0,
           all: res.all ?? 0,
         });
@@ -159,6 +171,43 @@ export default function AdminWorkshops() {
       console.warn("Could not fetch workshop counts:", err);
     }
   }, []);
+
+  // Fetch active standalone wizard draft when Draft tab is active
+  const loadWizardDraft = useCallback(async () => {
+    if (activeTab !== "draft") {
+      setActiveWizardDraft(null);
+      return;
+    }
+    setLoadingDraft(true);
+    try {
+      const draft = await adminApi.getWorkshopDraft(null);
+      if (draft && draft.draftJson) {
+        let parsed = null;
+        try {
+          parsed = JSON.parse(draft.draftJson);
+        } catch {}
+        setActiveWizardDraft({ ...draft, parsed });
+      } else {
+        setActiveWizardDraft(null);
+      }
+    } catch {
+      setActiveWizardDraft(null);
+    } finally {
+      setLoadingDraft(false);
+    }
+  }, [activeTab]);
+
+  const handleDiscardWizardDraft = async (draftId) => {
+    if (!window.confirm("Are you sure you want to discard this in-progress wizard draft? Any unsaved progress in the creation wizard will be permanently cleared.")) return;
+    try {
+      await adminApi.discardWorkshopDraft(draftId);
+      setActiveWizardDraft(null);
+      loadCounts();
+      loadWorkshops();
+    } catch (err) {
+      alert(err.message || "Failed to discard draft.");
+    }
+  };
 
   // Fetch workshops
   const loadWorkshops = useCallback(async () => {
@@ -176,7 +225,7 @@ export default function AdminWorkshops() {
 
       const queryString = params.join("&");
       let data;
-      if (activeTab === "pending" && !selectedCity) {
+      if (activeTab === "pending" && (!selectedCity || selectedCity === "all")) {
         data = await adminApi.getPendingWorkshops();
       } else {
         data = await adminApi.getWorkshops(queryString);
@@ -198,6 +247,10 @@ export default function AdminWorkshops() {
   useEffect(() => {
     loadWorkshops();
   }, [loadWorkshops]);
+
+  useEffect(() => {
+    loadWizardDraft();
+  }, [loadWizardDraft]);
 
   // Distinct cities extracted from loaded workshops
   const availableCities = useMemo(() => {
@@ -260,6 +313,20 @@ export default function AdminWorkshops() {
 
     return list;
   }, [workshops, searchQuery, dateFilter]);
+
+  // Reset pagination to page 1 whenever filters or tabs change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, selectedCity, dateFilter]);
+
+  // Derived Pagination (Image 1: 9 cards per page)
+  const totalItems = filteredWorkshops.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  const paginatedWorkshops = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredWorkshops.slice(start, start + pageSize);
+  }, [filteredWorkshops, currentPage, pageSize]);
 
   // Determine if workshop is locked out from modifications
   const isWorkshopLocked = (ws) => {
@@ -469,8 +536,20 @@ export default function AdminWorkshops() {
         return "phase-badge ongoing";
       case "Completed":
         return "phase-badge completed";
+      case "Ended":
+      case "EndedPendingCompletion":
+      case "Ended (Completion Pending)":
+        return "phase-badge ended-pending";
       case "Cancelled":
         return "phase-badge cancelled";
+      case "Draft":
+        return "phase-badge draft";
+      case "Rejected":
+        return "phase-badge rejected";
+      case "Unpublished":
+        return "phase-badge unpublished";
+      case "Archived":
+        return "phase-badge archived";
       case "Pending Review":
       case "PendingApproval":
         return "phase-badge pending";
@@ -490,6 +569,10 @@ export default function AdminWorkshops() {
         return "approval-badge draft";
       case "Rejected":
         return "approval-badge rejected";
+      case "Unpublished":
+        return "approval-badge unpublished";
+      case "Archived":
+        return "approval-badge archived";
       default:
         return "approval-badge default";
     }
@@ -639,32 +722,220 @@ export default function AdminWorkshops() {
       {/* Main Content Area */}
       {!loading && !error && (
         <>
-          {filteredWorkshops.length === 0 ? (
-            <div className="workshops-empty-panel">
-              <div className="empty-icon-wrap">
-                <Calendar size={40} />
-              </div>
-              <h3 className="empty-title">No workshops found</h3>
-              <p className="empty-desc">
-                There are no workshops matching your selected tab and filters.
-              </p>
-              <button
-                className="btn-create-workshop-subtle"
-                onClick={() => navigate("/admin_portal/workshops/create")}
-              >
-                + Create New Workshop
-              </button>
-            </div>
-          ) : viewMode === "cards" ? (
-            /* CARDS VIEW */
-            <div className="workshops-cards-grid">
-              {filteredWorkshops.map((w) => {
+          {(() => {
+            const hasDraftCard = activeTab === "draft" && Boolean(activeWizardDraft);
+            const isListEmpty = filteredWorkshops.length === 0 && !hasDraftCard;
+
+            if (isListEmpty) {
+              return (
+                <div className="workshops-empty-panel">
+                  <div className="empty-icon-wrap">
+                    <Calendar size={40} />
+                  </div>
+                  <h3 className="empty-title">No workshops found</h3>
+                  <p className="empty-desc">
+                    There are no workshops matching your selected tab and filters.
+                  </p>
+                  <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
+                    {(activeTab !== "all" || searchQuery || selectedCity !== "all" || dateFilter !== "all") && (
+                      <button
+                        className="btn-view-all-workshops-empty"
+                        style={{
+                          background: "#111827",
+                          color: "#ffffff",
+                          border: "none",
+                          padding: "10px 18px",
+                          borderRadius: "10px",
+                          fontWeight: "600",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          setActiveTab("all");
+                          setSearchQuery("");
+                          setSelectedCity("all");
+                          setDateFilter("all");
+                        }}
+                      >
+                        View All Workshops ({counts.all || workshops.length})
+                      </button>
+                    )}
+                    <button
+                      className="btn-create-workshop-subtle"
+                      onClick={() => navigate("/admin_portal/workshops/create")}
+                    >
+                      + Create New Workshop
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            if (viewMode === "cards") {
+              return (
+                <div className="workshops-cards-grid">
+                  {/* Standalone Wizard Draft Card (Active in-progress wizard draft) */}
+                  {hasDraftCard && (() => {
+                    const draftData = activeWizardDraft.parsed || {};
+                    const draftTitle = draftData.title || draftData.step1?.title || "Untitled Workshop Draft";
+                    const draftCoverImage = draftData.landscapeImageUrl || draftData.imageUrl || draftData.step2?.landscapeImageUrl || draftData.step2?.imageUrl || "";
+                    const draftVenue = draftData.venue || draftData.city || draftData.step3?.venue || draftData.step3?.city || "Venue configuration pending";
+                    const draftDate = draftData.workshopDate || draftData.step3?.workshopDate || null;
+                    const draftDanceStyle = draftData.danceStyle || draftData.step1?.danceStyle || "Ethos Faculty";
+                    const draftStep = draftData.currentStep || draftData.step || 1;
+
+                    return (
+                      <div className="workshop-feature-card workshop-draft-card">
+                        <div
+                          className="card-media-wrap"
+                          onClick={() => navigate("/admin_portal/workshops/create")}
+                        >
+                          {draftCoverImage ? (
+                            <img
+                              src={draftCoverImage}
+                              alt={draftTitle}
+                              className="card-cover-img"
+                            />
+                          ) : (
+                            <div className="card-placeholder-img draft-placeholder-img">
+                              <div className="card-placeholder-emblem">DRAFT</div>
+                              <span className="card-placeholder-label">
+                                {draftDanceStyle || "In-Progress Wizard Draft"}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="card-status-pill-badge">
+                            <span className="status-pill-dot dot-draft" />
+                            <span className="status-pill-text">Draft (In Progress)</span>
+                          </div>
+                        </div>
+
+                        <div className="card-body-content">
+                          <div className="card-header-row">
+                            <h3
+                              className="card-title-modern"
+                              onClick={() => navigate("/admin_portal/workshops/create")}
+                              title={draftTitle}
+                            >
+                              {draftTitle}
+                            </h3>
+
+                            <div className="card-menu-anchor">
+                              <button
+                                type="button"
+                                className="btn-card-more-menu"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenActionMenuId(openActionMenuId === "draft_standalone" ? null : "draft_standalone");
+                                }}
+                                title="Options"
+                              >
+                                <MoreHorizontal size={18} />
+                              </button>
+
+                              {openActionMenuId === "draft_standalone" && (
+                                <div className="card-menu-dropdown" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    className="menu-dropdown-item"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      navigate("/admin_portal/workshops/create");
+                                    }}
+                                  >
+                                    <Edit size={14} />
+                                    <span>Resume Creation</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="menu-dropdown-item menu-dropdown-danger"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleDiscardWizardDraft(activeWizardDraft.id);
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                    <span>Discard Draft</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Venue Row */}
+                          <div className="card-venue-row">
+                            <MapPin size={14} className="card-venue-pin" />
+                            <span>{draftVenue}</span>
+                          </div>
+
+                          {/* Meta Chips Strip */}
+                          <div className="card-meta-chips-strip">
+                            <div className="meta-chip-item">
+                              <Calendar size={14} />
+                              <span>
+                                {draftDate ? formatWorkshopDate(draftDate) : "Date pending"}
+                              </span>
+                            </div>
+                            <div className="meta-chip-divider" />
+                            <div className="meta-chip-item">
+                              <Users size={14} />
+                              <span>{draftDanceStyle}</span>
+                            </div>
+                            <div className="meta-chip-divider" />
+                            <div className="meta-chip-item">
+                              <Clock size={14} />
+                              <span>Step {draftStep} of 6</span>
+                            </div>
+                          </div>
+
+                          {/* Status Bar */}
+                          <div className="card-performance-pill card-draft-pill">
+                            <span className="perf-metric">
+                              Last saved: <strong>{new Date(activeWizardDraft.updatedAt || activeWizardDraft.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</strong>
+                            </span>
+                            <span className="perf-dot">•</span>
+                            <span className="perf-metric">Active Session</span>
+                          </div>
+
+                          {/* Bottom Action Row: Direct Discard + Resume Creation */}
+                          <div className="card-footer-action-row draft-action-row">
+                            <button
+                              type="button"
+                              className="btn-card-discard-draft"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDiscardWizardDraft(activeWizardDraft.id);
+                              }}
+                              title="Discard this draft"
+                            >
+                              <Trash2 size={14} />
+                              <span>Discard Draft</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn-card-view-details btn-card-resume-draft"
+                              onClick={() => navigate("/admin_portal/workshops/create")}
+                              title="Continue creating and publish workshop"
+                            >
+                              <span>Resume Creation</span>
+                              <ChevronRight size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {paginatedWorkshops.map((w) => {
                 const phase = w.lifecyclePhase || "Upcoming";
                 const isLocked = isWorkshopLocked(w);
                 const bookings = w.bookedCount || 0;
                 const revenue = w.totalRevenue != null ? Number(w.totalRevenue) : bookings * (w.price || 0);
                 const formattedRevenue = revenue.toLocaleString("en-IN");
-                const phaseClean = phase === "PendingApproval" ? "Pending Review" : phase;
+                const isEnded = phase === "Ended" || phase === "EndedPendingCompletion" || (w.status === "Published" && new Date(w.endUtc || w.workshopDate) <= new Date());
+                const phaseClean = phase === "PendingApproval" ? "Pending Review" : (isEnded ? "Ended" : phase);
 
                 return (
                   <div key={w.id} className="workshop-feature-card">
@@ -752,6 +1023,44 @@ export default function AdminWorkshops() {
                                 <span>Check-in Scanner</span>
                               </button>
 
+                              {w.status === "Published" && (phase === "EndedPendingCompletion" || new Date(w.endUtc || w.workshopDate) <= new Date()) && (
+                                <button
+                                  type="button"
+                                  className="menu-dropdown-item menu-dropdown-complete"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionModal({
+                                      open: true,
+                                      type: "complete",
+                                      workshop: w,
+                                      reason: "",
+                                    });
+                                  }}
+                                >
+                                  <CheckCircle size={14} />
+                                  <span>Complete Workshop</span>
+                                </button>
+                              )}
+
+                              {(w.status === "Approved" || w.status === "Unpublished") && (
+                                <button
+                                  type="button"
+                                  className="menu-dropdown-item menu-dropdown-publish"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionModal({
+                                      open: true,
+                                      type: "publish",
+                                      workshop: w,
+                                      reason: "",
+                                    });
+                                  }}
+                                >
+                                  <Globe size={14} />
+                                  <span>Publish Workshop</span>
+                                </button>
+                              )}
+
                               {phase !== "Completed" && phase !== "Cancelled" && (
                                 <button
                                   type="button"
@@ -774,6 +1083,60 @@ export default function AdminWorkshops() {
                           )}
                         </div>
                       </div>
+
+                      {/* Approved Notice & Direct Publish Action */}
+                      {w.status === "Approved" && (
+                        <div className="card-approved-action-banner">
+                          <div className="card-approved-notice">
+                            <CheckCircle size={13} />
+                            <span>Approved • Ready to publish</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-card-publish-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActionModal({
+                                open: true,
+                                type: "publish",
+                                workshop: w,
+                                reason: "",
+                              });
+                            }}
+                            title="Publish Workshop to Live Site"
+                          >
+                            <Globe size={13} />
+                            <span>Publish Workshop</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Ended Notice & Direct Complete Action */}
+                      {isEnded && (
+                        <div className="card-ended-action-banner">
+                          <div className="card-ended-notice">
+                            <AlertTriangle size={13} />
+                            <span>Completion pending</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-card-complete-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActionModal({
+                                open: true,
+                                type: "complete",
+                                workshop: w,
+                                reason: "",
+                              });
+                            }}
+                            title="Complete Workshop & Clean Media"
+                          >
+                            <CheckCircle size={13} />
+                            <span>Complete Workshop</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Venue Row */}
                       <div className="card-venue-row">
@@ -832,9 +1195,12 @@ export default function AdminWorkshops() {
                 );
               })}
             </div>
-          ) : (
-            /* DATA TABLE LIST VIEW */
-            <div className="workshops-table-card">
+          );
+        }
+
+        return (
+          /* DATA TABLE LIST VIEW */
+          <div className="workshops-table-card">
               <table className="workshops-main-table">
                 <thead>
                   <tr>
@@ -847,11 +1213,90 @@ export default function AdminWorkshops() {
                     <th style={{ width: "240px" }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {filteredWorkshops.map((w) => {
+                  <tbody>
+                    {/* Standalone Wizard Draft Table Row */}
+                    {hasDraftCard && (() => {
+                      const draftData = activeWizardDraft.parsed || {};
+                      const draftTitle = draftData.title || draftData.step1?.title || "Untitled Workshop Draft";
+                      const draftCoverImage = draftData.landscapeImageUrl || draftData.imageUrl || draftData.step2?.landscapeImageUrl || draftData.step2?.imageUrl || "";
+                      const draftVenue = draftData.venue || draftData.city || draftData.step3?.venue || draftData.step3?.city || "Venue configuration pending";
+                      const draftDanceStyle = draftData.danceStyle || draftData.step1?.danceStyle || "Ethos Faculty";
+                      const draftStep = draftData.currentStep || draftData.step || 1;
+                      const draftPrice = draftData.price || draftData.passTypes?.[0]?.price || draftData.pricingTiers?.[0]?.price || 500;
+
+                      return (
+                        <tr className="workshop-data-row draft-row">
+                          <td>
+                            <div className="table-workshop-cell">
+                              {draftCoverImage ? (
+                                <img src={draftCoverImage} alt={draftTitle} className="table-workshop-thumb" />
+                              ) : (
+                                <div className="table-thumb-placeholder draft-thumb">DRAFT</div>
+                              )}
+                              <div className="table-workshop-texts">
+                                <div
+                                  className="table-workshop-title"
+                                  onClick={() => navigate("/admin_portal/workshops/create")}
+                                >
+                                  {draftTitle}
+                                </div>
+                                <div className="table-workshop-trainer">
+                                  {draftDanceStyle}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="table-schedule-cell">
+                              <strong>Step {draftStep} of 6</strong>
+                              <span>Last saved {new Date(activeWizardDraft.updatedAt || activeWizardDraft.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="table-location-cell">
+                              <span className="table-venue-name">{draftVenue}</span>
+                              <span className="table-city-name">{draftData.city || "Hyderabad"}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="badge-draft-cell">₹{draftPrice}</span>
+                          </td>
+                          <td>
+                            <span className="badge-draft-cell">—</span>
+                          </td>
+                          <td>
+                            <div className="table-status-stack">
+                              <span className="phase-badge draft">Draft (In Progress)</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="table-actions-group">
+                              <button
+                                type="button"
+                                className="btn-table-danger"
+                                onClick={() => handleDiscardWizardDraft(activeWizardDraft.id)}
+                                title="Discard Draft"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-table-primary"
+                                onClick={() => navigate("/admin_portal/workshops/create")}
+                                title="Resume Creation"
+                              >
+                                Resume
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })()}
+                    {paginatedWorkshops.map((w) => {
                     const phase = w.lifecyclePhase || "Upcoming";
                     const approval = w.approvalStatus || w.status || "Approved";
                     const isLocked = isWorkshopLocked(w);
+                    const isEndedRow = phase === "Ended" || phase === "EndedPendingCompletion" || (w.status === "Published" && new Date(w.endUtc || w.workshopDate) <= new Date());
                     const capInfo = getCapacityStatus(w.bookedCount || 0, w.capacity || 50);
 
                     return (
@@ -871,8 +1316,8 @@ export default function AdminWorkshops() {
                               >
                                 {w.title}
                               </div>
-                              <div className="table-workshop-sub">
-                                {w.trainerName || "Lead Instructor"} • {w.danceStyle}
+                              <div className="table-workshop-trainer">
+                                {w.trainerName || "Ethos Master Faculty"}
                               </div>
                             </div>
                           </div>
@@ -880,21 +1325,22 @@ export default function AdminWorkshops() {
 
                         {/* Date & Schedule */}
                         <td>
-                          <div className="schedule-date">{w.workshopDate?.slice(0, 10)}</div>
-                          <div className="schedule-time">
-                            {w.startTime?.slice(0, 5)} – {w.endTime?.slice(0, 5)} IST
+                          <div className="table-schedule-cell">
+                            <strong>{formatWorkshopDate(w.workshopDate)}</strong>
+                            <span>{w.startTime?.slice(0, 5) || "10:00"} - {w.endTime?.slice(0, 5) || "12:00"}</span>
                           </div>
                         </td>
 
                         {/* Location */}
                         <td>
-                          <div className="location-venue">{w.venue}</div>
-                          <div className="location-city">{w.city || "Hyderabad"}</div>
+                          <div className="table-location-cell">
+                            <span className="table-venue-name">{w.venue || "Studio Arena"}</span>
+                            <span className="table-city-name">{w.city || "Hyderabad"}</span>
+                          </div>
                         </td>
 
-                        {/* Pricing */}
+                        {/* Tiers & Starting Price */}
                         <td>
-                          <div className="effective-price">₹{w.price || 500}</div>
                           <button
                             className="tier-inspect-btn"
                             onClick={() => openPricingTierModal(w)}
@@ -921,7 +1367,9 @@ export default function AdminWorkshops() {
                         {/* Status Badges */}
                         <td>
                           <div className="table-status-stack">
-                            <span className={getPhaseBadgeClass(phase)}>{phase}</span>
+                            <span className={getPhaseBadgeClass(phase)}>
+                              {phase === "PendingApproval" ? "Pending Review" : (isEndedRow ? "Ended" : phase)}
+                            </span>
                             <span className={getApprovalBadgeClass(approval)}>
                               {approval === "PendingApproval" ? "Pending Review" : approval}
                             </span>
@@ -944,6 +1392,24 @@ export default function AdminWorkshops() {
                             >
                               <QrCode size={14} />
                             </button>
+                            {(w.status === "Approved" || w.status === "Unpublished") && (
+                              <button
+                                className="btn-table-publish"
+                                onClick={() => setActionModal({ open: true, type: "publish", workshop: w, reason: "" })}
+                                title="Publish Workshop to Live Site"
+                              >
+                                <Globe size={14} />
+                              </button>
+                            )}
+                            {isEndedRow && (
+                              <button
+                                className="btn-table-complete"
+                                onClick={() => setActionModal({ open: true, type: "complete", workshop: w, reason: "" })}
+                                title="Complete Workshop & Clean Media"
+                              >
+                                <CheckCircle size={14} />
+                              </button>
+                            )}
                             {isLocked ? (
                               <button
                                 className="btn-table-edit locked"
@@ -968,6 +1434,50 @@ export default function AdminWorkshops() {
                   })}
                 </tbody>
               </table>
+            </div>
+          );
+        })()}
+
+          {/* Pagination Bar matching Image 1 (Max 9 cards/page default) */}
+          {filteredWorkshops.length > 0 && (
+            <div className="workshops-pagination-bar">
+              <div className="pagination-info-text">
+                Page {currentPage} of {totalPages} - {totalItems} total
+              </div>
+
+              <div className="pagination-controls-group">
+                <select
+                  className="pagination-pagesize-select"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Cards or rows per page"
+                >
+                  <option value={9}>9 {viewMode === "cards" ? "cards" : "rows"}</option>
+                  <option value={18}>18 {viewMode === "cards" ? "cards" : "rows"}</option>
+                  <option value={27}>27 {viewMode === "cards" ? "cards" : "rows"}</option>
+                </select>
+
+                <button
+                  type="button"
+                  className="pagination-nav-btn"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  className="pagination-nav-btn"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </>

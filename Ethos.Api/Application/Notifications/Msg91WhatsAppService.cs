@@ -107,6 +107,65 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
         return await PostToMsg91Async(jsonPayload, summary, cancellationToken);
     }
 
+    public async Task<Msg91DispatchResult> SendAdminPasswordResetAsync(
+        string resetUrl,
+        string recipientPhone,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(resetUrl))
+            throw new ArgumentException("Reset URL cannot be empty.", nameof(resetUrl));
+
+        if (!TryNormalizePhoneNumber(recipientPhone, out var normalizedPhone, out var phoneError, _options.DefaultCountryCode))
+        {
+            return Msg91DispatchResult.Permanent(
+                400,
+                $"Invalid recipient phone number: {phoneError}",
+                SanitizeSummary(_options.PasswordResetTemplateName, recipientPhone, "RESET"));
+        }
+
+        var envelope = new Msg91OutboundEnvelope<PasswordResetComponents>
+        {
+            IntegratedNumber = _options.IntegratedNumber ?? string.Empty,
+            ContentType = "template",
+            Payload = new Msg91Payload<PasswordResetComponents>
+            {
+                MessagingProduct = "whatsapp",
+                Type = "template",
+                Template = new Msg91Template<PasswordResetComponents>
+                {
+                    Name = _options.PasswordResetTemplateName,
+                    Language = new Msg91Language { Code = "en", Policy = "deterministic" },
+                    Namespace = _options.PasswordResetNamespace,
+                    ToAndComponents = new List<Msg91ToAndComponents<PasswordResetComponents>>
+                    {
+                        new()
+                        {
+                            To = new List<string> { normalizedPhone },
+                            Components = new PasswordResetComponents
+                            {
+                                Body1 = new TextComponent { Value = resetUrl }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var jsonPayload = JsonSerializer.Serialize(envelope, JsonOptions);
+        var summary = SanitizeSummary(_options.PasswordResetTemplateName, normalizedPhone, "RESET");
+
+        if (!_options.Enabled || !_options.IsConfigured)
+        {
+            _logger.LogInformation(
+                "[MSG91 WhatsApp] Outbound messaging is disabled or unconfigured. Skipping password reset link dispatch for {Recipient}",
+                MaskPhone(normalizedPhone));
+
+            return Msg91DispatchResult.Skip("MSG91 service is disabled or credentials unconfigured.", summary);
+        }
+
+        return await PostToMsg91Async(jsonPayload, summary, cancellationToken);
+    }
+
     public bool TryNormalizePhoneNumber(
         string? rawPhone,
         out string normalizedPhone,
@@ -220,7 +279,8 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
                                 Body2 = new TextComponent { Value = data.WorkshopTitle },
                                 Body3 = new TextComponent { Value = data.WorkshopDate },
                                 Body4 = new TextComponent { Value = data.WorkshopTime },
-                                Body5 = new TextComponent { Value = data.BookingId }
+                                Body5 = new TextComponent { Value = data.Location },
+                                Body6 = new TextComponent { Value = data.BookingId }
                             }
                         }
                     }
@@ -263,7 +323,8 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
                                 Body2 = new TextComponent { Value = data.WorkshopTitle },
                                 Body3 = new TextComponent { Value = data.WorkshopDate },
                                 Body4 = new TextComponent { Value = data.WorkshopTime },
-                                Body5 = new TextComponent { Value = data.BookingId }
+                                Body5 = new TextComponent { Value = data.Location },
+                                Body6 = new TextComponent { Value = data.BookingId }
                             }
                         }
                     }

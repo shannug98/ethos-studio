@@ -261,6 +261,20 @@ public static class Phase2SeedService
         var shouldSeedDevData = isDevelopment && configuration?.GetValue<bool>("Seed:EnableTestData", false) == true;
         if (shouldSeedDevData)
         {
+            var testTrainerPassword = configuration?["Seed:TestTrainerPassword"]
+                ?? Environment.GetEnvironmentVariable("Seed__TestTrainerPassword");
+            if (string.IsNullOrWhiteSpace(testTrainerPassword))
+            {
+                throw new InvalidOperationException("Seed:EnableTestData is enabled but Seed:TestTrainerPassword configuration (or Seed__TestTrainerPassword environment variable / User Secret) is missing.");
+            }
+
+            var secondTestTrainerPassword = configuration?["Seed:SecondTestTrainerPassword"]
+                ?? Environment.GetEnvironmentVariable("Seed__SecondTestTrainerPassword");
+            if (string.IsNullOrWhiteSpace(secondTestTrainerPassword))
+            {
+                throw new InvalidOperationException("Seed:EnableTestData is enabled but Seed:SecondTestTrainerPassword configuration (or Seed__SecondTestTrainerPassword environment variable / User Secret) is missing.");
+            }
+
             var trainerUser = await db.Users
                 .Include(u => u.UserRoles)
                 .FirstOrDefaultAsync(u => u.Phone == "8686759209");
@@ -303,7 +317,7 @@ public static class Phase2SeedService
             if (string.IsNullOrWhiteSpace(trainerUser.PasswordHash))
             {
                 var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-                trainerUser.PasswordHash = passwordHasher.HashPassword(trainerUser, "Trainer@123");
+                trainerUser.PasswordHash = passwordHasher.HashPassword(trainerUser, testTrainerPassword);
                 trainerUser.MustChangePassword = false;
                 await db.SaveChangesAsync();
             }
@@ -371,7 +385,7 @@ public static class Phase2SeedService
             {
                 newTrainerUser.FullName = "Rahul Sharma";
                 var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-                newTrainerUser.PasswordHash = passwordHasher.HashPassword(newTrainerUser, "EthosTemp#9999");
+                newTrainerUser.PasswordHash = passwordHasher.HashPassword(newTrainerUser, secondTestTrainerPassword);
                 newTrainerUser.MustChangePassword = true;
                 newTrainerUser.UpdatedAt = DateTime.UtcNow;
 

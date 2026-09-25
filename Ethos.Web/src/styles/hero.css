@@ -1018,16 +1018,13 @@
 
 
   .ethos-hero__title {
-
     font-size:
       clamp(
-        3.6rem,
-        17vw,
-        5.5rem
+        2.5rem,
+        13.5vw,
+        4.2rem
       );
-
     line-height: 0.85;
-
   }
 
 

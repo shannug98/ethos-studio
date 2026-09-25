@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Ethos.Api.Application.Auth;
+using Ethos.Api.Application.Notifications;
 using Ethos.Api.Contracts.Admin;
 using Ethos.Api.Domain.Entities;
 using Ethos.Api.Infrastructure.Persistence;
@@ -22,6 +23,7 @@ public class AdminAuthService : IAdminAuthService
     private readonly IJwtService _jwtService;
     private readonly IPasswordService _passwordService;
     private readonly IAdminDeviceService _adminDeviceService;
+    private readonly IMsg91WhatsAppService? _msg91Service;
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AdminAuthService> _logger;
@@ -33,7 +35,8 @@ public class AdminAuthService : IAdminAuthService
         IAdminDeviceService adminDeviceService,
         IWebHostEnvironment environment,
         IConfiguration configuration,
-        ILogger<AdminAuthService> logger)
+        ILogger<AdminAuthService> logger,
+        IMsg91WhatsAppService? msg91Service = null)
     {
         _db = db;
         _jwtService = jwtService;
@@ -42,6 +45,7 @@ public class AdminAuthService : IAdminAuthService
         _environment = environment;
         _configuration = configuration;
         _logger = logger;
+        _msg91Service = msg91Service;
     }
 
     public async Task<bool> ValidateCredentialsAsync(
@@ -557,6 +561,36 @@ public class AdminAuthService : IAdminAuthService
                 };
 
                 _db.PasswordResetTokens.Add(resetToken);
+
+                // Construct secure HTTPS reset URL
+                var baseUrl = _configuration["Admin:ResetPasswordBaseUrl"] ?? "https://ethosdancestudio.com/admin/reset-password";
+                var resetUrl = $"{baseUrl}?token={rawToken}";
+
+                // Dispatch reset URL via approved transactional template
+                if (_msg91Service != null)
+                {
+                    await _msg91Service.SendAdminPasswordResetAsync(resetUrl, normalizedPhone, cancellationToken);
+                }
+
+                // Log audit record of dispatch without ever storing or exposing the raw token
+                _db.CommunicationLogs.Add(new CommunicationLog
+                {
+                    Id = Guid.NewGuid(),
+                    MessageReference = $"RESET-{resetToken.Id.ToString()[..8].ToUpperInvariant()}",
+                    Channel = "WHATSAPP",
+                    Recipient = MaskPhone(normalizedPhone),
+                    RecipientUserId = user.Id,
+                    TemplateId = "ethos_admin_password_reset",
+                    Subject = "Admin Password Reset",
+                    BodyPreview = "Admin password reset link dispatched via WhatsApp",
+                    Status = "DISPATCHED",
+                    Provider = "MSG91",
+                    IdempotencyKey = resetToken.Id.ToString(),
+                    TraceId = resetToken.Id.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    DeliveredAt = DateTime.UtcNow
+                });
+
                 await _db.SaveChangesAsync(cancellationToken);
 
                 await RecordSecurityEventAsync(
@@ -656,6 +690,9 @@ public class AdminAuthService : IAdminAuthService
         user.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        // Terminate all existing sessions across devices on successful password reset
+        await _adminDeviceService.LogoutAllSessionsAsync(user.Id, cancellationToken);
 
         await RecordSecurityEventAsync(
             "ADMIN_PASSWORD_RESET_COMPLETED",

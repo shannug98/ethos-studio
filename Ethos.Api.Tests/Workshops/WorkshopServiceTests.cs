@@ -50,6 +50,23 @@ public class WorkshopServiceTests
         public Task EnsureDefaultTiersAsync(Workshop workshop, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public decimal CalculatePublicPrice(decimal startingPrice, int bookedSeats) => startingPrice;
         public decimal CalculateStudentPrice(decimal startingPrice) => startingPrice;
+
+        public Task<WorkshopPriceQuoteResponse> CalculateTicketTypeQuoteAsync(WorkshopPassType ticketType, int quantity, int currentTicketsSold, Guid? userId = null, CancellationToken cancellationToken = default)
+        {
+            var unitPrice = ticketType.Price > 0 ? ticketType.Price : 500m;
+            return Task.FromResult(new WorkshopPriceQuoteResponse
+            {
+                WorkshopId = ticketType.WorkshopId,
+                RequestedQuantity = quantity,
+                TotalAmount = unitPrice * quantity,
+                Breakdown = new List<WorkshopPriceQuoteItem>
+                {
+                    new() { TierNumber = 1, TierName = "Standard", Quantity = quantity, UnitPrice = unitPrice, Subtotal = unitPrice * quantity }
+                }
+            });
+        }
+
+        public void ValidateTicketTypePricingTiers(int totalQuantity, List<Ethos.Api.Contracts.Admin.AdminWorkshopPricingTierItem>? tiers) { }
     }
 
     private class MockNotificationService : INotificationService
@@ -90,7 +107,7 @@ public class WorkshopServiceTests
         return db;
     }
 
-    private WorkshopService CreateService(AppDbContext dbContext)
+    private WorkshopService CreateService(AppDbContext dbContext, Microsoft.AspNetCore.Hosting.IWebHostEnvironment? env = null)
     {
         var razorpaySettings = Options.Create(new RazorpaySettings
         {
@@ -115,7 +132,8 @@ public class WorkshopServiceTests
             notificationService,
             ticketService,
             fulfillmentService,
-            razorpaySettings);
+            razorpaySettings,
+            env ?? new TestWebHostEnvironment());
     }
 
     [Fact]
@@ -344,5 +362,464 @@ public class WorkshopServiceTests
             .Where(b => b.WorkshopId == workshop.Id && b.Status == WorkshopBookingStatus.PendingPayment)
             .ToListAsync();
         Assert.Equal(2, pendingBookings.Count); // Old expired one + new active one
+    }
+
+    [Fact]
+    public async Task CreateWorkshopOrder_WhenBookingCutoffPassed_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var dbContext = CreateDbContext();
+        var service = CreateService(dbContext);
+
+        // Workshop yesterday with cutoff time 10:00 AM (definitely passed)
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Cutoff Passed Workshop",
+            DanceStyle = "Hip Hop",
+            Level = "Intermediate",
+            WorkshopDate = DateTime.UtcNow.Date.AddDays(-1),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(20, 0, 0),
+            BookingCutoffTime = new TimeSpan(17, 0, 0),
+            Venue = "Main Studio",
+            Price = 500,
+            Capacity = 30,
+            Status = WorkshopStatus.Published,
+            PublicVisibility = true
+        };
+        dbContext.Workshops.Add(workshop);
+        await dbContext.SaveChangesAsync();
+
+        var request = new CreateWorkshopOrderRequest
+        {
+            Quantity = 1,
+            FullName = "Late Attendee",
+            Phone = "9876543214",
+            Email = "late@example.com"
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateWorkshopOrderAsync(workshop.Id, request));
+
+        Assert.Contains("closed", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateWorkshopOrder_WhenBookingCutoffInFuture_Succeeds()
+    {
+        // Arrange
+        var dbContext = CreateDbContext();
+        var service = CreateService(dbContext);
+
+        // Workshop tomorrow with cutoff time 18:00 (future)
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Future Cutoff Workshop",
+            DanceStyle = "Contemporary",
+            Level = "Open Level",
+            WorkshopDate = DateTime.UtcNow.Date.AddDays(2),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(20, 0, 0),
+            BookingCutoffTime = new TimeSpan(17, 30, 0),
+            Venue = "Main Studio",
+            Price = 600,
+            Capacity = 25,
+            Status = WorkshopStatus.Published,
+            PublicVisibility = true
+        };
+        dbContext.Workshops.Add(workshop);
+        await dbContext.SaveChangesAsync();
+
+        var request = new CreateWorkshopOrderRequest
+        {
+            Quantity = 1,
+            FullName = "Timely Attendee",
+            Phone = "9876543215",
+            Email = "timely@example.com"
+        };
+
+        // Act
+        var order = await service.CreateWorkshopOrderAsync(workshop.Id, request);
+
+        // Assert
+        Assert.NotNull(order);
+        Assert.Equal(workshop.Id, order.WorkshopId);
+    }
+
+    [Fact]
+    public void GetBookingCutoffUtc_WhenCutoffNull_DefaultsToStartUtc()
+    {
+        var workshopDate = new DateTime(2026, 11, 20, 0, 0, 0, DateTimeKind.Utc);
+        var startTime = new TimeSpan(18, 0, 0); // 6:00 PM IST
+        var tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+        var expectedStartUtc = TimeZoneInfo.ConvertTimeToUtc(new DateTime(2026, 11, 20, 18, 0, 0, DateTimeKind.Unspecified), tz);
+
+        var workshop = new Workshop
+        {
+            WorkshopDate = workshopDate,
+            StartTime = startTime,
+            EndTime = new TimeSpan(20, 0, 0),
+            StartUtc = expectedStartUtc,
+            BookingCutoffTime = null,
+            Timezone = "Asia/Kolkata"
+        };
+
+        var calculatedCutoffUtc = workshop.GetBookingCutoffUtc();
+
+        Assert.Equal(expectedStartUtc, calculatedCutoffUtc);
+        Assert.Equal(DateTimeKind.Utc, calculatedCutoffUtc.Kind);
+    }
+
+    [Fact]
+    public void GetBookingCutoffUtc_ExplicitCutoff_ConvertsFromAsiaKolkataToUtcWithoutDateShift()
+    {
+        // Workshop on 15 Oct 2026 with cutoff at 17:30 IST
+        // 17:30 IST (UTC+5:30) is exactly 12:00 UTC on the same calendar day.
+        var workshop = new Workshop
+        {
+            WorkshopDate = new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(20, 0, 0),
+            BookingCutoffTime = new TimeSpan(17, 30, 0),
+            Timezone = "Asia/Kolkata"
+        };
+
+        var cutoffUtc = workshop.GetBookingCutoffUtc();
+        var expectedUtc = new DateTime(2026, 10, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        Assert.Equal(expectedUtc, cutoffUtc);
+    }
+
+    [Fact]
+    public void IsBookingClosed_ExactBoundaryConditions_EvaluatedCorrectly()
+    {
+        var workshop = new Workshop
+        {
+            WorkshopDate = new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(20, 0, 0),
+            BookingCutoffTime = new TimeSpan(17, 30, 0),
+            Timezone = "Asia/Kolkata"
+        };
+
+        var cutoffUtc = workshop.GetBookingCutoffUtc(); // 2026-10-15 12:00:00 UTC
+
+        // 1. One second before boundary -> OPEN
+        var oneSecBefore = cutoffUtc.AddSeconds(-1);
+        Assert.False(workshop.IsBookingClosed(oneSecBefore));
+
+        // 2. Exactly at the boundary -> CLOSED (now >= cutoff)
+        Assert.True(workshop.IsBookingClosed(cutoffUtc));
+
+        // 3. One second after boundary -> CLOSED
+        var oneSecAfter = cutoffUtc.AddSeconds(1);
+        Assert.True(workshop.IsBookingClosed(oneSecAfter));
+
+        // 4. One day before -> OPEN
+        var dayBefore = cutoffUtc.AddDays(-1);
+        Assert.False(workshop.IsBookingClosed(dayBefore));
+
+        // 5. One day after -> CLOSED
+        var dayAfter = cutoffUtc.AddDays(1);
+        Assert.True(workshop.IsBookingClosed(dayAfter));
+    }
+
+    [Fact]
+    public async Task GetApprovedWorkshopsAsync_FiltersOutUnpublishedAndCancelledWorkshops()
+    {
+        using var db = CreateDbContext();
+        var service = CreateService(db);
+
+        // 1. Published and public -> Eligible
+        var w1 = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Published Workshop",
+            Status = WorkshopStatus.Published,
+            PublicVisibility = true,
+            Capacity = 30,
+            Price = 500m,
+            WorkshopDate = DateTime.UtcNow.AddDays(5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+
+        // 2. Approved and public -> Eligible
+        var w2 = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Approved Workshop",
+            Status = WorkshopStatus.Approved,
+            PublicVisibility = true,
+            Capacity = 25,
+            Price = 600m,
+            WorkshopDate = DateTime.UtcNow.AddDays(6),
+            StartTime = new TimeSpan(14, 0, 0),
+            EndTime = new TimeSpan(16, 0, 0)
+        };
+
+        // 3. Cancelled but public -> INELIGIBLE
+        var w3 = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Cancelled Workshop",
+            Status = WorkshopStatus.Cancelled,
+            PublicVisibility = true,
+            Capacity = 20,
+            Price = 400m,
+            WorkshopDate = DateTime.UtcNow.AddDays(7),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+
+        // 4. Published but PublicVisibility = false -> INELIGIBLE
+        var w4 = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Hidden Workshop",
+            Status = WorkshopStatus.Published,
+            PublicVisibility = false,
+            Capacity = 15,
+            Price = 700m,
+            WorkshopDate = DateTime.UtcNow.AddDays(8),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+
+        // 5. Draft / PendingApproval -> INELIGIBLE
+        var w5 = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Draft Workshop",
+            Status = WorkshopStatus.Draft,
+            PublicVisibility = true,
+            Capacity = 10,
+            Price = 300m,
+            WorkshopDate = DateTime.UtcNow.AddDays(9),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+
+        db.Workshops.AddRange(w1, w2, w3, w4, w5);
+        await db.SaveChangesAsync();
+
+        var result = await service.GetApprovedWorkshopsAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, r => r.Id == w1.Id && r.Title == "Published Workshop");
+        Assert.Contains(result, r => r.Id == w2.Id && r.Title == "Approved Workshop");
+        Assert.DoesNotContain(result, r => r.Id == w3.Id);
+        Assert.DoesNotContain(result, r => r.Id == w4.Id);
+        Assert.DoesNotContain(result, r => r.Id == w5.Id);
+    }
+
+    [Fact]
+    public async Task GetApprovedWorkshopsAsync_CorrectlyMapsBatchSessionAndPassBookedCounts()
+    {
+        using var db = CreateDbContext();
+        var service = CreateService(db);
+
+        var workshopId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var passId = Guid.NewGuid();
+
+        var trainer = new TrainerProfile
+        {
+            Id = Guid.NewGuid(),
+            TrainerCode = "TR01",
+            FullName = "Master Trainer",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.TrainerProfiles.Add(trainer);
+
+        var workshop = new Workshop
+        {
+            Id = workshopId,
+            Title = "Multi-Session Masterclass",
+            Status = WorkshopStatus.Published,
+            PublicVisibility = true,
+            Capacity = 50,
+            Price = 1000m,
+            WorkshopDate = DateTime.UtcNow.AddDays(10),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(13, 0, 0)
+        };
+        db.Workshops.Add(workshop);
+
+        var session = new WorkshopSession
+        {
+            Id = sessionId,
+            WorkshopId = workshopId,
+            TrainerProfileId = trainer.Id,
+            Title = "Session A",
+            SessionDate = DateTime.UtcNow.AddDays(10),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 30, 0),
+            Capacity = 25,
+            IsActive = true
+        };
+        db.WorkshopSessions.Add(session);
+
+        var pass = new WorkshopPassType
+        {
+            Id = passId,
+            WorkshopId = workshopId,
+            Name = "Full Access Pass",
+            Price = 1000m,
+            TotalQuantity = 30,
+            IsActive = true
+        };
+        db.WorkshopPassTypes.Add(pass);
+
+        // Add confirmed booking with 2 tickets
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshopId,
+            WorkshopPassTypeId = passId,
+            Quantity = 2,
+            TotalPrice = 2000m,
+            Status = WorkshopBookingStatus.Confirmed,
+            BookedAt = DateTime.UtcNow
+        };
+        db.WorkshopBookings.Add(booking);
+
+        // Add booking session
+        db.WorkshopBookingSessions.Add(new WorkshopBookingSession
+        {
+            Id = Guid.NewGuid(),
+            WorkshopBookingId = booking.Id,
+            WorkshopSessionId = sessionId,
+            Status = WorkshopBookingSessionStatus.Booked
+        });
+
+        await db.SaveChangesAsync();
+
+        var result = await service.GetApprovedWorkshopsAsync();
+
+        Assert.Single(result);
+        var res = result[0];
+        Assert.Equal(workshopId, res.Id);
+        Assert.Equal(2, res.BookedSeats);
+        Assert.Equal(48, res.RemainingSeats);
+
+        // Session check
+        Assert.Single(res.Sessions);
+        var sDto = res.Sessions[0];
+        Assert.Equal(sessionId, sDto.Id);
+        Assert.Equal(1, sDto.BookedSeats);
+        Assert.Equal(24, sDto.RemainingSeats);
+
+        // Pass check
+        Assert.Single(res.PassTypes);
+        var pDto = res.PassTypes[0];
+        Assert.Equal(passId, pDto.Id);
+        // Under Phase 5 All-Access capacity invariant: min(pass quota 28, session remaining 24) = 24
+        Assert.Equal(24, pDto.RemainingQuantity);
+    }
+
+    [Fact]
+    public async Task GetWorkshopByIdAsync_ReturnsMappedWorkshopWithCorrectData()
+    {
+        using var db = CreateDbContext();
+        var service = CreateService(db);
+
+        var workshopId = Guid.NewGuid();
+        var trainer = new TrainerProfile
+        {
+            Id = Guid.NewGuid(),
+            TrainerCode = "TR02",
+            FullName = "Senior Faculty",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.TrainerProfiles.Add(trainer);
+
+        var workshop = new Workshop
+        {
+            Id = workshopId,
+            TrainerProfileId = trainer.Id,
+            Title = "Solo Workshop",
+            Status = WorkshopStatus.Published,
+            PublicVisibility = true,
+            Capacity = 20,
+            Price = 750m,
+            WorkshopDate = DateTime.UtcNow.AddDays(3),
+            StartTime = new TimeSpan(11, 0, 0),
+            EndTime = new TimeSpan(13, 0, 0)
+        };
+        db.Workshops.Add(workshop);
+
+        // Add 3 bookings
+        db.WorkshopBookings.Add(new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshopId,
+            Quantity = 3,
+            TotalPrice = 2250m,
+            Status = WorkshopBookingStatus.Confirmed,
+            BookedAt = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync();
+
+        var result = await service.GetWorkshopByIdAsync(workshopId);
+
+        Assert.NotNull(result);
+        Assert.Equal(workshopId, result!.Id);
+        Assert.Equal("Solo Workshop", result.Title);
+        Assert.Equal("Senior Faculty", result.TrainerName);
+        Assert.Equal(3, result.BookedSeats);
+        Assert.Equal(17, result.RemainingSeats);
+        Assert.False(result.IsFull);
+    }
+
+    [Fact]
+    public void CalculatePricing_AppliesVolumeTiersCorrectly()
+    {
+        var pricingService = new WorkshopPricingService(null!, null!);
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Tiered Workshop",
+            Capacity = 40,
+            Price = 500m
+        };
+
+        var tiers = new List<WorkshopPricingTier>
+        {
+            new() { TierNumber = 1, TierName = "Early Bird", MinTickets = 1, MaxTickets = 10, Price = 500m },
+            new() { TierNumber = 2, TierName = "Standard", MinTickets = 11, MaxTickets = 20, Price = 600m },
+            new() { TierNumber = 3, TierName = "Late", MinTickets = 21, MaxTickets = 30, Price = 700m },
+            new() { TierNumber = 4, TierName = "Final", MinTickets = 31, MaxTickets = null, Price = 800m }
+        };
+
+        // When 5 tickets sold, next ticket is 6 -> Early Bird (Tier 1) active at 500
+        var p1 = ((IWorkshopPricingService)pricingService).CalculatePricing(workshop, tiers, 5, false);
+        Assert.Equal(1, p1.CurrentTier);
+        Assert.Equal("Early Bird", p1.CurrentTierName);
+        Assert.Equal(500m, p1.CurrentPrice);
+        Assert.Equal(600m, p1.NextPrice);
+        Assert.Equal(5, p1.TicketsFilledInTier);
+        Assert.Equal(5, p1.TicketsRemainingInTier);
+
+        // When 10 tickets sold, next ticket is 11 -> Standard (Tier 2) active at 600
+        var p2 = ((IWorkshopPricingService)pricingService).CalculatePricing(workshop, tiers, 10, false);
+        Assert.Equal(2, p2.CurrentTier);
+        Assert.Equal("Standard", p2.CurrentTierName);
+        Assert.Equal(600m, p2.CurrentPrice);
+        Assert.Equal(700m, p2.NextPrice);
+        Assert.Equal(0, p2.TicketsFilledInTier);
+        Assert.Equal(10, p2.TicketsRemainingInTier);
+
+        // When student eligible, student price is 100 off current price
+        var pStudent = ((IWorkshopPricingService)pricingService).CalculatePricing(workshop, tiers, 5, true);
+        Assert.True(pStudent.IsStudentEligible);
+        Assert.Equal(400m, pStudent.FinalAmount);
+        Assert.Equal(500m, pStudent.CurrentPublicPrice);
     }
 }

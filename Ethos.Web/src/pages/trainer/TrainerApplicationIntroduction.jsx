@@ -4,7 +4,8 @@ import { trainerApi } from "../../services/trainerApi";
 import { getApiErrorMessage } from "../../utils/apiErrorMessage";
 import "../../styles/trainer/trainer-application.css";
 import "./TrainerApplicationIntroduction.css";
-import trainerApplicationHero from "../../assets/trainer/trainer-application-hero.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const trainerApplicationHero = MEDIA_ASSETS.trainers.applicationHero;
 
 const MAX_BIO_LENGTH = 1500;
 const MAX_NOTES_LENGTH = 1000;
@@ -452,7 +453,7 @@ export default function TrainerApplicationIntroduction() {
           <section
             className="trainer-introduction-visual"
             style={{
-              backgroundImage: `url(${trainerApplicationHero})`,
+              backgroundImage: trainerApplicationHero ? `url(${trainerApplicationHero})` : "linear-gradient(135deg, #181514 0%, #0d0c0b 100%)",
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}

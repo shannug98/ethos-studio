@@ -64,6 +64,7 @@ public class WorkshopTicketConfiguration : IEntityTypeConfiguration<WorkshopTick
         builder.HasIndex(x => x.WorkshopBookingId);
         builder.HasIndex(x => new { x.WorkshopId, x.Status });
         builder.HasIndex(x => x.PaymentTransactionId);
+        builder.HasIndex(x => x.WorkshopSessionId);
 
         builder.HasOne(x => x.WorkshopBooking)
             .WithMany(x => x.Tickets)
@@ -74,6 +75,11 @@ public class WorkshopTicketConfiguration : IEntityTypeConfiguration<WorkshopTick
             .WithMany(x => x.Tickets)
             .HasForeignKey(x => x.WorkshopId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.WorkshopSession)
+            .WithMany(x => x.Tickets)
+            .HasForeignKey(x => x.WorkshopSessionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(x => x.User)
             .WithMany()

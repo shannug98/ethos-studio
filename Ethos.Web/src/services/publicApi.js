@@ -9,7 +9,12 @@ export const publicApi = {
       }
     });
     const qs = new URLSearchParams(cleanParams).toString();
-    const res = await fetch(`${API_BASE_URL}/api/media/public${qs ? `?${qs}` : ""}`);
+    const res = await fetch(`${API_BASE_URL}/api/media/public${qs ? `?${qs}` : ""}`, {
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+      },
+    });
     if (!res.ok) {
       throw new Error(`Public media fetch failed with status ${res.status}`);
     }

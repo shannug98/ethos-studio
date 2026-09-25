@@ -18,6 +18,7 @@
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   display: flex;
@@ -30,6 +31,8 @@
   justify-content: space-between;
   align-items: flex-start;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  background: #18181b;
 }
 
 .select-tickets-title {
@@ -70,6 +73,26 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.select-tickets-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.select-tickets-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.select-tickets-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+.select-tickets-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .ticket-tier-row {
@@ -269,4 +292,581 @@
 @keyframes modalFadeIn {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* MULTI-SESSION PASS MODAL STYLING */
+.select-tickets-modal.has-passes-modal {
+  max-width: 600px;
+  max-height: 90vh;
+}
+
+.modal-scrollable-body {
+  max-height: calc(90vh - 150px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.modal-scrollable-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-scrollable-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.pass-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.select-tickets-modal {
+  background: #121214;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 580px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+}
+
+.pass-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.section-step-badge {
+  background: #df806c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.section-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.section-hint {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.4;
+}
+
+.pass-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* PASS CARD (IMAGE 2) */
+.pass-type-card {
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.pass-type-card:hover:not(.is-sold-out) {
+  background: #1f1f23;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.pass-type-card.is-selected {
+  background: rgba(223, 128, 108, 0.04);
+  border: 1.5px solid #df806c;
+  box-shadow: 0 0 0 1px rgba(223, 128, 108, 0.2);
+}
+
+.pass-type-card.is-sold-out {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* RADIO INDICATOR */
+.pass-radio-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.pass-radio-outer {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #52525b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.pass-radio-outer.selected {
+  border-color: #df806c;
+}
+
+.pass-radio-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #df806c;
+}
+
+.pass-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pass-type-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.pass-type-name-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pass-type-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.pass-entitlement-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pass-type-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.pass-type-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.45;
+}
+
+.selection-count-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(223, 128, 108, 0.15);
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  color: #df806c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* SESSION PICKER (IMAGE 2) */
+.pass-sessions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 20px;
+  margin-top: 8px;
+}
+
+.modal-date-sessions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-date-sessions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.modal-date-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-date-count {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pass-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-picker-card {
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.session-picker-card:hover:not(.is-session-closed):not(.is-session-disabled) {
+  background: #1f1f23;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.session-picker-card.is-active-session {
+  background: rgba(223, 128, 108, 0.04);
+  border: 1.5px solid #df806c;
+}
+
+.session-picker-card.is-session-closed {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.session-picker-card.is-session-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.session-radio-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.session-radio-outer {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #52525b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.session-radio-outer.selected {
+  border-color: #df806c;
+}
+
+.session-radio-inner {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #df806c;
+}
+
+.session-trainer-avatar-col {
+  flex-shrink: 0;
+}
+
+.session-picker-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.session-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-time-text {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.session-trainer-inline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.session-seats-badge {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.session-title-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* FOOTER BAR (IMAGE 2) */
+.select-tickets-footer {
+  background: #121214;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.select-tickets-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.footer-meta-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.footer-pass-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-total-col {
+  flex-shrink: 0;
+}
+
+.footer-meta-label {
+  font-size: 10px;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.footer-meta-value {
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.footer-meta-divider {
+  width: 1px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.footer-total-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.select-tickets-continue-btn {
+  background: #df806c;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(223, 128, 108, 0.25);
+}
+
+.continue-chevron {
+  font-size: 16px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.select-tickets-continue-btn:hover:not(:disabled) {
+  background: #e59280;
+  transform: translateY(-1px);
+}
+
+.select-tickets-continue-btn:disabled {
+  background: #3f3f46;
+  color: #71717a;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* RESPONSIVE MOBILE ADJUSTMENTS */
+@media (max-width: 480px) {
+  .select-tickets-overlay {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .select-tickets-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px;
+    margin: 0 auto;
+  }
+
+  .select-tickets-header {
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
+
+  .select-tickets-body {
+    padding: 14px 16px;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .select-tickets-footer {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .select-tickets-footer-left {
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .footer-meta-label {
+    font-size: 9px;
+  }
+
+  .footer-meta-value {
+    font-size: 12px;
+    max-width: 115px;
+  }
+
+  .footer-meta-divider {
+    height: 22px;
+  }
+
+  .footer-total-price {
+    font-size: 18px;
+  }
+
+  .select-tickets-continue-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .session-picker-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .session-time-row {
+    gap: 4px;
+  }
+
+  .session-title-text {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .pass-type-card {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .select-tickets-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .select-tickets-footer-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .footer-meta-value {
+    max-width: none;
+  }
+
+  .select-tickets-continue-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

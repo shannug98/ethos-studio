@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/authApi";
 import "../../styles/trainer/trainer-application.css";
-import trainerApplicationHero from "../../assets/trainer/trainer-application-hero.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const trainerApplicationHero = MEDIA_ASSETS.trainers.applicationHero;
 import logo from "../../assets/brand/ethos-emblem.png";
 
 const OTP_LENGTH = 6;
@@ -160,7 +161,7 @@ export default function TrainerApplication() {
         <section
           className="trainer-application-visual"
           style={{
-            backgroundImage: `url(${trainerApplicationHero})`,
+            backgroundImage: trainerApplicationHero ? `url(${trainerApplicationHero})` : "linear-gradient(135deg, #181514 0%, #0d0c0b 100%)",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

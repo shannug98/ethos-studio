@@ -1,0 +1,122 @@
+{
+  "results": [
+    {
+      "width": 320,
+      "viewportWidth": 320,
+      "fontSize": "43.2px",
+      "textWidth": 244,
+      "accentWidth": 139,
+      "containerWidth": 270,
+      "overflow": -26,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_320px.png"
+    },
+    {
+      "width": 360,
+      "viewportWidth": 360,
+      "fontSize": "48.6px",
+      "textWidth": 274,
+      "accentWidth": 156,
+      "containerWidth": 310,
+      "overflow": -36,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_360px.png"
+    },
+    {
+      "width": 375,
+      "viewportWidth": 375,
+      "fontSize": "50.625px",
+      "textWidth": 286,
+      "accentWidth": 162,
+      "containerWidth": 325,
+      "overflow": -39,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_375px.png"
+    },
+    {
+      "width": 390,
+      "viewportWidth": 390,
+      "fontSize": "52.65px",
+      "textWidth": 297,
+      "accentWidth": 169,
+      "containerWidth": 340,
+      "overflow": -43,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_390px.png"
+    },
+    {
+      "width": 414,
+      "viewportWidth": 414,
+      "fontSize": "55.89px",
+      "textWidth": 315,
+      "accentWidth": 179,
+      "containerWidth": 364,
+      "overflow": -49,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_414px.png"
+    },
+    {
+      "width": 430,
+      "viewportWidth": 430,
+      "fontSize": "58.05px",
+      "textWidth": 328,
+      "accentWidth": 186,
+      "containerWidth": 380,
+      "overflow": -52,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_430px.png"
+    },
+    {
+      "width": 440,
+      "viewportWidth": 440,
+      "fontSize": "59.4px",
+      "textWidth": 335,
+      "accentWidth": 191,
+      "containerWidth": 390,
+      "overflow": -55,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_440px.png"
+    },
+    {
+      "width": 1280,
+      "viewportWidth": 1280,
+      "fontSize": "115.2px",
+      "textWidth": 650,
+      "accentWidth": 370,
+      "containerWidth": 650,
+      "overflow": 0,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_1280px.png"
+    },
+    {
+      "width": 1440,
+      "viewportWidth": 1440,
+      "fontSize": "129.6px",
+      "textWidth": 731,
+      "accentWidth": 416,
+      "containerWidth": 650,
+      "overflow": 81,
+      "hasPageOverflow": false,
+      "videoSrc": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "videoRendered": true,
+      "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\hero_verified_1440px.png"
+    }
+  ],
+  "cspViolations": []
+}

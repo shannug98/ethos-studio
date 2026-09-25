@@ -11,7 +11,7 @@ const PRIMARY_NAV_ITEMS = [
   { to: "/admin_portal/bookings", label: "Bookings", icon: "📑" },
   { to: "/admin_portal/payments", label: "Payments", icon: "💳" },
   { to: "/admin_portal/videos", label: "Media Gallery", icon: "🎬" },
-  { to: "/admin_portal/communications", label: "Messages", icon: "💬", badgeKey: "messages" },
+  { to: "/admin_portal/communications", label: "Communications", icon: "💬", badgeKey: "communications" },
   { to: "/admin_portal/users", label: "Users", icon: "👥" },
   { to: "/admin_portal/observability", label: "Reports", icon: "📈" },
   { to: "/admin_portal/audit-logs", label: "Audit Logs", icon: "📜" },

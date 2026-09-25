@@ -8,6 +8,8 @@ public class WorkshopPricingTier
 
     public Guid WorkshopId { get; set; }
 
+    public Guid? WorkshopPassTypeId { get; set; }
+
     public int TierNumber { get; set; } // 1, 2, 3, 4
 
     [MaxLength(100)]
@@ -24,4 +26,6 @@ public class WorkshopPricingTier
     public DateTime UpdatedAt { get; set; }
 
     public Workshop Workshop { get; set; } = null!;
+
+    public WorkshopPassType? WorkshopPassType { get; set; }
 }

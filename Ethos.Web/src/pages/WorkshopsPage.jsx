@@ -5,10 +5,9 @@ import { workshopsApi } from "../services/workshopsApi";
 import { createSlug } from "../utils/createSlug";
 import "../styles/workshops-page.css";
 
-import workshop01 from "../assets/workshops/workshop-01.jpg";
-import workshop02 from "../assets/workshops/workshop-02.jpg";
-import workshop03 from "../assets/workshops/workshop-03.jpg";
-import workshop04 from "../assets/workshops/workshop-04.jpg";
+import { handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
+import { getWorkshopBannerImage } from "../utils/workshopPresentation";
+import TrainerAvatar from "../components/common/TrainerAvatar";
 
 const months = [
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
@@ -44,6 +43,7 @@ function WorkshopsPage() {
   const [selectedMonth, setSelectedMonth] = useState("SEP");
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const navigate = useNavigate();
 
@@ -55,11 +55,11 @@ function WorkshopsPage() {
   async function loadBackendWorkshops() {
     try {
       setLoading(true);
+      setLoadError(null);
       const apiList = await workshopsApi.getApprovedWorkshops();
       if (Array.isArray(apiList) && apiList.length > 0) {
-        const fallbackImgs = [workshop01, workshop02, workshop03, workshop04];
         const now = new Date();
-        const mapped = apiList.map((w, idx) => {
+        const mapped = apiList.map((w) => {
           const d = new Date(w.workshopDate);
           const mStr = months[d.getMonth()] || "SEP";
           const yStr = d.getFullYear().toString();
@@ -81,10 +81,10 @@ function WorkshopsPage() {
             style: w.danceStyle || "WORKSHOP",
             level: w.level || "ALL LEVELS",
             trainer: w.trainerName || "Ethos Faculty",
-            trainerPhotoUrl: w.trainerPhotoUrl,
+            trainerPhotoUrl: w.trainerPhotoUrl || null,
             trainerDanceStyles: w.trainerDanceStyles,
             location: w.venue || "Ethos Dance Studio, Hyderabad",
-            image: w.imageUrl || fallbackImgs[idx % fallbackImgs.length],
+            image: getWorkshopBannerImage(w) || ETHOS_MEDIA_FALLBACK_SVG,
             startingPrice: w.currentPrice || w.startingPrice || w.price || 299,
             description: w.description || "Join this transformative movement session with Ethos.",
           };
@@ -103,6 +103,7 @@ function WorkshopsPage() {
       }
     } catch (err) {
       console.warn("Backend workshops fetch failed:", err);
+      setLoadError(err.name === "TimeoutError" ? "Workshops loading timed out. Please check your connection and try again." : "Could not load workshops right now.");
       setWorkshops([]);
     } finally {
       setLoading(false);
@@ -217,42 +218,72 @@ function WorkshopsPage() {
           <div className="workshops-page__empty">
             <p>Loading workshops...</p>
           </div>
+        ) : loadError ? (
+          <div className="workshops-page__empty">
+            <p>{loadError}</p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{
+                marginTop: "12px",
+                padding: "8px 20px",
+                background: "#FF5500",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+              onClick={loadBackendWorkshops}
+            >
+              Try Again
+            </button>
+          </div>
         ) : filteredWorkshops.length > 0 ? (
           <div className="modern-events-grid">
-            {filteredWorkshops.map((ws) => (
-              <article 
-                key={ws.id} 
-                className={`event-card-modern ${ws.isCompleted ? "is-completed-card" : ""}`}
-                onClick={() => navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`)}
-              >
-                {/* IMAGE */}
-                <div className="event-card-media">
-                  <img src={ws.image} alt={ws.title} className="event-card-img" />
-                  {ws.isCompleted ? (
-                    <span className="event-badge-completed">✓ COMPLETED</span>
-                  ) : (
-                    <span className="event-badge-og">★ OG</span>
-                  )}
-                </div>
-
-                {/* CONTENT */}
-                <div className="event-card-body">
-                  <h3 className="event-card-title">{ws.title}</h3>
-
-                  {/* TRAINER CHIP */}
-                  <div className="event-trainer-chip">
-                    {ws.trainerPhotoUrl ? (
-                      <img src={ws.trainerPhotoUrl} alt={ws.trainer} className="trainer-chip-avatar" />
+            {filteredWorkshops.map((ws) => {
+              return (
+                <article 
+                  key={ws.id} 
+                  className={`event-card-modern ${ws.isCompleted ? "is-completed-card" : ""}`}
+                  onClick={() => navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`)}
+                >
+                  {/* IMAGE */}
+                  <div className="event-card-media">
+                    <img 
+                      src={ws.image} 
+                      alt={ws.title} 
+                      className="event-card-img" 
+                      loading="lazy" 
+                      decoding="async" 
+                      onError={(e) => handleMediaImgError(e)}
+                    />
+                    {ws.isCompleted ? (
+                      <span className="event-badge-completed">✓ COMPLETED</span>
                     ) : (
-                      <span className="trainer-chip-placeholder">{ws.trainer.charAt(0)}</span>
+                      <span className="event-badge-og">★ OG</span>
                     )}
-                    <div className="trainer-chip-meta">
-                      <span className="trainer-chip-name">{ws.trainer}</span>
-                      {ws.trainerDanceStyles && (
-                        <span className="trainer-chip-styles">{ws.trainerDanceStyles}</span>
-                      )}
-                    </div>
                   </div>
+
+                  {/* CONTENT */}
+                  <div className="event-card-body">
+                    <h3 className="event-card-title">{ws.title}</h3>
+
+                    {/* TRAINER CHIP */}
+                    <div className="event-trainer-chip">
+                      <TrainerAvatar
+                        trainer={ws.trainerPhotoUrl}
+                        name={ws.trainer}
+                        size="sm"
+                        className="trainer-chip-avatar"
+                      />
+                      <div className="trainer-chip-meta">
+                        <span className="trainer-chip-name">{ws.trainer}</span>
+                        {ws.trainerDanceStyles && (
+                          <span className="trainer-chip-styles">{ws.trainerDanceStyles}</span>
+                        )}
+                      </div>
+                    </div>
 
                   {/* DATE & TIME CHIP */}
                   <div className="event-info-pill">
@@ -310,7 +341,8 @@ function WorkshopsPage() {
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="workshops-page__empty">

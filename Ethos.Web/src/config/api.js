@@ -8,9 +8,11 @@
  * NEVER hardcode localhost URLs directly in components.
  */
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const rawBaseUrl = typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE_URL : "";
 
-const isDevOrLocal =
+const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+
+const isLocalBrowser =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" ||
    window.location.hostname === "127.0.0.1" ||
@@ -20,7 +22,7 @@ const isDevOrLocal =
 export const API_BASE_URL = (
   rawBaseUrl && typeof rawBaseUrl === "string" && rawBaseUrl.trim().length > 0
     ? rawBaseUrl.trim().replace(/\/+$/, "")
-    : (isDevOrLocal ? "http://localhost:5252" : "")
+    : (isDev || isLocalBrowser ? "" : "https://api.ethosdancestudio.com")
 );
 
-export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
+export const RAZORPAY_KEY_ID = (typeof import.meta !== "undefined" && import.meta.env?.VITE_RAZORPAY_KEY_ID) || "";

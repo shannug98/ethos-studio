@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trainerApi } from "../../services/trainerApi";
 import "./TrainerApplicationTier.css";
-import tierArtwork from "../../assets/trainer/ethos-tier-emblems.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const tierArtwork = MEDIA_ASSETS.trainers.tierEmblems;
 
 const tierPositions = {
   SILVER: "silver",

@@ -27,6 +27,12 @@ public class WhatsAppOutboxBackgroundWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_options.Value.Enabled)
+        {
+            _logger.LogInformation("[WhatsApp Outbox Worker] Disabled via configuration.");
+            return;
+        }
+
         _logger.LogInformation(
             "[WhatsApp Outbox Worker {WorkerId}] Initialized. Polling interval: {Interval}s | Batch: {BatchSize}",
             _workerId,

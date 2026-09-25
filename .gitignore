@@ -25,3 +25,14 @@ secrets.json
 *.zip
 *.pdf
 
+# Temporary historical audit & manifest reports
+assets_reference_audit.json
+assets_reference_audit.txt
+clean_slate_media_reset_report.txt
+hero_upload_verification_audit.txt
+live_r2_audit_evidence.txt
+media_cleanup_allowlist_audit.txt
+media_cleanup_dry_run_report.txt
+media_cleanup_execution_audit.txt
+phase_c_completion_verification_report.txt
+phase_c_live_inventory_manifest.txt

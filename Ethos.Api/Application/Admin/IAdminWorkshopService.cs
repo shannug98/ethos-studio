@@ -22,6 +22,7 @@ public interface IAdminWorkshopService
         CancellationToken cancellationToken);
 
     Task<AdminWorkshopCountsDto> GetWorkshopCountsAsync(
+        Guid? adminUserId,
         CancellationToken cancellationToken);
 
     Task<TrainerWorkshopResponse?> GetWorkshopByIdAsync(
@@ -39,6 +40,12 @@ public interface IAdminWorkshopService
         AdminUpdateWorkshopRequest request,
         CancellationToken cancellationToken);
 
+    Task UpdateSessionAsync(
+        Guid workshopId,
+        Guid sessionId,
+        int requestedCapacity,
+        CancellationToken cancellationToken);
+
     Task ApproveWorkshopPriceAsync(
         Guid workshopId,
         Guid adminUserId,
@@ -51,16 +58,36 @@ public interface IAdminWorkshopService
         string reason,
         CancellationToken cancellationToken);
 
+    Task<AdminWorkshopCancellationStatsDto> GetWorkshopCancellationStatsAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
+
     Task CancelWorkshopAsync(
         Guid workshopId,
         Guid adminUserId,
         string reason,
         CancellationToken cancellationToken);
 
-    Task CompleteWorkshopAsync(
+    Task<AdminWorkshopRefundProgressDto> GetWorkshopRefundProgressAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
+
+    Task<int> RetryFailedWorkshopRefundsAsync(
         Guid workshopId,
         Guid adminUserId,
         CancellationToken cancellationToken);
+
+    Task CompleteWorkshopAsync(
+        Guid workshopId,
+        Guid adminUserId,
+        bool forceComplete = false,
+        string? overrideReason = null,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteWorkshopAsync(
+        Guid workshopId,
+        Guid adminUserId,
+        CancellationToken cancellationToken = default);
 
     Task<AdminWorkshopPricingTiersResponse> GetWorkshopPricingTiersAsync(
         Guid workshopId,
@@ -129,9 +156,25 @@ public interface IAdminWorkshopService
         Guid workshopId,
         string? filter,
         string? search,
+        Guid? sessionId,
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<AdminWorkshopFeedbackDto>> GetWorkshopFeedbackAsync(
         Guid workshopId,
+        CancellationToken cancellationToken);
+
+    Task<AdminWorkshopDraftResponse?> GetDraftAsync(
+        Guid adminUserId,
+        Guid? workshopId,
+        CancellationToken cancellationToken);
+
+    Task<AdminWorkshopDraftResponse> SaveDraftAsync(
+        Guid adminUserId,
+        AdminSaveWorkshopDraftRequest request,
+        CancellationToken cancellationToken);
+
+    Task<bool> DiscardDraftAsync(
+        Guid adminUserId,
+        Guid draftId,
         CancellationToken cancellationToken);
 }

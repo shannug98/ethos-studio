@@ -65,6 +65,38 @@ public class AdminMediaController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
+    [HttpPost("gallery-video/presign")]
+    public async Task<ActionResult<PresignGalleryUploadResponse>> PresignGalleryVideo(
+        [FromBody] PresignGalleryUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.MediaUpload, "Media", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _mediaService.PresignGalleryVideoUploadAsync(request, AdminUserId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpPost("gallery-video/confirm")]
+    public async Task<ActionResult<MediaUploadResponse>> ConfirmGalleryVideo(
+        [FromBody] ConfirmGalleryUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.MediaUpload, "Media", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _mediaService.ConfirmGalleryVideoUploadAsync(request, AdminUserId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     // ── List ──────────────────────────────────────────────────────────────────
 
     [HttpGet]
@@ -170,5 +202,26 @@ public class AdminMediaController : ControllerBase
         try { await _mediaService.DeleteMediaAsync(id, permanent, AdminUserId, cancellationToken); return NoContent(); }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (ArgumentException ex)         { return NotFound(new { message = ex.Message }); }
+    }
+
+    // ── React Assets Migration ────────────────────────────────────────────────
+
+    [HttpPost("migrate-react-assets")]
+    public async Task<ActionResult<ReactAssetMigrationResponse>> MigrateReactAssets(
+        [FromBody] MigrateReactAssetsRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.MediaUpload, "Media", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var result = await _mediaService.MigrateReactAssetsAsync(request?.WebRootPath, AdminUserId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

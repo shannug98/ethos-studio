@@ -13,6 +13,7 @@ public class AdminCheckInTicketResponse
     public string Code { get; set; } = null!; // SUCCESS, INVALID_TOKEN, TICKET_NOT_FOUND, WRONG_WORKSHOP, ALREADY_CHECKED_IN, BOOKING_CANCELLED, PAYMENT_NOT_CONFIRMED, TICKET_CANCELLED, WORKSHOP_NOT_OPEN, UNAUTHORIZED
     public string Message { get; set; } = null!;
     public Guid? WorkshopId { get; set; }
+    public string? WorkshopTitle { get; set; }
     public Guid? TicketId { get; set; }
     public string? AttendeeName { get; set; }
     public string? TicketNumber { get; set; }
@@ -52,6 +53,7 @@ public class AdminWorkshopOverviewResponse
     public decimal TotalRevenue { get; set; }
     public string TrainerName { get; set; } = null!;
     public string? ImageUrl { get; set; }
+    public string? LocationUrl { get; set; }
     public string? Description { get; set; }
     public List<AdminWorkshopRecentCheckInDto> RecentCheckIns { get; set; } = new();
 }
@@ -73,6 +75,13 @@ public class AdminWorkshopAttendeeDto
     public string? CheckInMethod { get; set; }
     public bool IsGuest { get; set; }
     public string AttendeeType { get; set; } = null!;
+    public Guid? WorkshopSessionId { get; set; }
+    public string? SessionTitle { get; set; }
+    public DateTime? SessionDate { get; set; }
+    public TimeSpan? SessionStartTime { get; set; }
+    public TimeSpan? SessionEndTime { get; set; }
+    public string? PassName { get; set; }
+    public string? PassCategory { get; set; }
 }
 
 public class AdminWorkshopFeedbackDto
@@ -87,10 +96,15 @@ public class AdminWorkshopFeedbackDto
 
 public class AdminWorkshopCountsDto
 {
+    public int Draft { get; set; }
     public int PendingReview { get; set; }
+    public int Rejected { get; set; }
     public int Upcoming { get; set; }
     public int Ongoing { get; set; }
+    public int Ended { get; set; }
     public int Completed { get; set; }
     public int Cancelled { get; set; }
+    public int Unpublished { get; set; }
+    public int Archived { get; set; }
     public int All { get; set; }
 }

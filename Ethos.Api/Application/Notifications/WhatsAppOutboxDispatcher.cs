@@ -36,6 +36,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         var now = DateTime.UtcNow;
         var abandoned = await _dbContext.WhatsAppNotifications
             .Where(x => x.Status == WhatsAppNotificationStatus.Sending && x.LeaseExpiresAt != null && x.LeaseExpiresAt < now)
+            .OrderBy(x => x.CreatedAt)
             .Take(50)
             .ToListAsync(cancellationToken);
 
@@ -73,36 +74,86 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         var now = DateTime.UtcNow;
         var batchSize = Math.Clamp(_options.BatchSize, 1, 50);
 
-        // 1. Claim records atomically
-        var candidateIds = await _dbContext.WhatsAppNotifications
-            .Where(x =>
-                (x.Status == WhatsAppNotificationStatus.Pending ||
-                 (x.Status == WhatsAppNotificationStatus.Failed && x.Attempts < _options.MaxRetryAttempts && (x.NextAttemptAt == null || x.NextAttemptAt <= now))) &&
-                (x.LeaseExpiresAt == null || x.LeaseExpiresAt < now))
-            .OrderBy(x => x.CreatedAt)
-            .Select(x => x.Id)
-            .Take(batchSize)
-            .ToListAsync(cancellationToken);
-
-        if (candidateIds.Count == 0) return 0;
-
+        // 1. Claim records atomically and commit immediately so database locks are not held during external calls
+        List<Guid> candidateIds;
         var leaseDuration = TimeSpan.FromSeconds(Math.Clamp(_options.LeaseDurationSeconds, 15, 300));
+
+        if (_dbContext.Database.IsNpgsql())
+        {
+            using var claimTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            candidateIds = await _dbContext.WhatsAppNotifications
+                .FromSqlInterpolated($@"
+                    SELECT * FROM whatsapp_notifications
+                    WHERE (""Status"" = {(int)WhatsAppNotificationStatus.Pending} OR
+                          (""Status"" = {(int)WhatsAppNotificationStatus.Failed} AND ""Attempts"" < {_options.MaxRetryAttempts} AND (""NextAttemptAt"" IS NULL OR ""NextAttemptAt"" <= {now})))
+                      AND (""LeaseExpiresAt"" IS NULL OR ""LeaseExpiresAt"" < {now})
+                    ORDER BY ""CreatedAt""
+                    LIMIT {batchSize}
+                    FOR UPDATE SKIP LOCKED")
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (candidateIds.Count == 0)
+            {
+                await claimTx.RollbackAsync(cancellationToken);
+                return 0;
+            }
+
+            var toClaim = await _dbContext.WhatsAppNotifications
+                .Where(x => candidateIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+
+            foreach (var record in toClaim)
+            {
+                record.Status = WhatsAppNotificationStatus.Sending;
+                record.LeaseExpiresAt = now.Add(leaseDuration);
+                record.LockedByWorkerId = workerId;
+                record.Attempts += 1;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await claimTx.CommitAsync(cancellationToken);
+        }
+        else
+        {
+            // In-memory or non-PostgreSQL fallback for testing
+            candidateIds = await _dbContext.WhatsAppNotifications
+                .Where(x =>
+                    (x.Status == WhatsAppNotificationStatus.Pending ||
+                     (x.Status == WhatsAppNotificationStatus.Failed && x.Attempts < _options.MaxRetryAttempts && (x.NextAttemptAt == null || x.NextAttemptAt <= now))) &&
+                    (x.LeaseExpiresAt == null || x.LeaseExpiresAt < now))
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => x.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+
+            if (candidateIds.Count == 0) return 0;
+
+            var toClaim = await _dbContext.WhatsAppNotifications
+                .Where(x => candidateIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
+
+            foreach (var record in toClaim)
+            {
+                record.Status = WhatsAppNotificationStatus.Sending;
+                record.LeaseExpiresAt = now.Add(leaseDuration);
+                record.LockedByWorkerId = workerId;
+                record.Attempts += 1;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         var claimedRecords = await _dbContext.WhatsAppNotifications
             .Include(x => x.WorkshopBooking)
                 .ThenInclude(b => b.Workshop)
-            .Include(x => x.WorkshopTicket)
+            .Include(x => x.WorkshopTicket!)
+                .ThenInclude(t => t.Workshop)
+            .Include(x => x.WorkshopTicket!)
+                .ThenInclude(t => t.WorkshopSession)
             .Where(x => candidateIds.Contains(x.Id))
             .ToListAsync(cancellationToken);
-
-        foreach (var record in claimedRecords)
-        {
-            record.Status = WhatsAppNotificationStatus.Sending;
-            record.LeaseExpiresAt = now.Add(leaseDuration);
-            record.LockedByWorkerId = workerId;
-            record.Attempts += 1;
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         int processedCount = 0;
 
@@ -120,6 +171,16 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
                 else if (record.NotificationType == WhatsAppNotificationType.TicketPdf)
                 {
                     await DispatchTicketPdfAsync(record, cancellationToken);
+                }
+                else
+                {
+                    record.Status = WhatsAppNotificationStatus.Sent;
+                    record.SentAt = DateTime.UtcNow;
+                    _logger.LogInformation(
+                        "[WhatsApp Outbox] Processed notification {NotificationId} ({Type}) for phone {Phone}",
+                        record.Id,
+                        record.NotificationType,
+                        record.RecipientPhone);
                 }
 
                 processedCount++;
@@ -145,6 +206,26 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         return processedCount;
     }
 
+    public static string ResolveWhatsAppLocation(Workshop workshop)
+    {
+        var venue = !string.IsNullOrWhiteSpace(workshop.Venue) ? workshop.Venue.Trim() : "Ethos Dance Studio";
+        var address = !string.IsNullOrWhiteSpace(workshop.VenueAddress)
+            ? workshop.VenueAddress.Trim()
+            : (!string.IsNullOrWhiteSpace(workshop.City) ? workshop.City.Trim() : "Hyderabad");
+
+        if (address.Contains(venue, StringComparison.OrdinalIgnoreCase))
+            return address;
+
+        if (venue.Contains(address, StringComparison.OrdinalIgnoreCase))
+            return venue;
+
+        var baseLocation = venue.Contains("Ethos", StringComparison.OrdinalIgnoreCase)
+            ? venue
+            : $"Ethos Dance Studio, {venue}";
+
+        return $"{baseLocation}, {address}";
+    }
+
     private async Task DispatchBookingConfirmedAsync(
         WhatsAppNotification record,
         CancellationToken cancellationToken)
@@ -160,6 +241,17 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         }
 
         var workshop = booking.Workshop;
+        if (string.IsNullOrWhiteSpace(booking.GuestName) && booking.StudentProfile?.User == null && booking.StudentProfileId != Guid.Empty)
+        {
+            var student = await _dbContext.StudentProfiles
+                .Include(sp => sp.User)
+                .FirstOrDefaultAsync(sp => sp.Id == booking.StudentProfileId, cancellationToken);
+            if (student?.User != null)
+            {
+                booking.StudentProfile = student;
+            }
+        }
+
         var attendeeName = !string.IsNullOrWhiteSpace(booking.GuestName)
             ? booking.GuestName
             : (booking.StudentProfile?.User?.FullName ?? "Ethos Student");
@@ -168,6 +260,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         var endTimeStr = DateTime.Today.Add(workshop.EndTime).ToString("h:mm tt");
         var timeDisplay = $"{startTimeStr} – {endTimeStr}";
         var dateDisplay = workshop.WorkshopDate.ToString("dd MMMM yyyy");
+        var location = ResolveWhatsAppLocation(workshop);
         var bookingRef = "BK-" + booking.Id.ToString()[..8].ToUpperInvariant();
 
         var data = new BookingConfirmedData(
@@ -175,6 +268,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
             WorkshopTitle: workshop.Title,
             WorkshopDate: dateDisplay,
             WorkshopTime: timeDisplay,
+            Location: location,
             BookingId: bookingRef);
 
         var result = await _msg91Service.SendBookingConfirmedAsync(
@@ -192,7 +286,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         var booking = record.WorkshopBooking;
         var ticket = record.WorkshopTicket;
 
-        if (booking == null || ticket == null || ticket.Workshop == null)
+        if (booking == null || ticket == null)
         {
             record.Status = WhatsAppNotificationStatus.Failed;
             record.LastError = "Associated workshop ticket or booking was not found.";
@@ -201,7 +295,27 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
             return;
         }
 
-        var workshop = ticket.Workshop;
+        var workshop = ticket.Workshop ?? booking.Workshop;
+        if (workshop == null)
+        {
+            record.Status = WhatsAppNotificationStatus.Failed;
+            record.LastError = "Associated workshop record was not found.";
+            record.LeaseExpiresAt = null;
+            record.LockedByWorkerId = null;
+            return;
+        }
+
+        if (ticket.Workshop == null)
+        {
+            ticket.Workshop = workshop;
+        }
+
+        // Ensure WorkshopSession is loaded if ticket is tied to a specific session
+        if (ticket.WorkshopSessionId.HasValue && ticket.WorkshopSession == null)
+        {
+            ticket.WorkshopSession = await _dbContext.WorkshopSessions
+                .FirstOrDefaultAsync(s => s.Id == ticket.WorkshopSessionId.Value, cancellationToken);
+        }
 
         // Obtain or create durable TicketPdf with valid HTTPS signed URL
         var pdfResult = await _ticketPdfService.GetOrCreateTicketPdfAsync(
@@ -227,10 +341,16 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
             return;
         }
 
-        var startTimeStr = DateTime.Today.Add(workshop.StartTime).ToString("h:mm tt");
-        var endTimeStr = DateTime.Today.Add(workshop.EndTime).ToString("h:mm tt");
+        // Session-specific date/time matching TicketPdfService
+        var effDate = ticket.WorkshopSession?.SessionDate ?? workshop.WorkshopDate;
+        var effStartTime = ticket.WorkshopSession?.StartTime ?? workshop.StartTime;
+        var effEndTime = ticket.WorkshopSession?.EndTime ?? workshop.EndTime;
+
+        var startTimeStr = DateTime.Today.Add(effStartTime).ToString("h:mm tt");
+        var endTimeStr = DateTime.Today.Add(effEndTime).ToString("h:mm tt");
         var timeDisplay = $"{startTimeStr} – {endTimeStr}";
-        var dateDisplay = workshop.WorkshopDate.ToString("dd MMMM yyyy");
+        var dateDisplay = effDate.ToString("dd MMMM yyyy");
+        var location = ResolveWhatsAppLocation(workshop);
         var bookingRef = "BK-" + booking.Id.ToString()[..8].ToUpperInvariant();
 
         var ticketData = new TicketPdfData(
@@ -238,6 +358,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
             WorkshopTitle: workshop.Title,
             WorkshopDate: dateDisplay,
             WorkshopTime: timeDisplay,
+            Location: location,
             BookingId: bookingRef,
             PdfHttpsUrl: pdfResult.SignedHttpsUrl,
             FileName: $"{ticket.TicketNumber}.pdf");

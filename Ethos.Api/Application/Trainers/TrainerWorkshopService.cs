@@ -553,6 +553,19 @@ public class TrainerWorkshopService : ITrainerWorkshopService
             };
         }
 
+        if (ticket.Status == TicketStatus.Replaced)
+        {
+            return new TicketValidationResponse
+            {
+                IsValid = false,
+                ValidationStatus = "Replaced",
+                Message = "This ticket was replaced by the studio administrator and is no longer valid.",
+                TicketNumber = ticket.TicketNumber,
+                AttendeeName = ticket.AttendeeName,
+                Status = ticket.Status
+            };
+        }
+
         if (ticket.Status == TicketStatus.Expired)
         {
             return new TicketValidationResponse

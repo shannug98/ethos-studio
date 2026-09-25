@@ -7,6 +7,7 @@ public record BookingConfirmedData(
     string WorkshopTitle,
     string WorkshopDate,
     string WorkshopTime,
+    string Location,
     string BookingId
 );
 
@@ -15,6 +16,7 @@ public record TicketPdfData(
     string WorkshopTitle,
     string WorkshopDate,
     string WorkshopTime,
+    string Location,
     string BookingId,
     string PdfHttpsUrl,
     string FileName
@@ -124,6 +126,9 @@ public class BookingConfirmedComponents
 
     [JsonPropertyName("body_5")]
     public TextComponent Body5 { get; set; } = new();
+
+    [JsonPropertyName("body_6")]
+    public TextComponent Body6 { get; set; } = new();
 }
 
 public class TicketPdfComponents
@@ -145,6 +150,15 @@ public class TicketPdfComponents
 
     [JsonPropertyName("body_5")]
     public TextComponent Body5 { get; set; } = new();
+
+    [JsonPropertyName("body_6")]
+    public TextComponent Body6 { get; set; } = new();
+}
+
+public class PasswordResetComponents
+{
+    [JsonPropertyName("body_1")]
+    public TextComponent Body1 { get; set; } = new();
 }
 
 public class TextComponent

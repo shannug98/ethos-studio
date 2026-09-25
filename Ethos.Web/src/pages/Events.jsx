@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/events.css";
 
-import hero01 from "../assets/hero/hero-01.jpg";
-import hero03 from "../assets/hero/hero-03.jpg";
-import workshop02 from "../assets/workshops/workshop-02.jpg";
-import founders from "../assets/founders/founders.jpg";
+import { publicApi } from "../services/publicApi";
+import { getMediaUrl, handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
 
-function Events() {
-  const [activeEvent, setActiveEvent] = useState(null);
+const hero01 = null;
+const hero03 = null;
+const workshop02 = null;
+const founders = null;
 
-  const events = [
+const DEFAULT_EVENTS = [
     {
       id: "sangeeth",
       title: "SANGEETH",
@@ -75,6 +75,36 @@ function Events() {
       ],
     },
   ];
+
+function Events() {
+  const [activeEvent, setActiveEvent] = useState(null);
+  const [eventList, setEventList] = useState(DEFAULT_EVENTS);
+
+  useEffect(() => {
+    let isMounted = true;
+    publicApi
+      .getPublicMedia({ section: "Events" })
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setEventList(
+            DEFAULT_EVENTS.map((ev, idx) => {
+              const slotOrder = idx + 1;
+              const cloudItem = data.find((m) => Number(m.displayOrder) === slotOrder);
+              return cloudItem
+                ? { ...ev, image: getMediaUrl(cloudItem.publicUrl, cloudItem.id) }
+                : ev;
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("[Events] Public media fetch failed:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <main className="events-page">
@@ -173,7 +203,7 @@ function Events() {
         </div>
 
         <div className="events-list">
-          {events.map((event) => {
+          {eventList.map((event) => {
             const isActive = activeEvent === event.id;
 
             return (
@@ -196,8 +226,9 @@ function Events() {
                 >
                   <div className="event-card__image">
                     <img
-                      src={event.image}
+                      src={event.image || ETHOS_MEDIA_FALLBACK_SVG}
                       alt={event.title}
+                      onError={(e) => handleMediaImgError(e)}
                     />
                   </div>
 

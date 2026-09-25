@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../../styles/founders.css";
+import { publicApi } from "../../services/publicApi";
+import { getMediaUrl } from "../../utils/mediaUrl";
 
 // ============================================================
 // FOUNDER IMAGE
 //
 // Put your two-founder image here:
 //
-// src/assets/founders/founders.jpg
-// ============================================================
-
-import foundersImage from "../../assets/founders/founders.jpg";
+import ethosEmblem from "../../assets/brand/ethos-emblem.png";
+import { handleMediaImgError } from "../../utils/mediaUrl";
 
 const founders = [
   {
@@ -34,6 +34,41 @@ const founders = [
 
 function Founders() {
   const [activeFounder, setActiveFounder] = useState(null);
+  const [heroImg, setHeroImg] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setFetchError(null);
+    publicApi
+      .getPublicMedia({ section: "Founders" })
+      .then((data) => {
+        if (!isMounted) return;
+        if (Array.isArray(data) && data.length > 0) {
+          const founderItem = data.find((m) => Number(m.displayOrder) === 1);
+          if (founderItem) {
+            setHeroImg(getMediaUrl(founderItem.publicUrl, founderItem.id));
+          } else {
+            setHeroImg(null);
+          }
+        } else {
+          setHeroImg(null);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Founders] Public media fetch failed:", err);
+        if (isMounted) setFetchError(err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const activeData = founders.find(
     (founder) => founder.id === activeFounder
@@ -118,12 +153,23 @@ function Founders() {
           --------------------------------------------------- */}
 
           <div className="founders-image-wrapper">
-
-            <img
-              src={foundersImage}
-              alt="Ethos Dance Studio founders"
-              className="founders-image"
-            />
+            {heroImg ? (
+              <img
+                src={heroImg}
+                alt="Ethos Dance Studio founders"
+                className="founders-image"
+                onError={(e) => handleMediaImgError(e)}
+              />
+            ) : (
+              <div className="founders-image--placeholder">
+                <img
+                  src={ethosEmblem}
+                  alt="Ethos Dance Studio"
+                  className="founders-placeholder-emblem"
+                />
+                <span className="founders-placeholder-text">FOUNDERS OF ETHOS</span>
+              </div>
+            )}
 
             <div className="founders-image__overlay" />
 

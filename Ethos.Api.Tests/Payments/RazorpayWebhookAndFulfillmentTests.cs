@@ -372,4 +372,130 @@ public class RazorpayWebhookAndFulfillmentTests
         // Does NOT re-issue tickets
         Assert.Equal(1, ticketService.IssueCallCount);
     }
+
+    [Fact]
+    public async Task Concurrent_Fulfillment_DuplicateRequests_AuthoritativeIdempotency()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var db = CreateDbContext(dbName);
+        var ticketService = new MockTicketService();
+        var notificationService = new MockNotificationService();
+        var rzpOptions = Options.Create(new RazorpaySettings
+        {
+            KeyId = "rzp_test_key",
+            KeySecret = "rzp_test_secret",
+            WebhookSecret = WebhookSecret
+        });
+        var service = new PaymentFulfillmentService(
+            db,
+            ticketService,
+            rzpOptions,
+            notificationService,
+            NullLogger<PaymentFulfillmentService>.Instance);
+
+        var (user, profile) = await CreateUserAndProfileAsync(db);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Concurrency Masterclass",
+            Capacity = 2,
+            WorkshopDate = DateTime.UtcNow.AddDays(5),
+            StartTime = TimeSpan.FromHours(14),
+            EndTime = TimeSpan.FromHours(16)
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            StudentProfileId = profile.Id,
+            Quantity = 2, // Fills entire capacity
+            TotalPrice = 3000m,
+            GuestName = "Race Attendee",
+            GuestPhone = "9876543210",
+            Status = WorkshopBookingStatus.PendingPayment,
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            BookedAt = DateTime.UtcNow
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var tx = new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Purpose = PaymentPurpose.WorkshopBooking,
+            ReferenceId = booking.Id,
+            Amount = 3000m,
+            Currency = "INR",
+            Status = PaymentStatus.OrderCreated,
+            RazorpayOrderId = "order_race_999",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.PaymentTransactions.Add(tx);
+        await db.SaveChangesAsync();
+
+        // Simulate Request A and Request B running concurrently for the same booking and payment
+        var taskA = Task.Run(async () =>
+        {
+            var dbA = CreateDbContext(dbName);
+            var serviceA = new PaymentFulfillmentService(
+                dbA,
+                ticketService,
+                rzpOptions,
+                notificationService,
+                NullLogger<PaymentFulfillmentService>.Instance);
+            var txA = await dbA.PaymentTransactions.FindAsync(tx.Id);
+            return await serviceA.FulfillWorkshopPaymentAsync(
+                txA!,
+                "pay_race_999",
+                "sig_race_a",
+                source: "RequestA");
+        });
+
+        var taskB = Task.Run(async () =>
+        {
+            var dbB = CreateDbContext(dbName);
+            var serviceB = new PaymentFulfillmentService(
+                dbB,
+                ticketService,
+                rzpOptions,
+                notificationService,
+                NullLogger<PaymentFulfillmentService>.Instance);
+            var txB = await dbB.PaymentTransactions.FindAsync(tx.Id);
+            return await serviceB.FulfillWorkshopPaymentAsync(
+                txB!,
+                "pay_race_999",
+                "sig_race_b",
+                source: "RequestB");
+        });
+
+        var results = await Task.WhenAll(taskA, taskB);
+        var resultA = results[0];
+        var resultB = results[1];
+
+        // 1. Both requests receive a valid idempotent result
+        Assert.NotNull(resultA);
+        Assert.NotNull(resultB);
+        Assert.Equal(WorkshopBookingStatus.Confirmed, resultA.Status);
+        Assert.Equal(WorkshopBookingStatus.Confirmed, resultB.Status);
+        Assert.Equal(booking.Id, resultA.Id);
+        Assert.Equal(booking.Id, resultB.Id);
+
+        // 2. Exactly one ticket set issued
+        Assert.Equal(1, ticketService.IssueCallCount);
+
+        // 3. Exactly one capacity allocation, zero oversell
+        var reloadedBooking = await db.WorkshopBookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == booking.Id);
+        Assert.NotNull(reloadedBooking);
+        Assert.Equal(WorkshopBookingStatus.Confirmed, reloadedBooking.Status);
+
+        // 4. Zero oversold payment events or refund flags
+        var oversoldEvents = await db.PaymentEvents
+            .Where(e => e.PaymentTransactionId == tx.Id && e.EventType == "OVERSOLD_REFUND_REQUIRED")
+            .CountAsync();
+        Assert.Equal(0, oversoldEvents);
+    }
 }

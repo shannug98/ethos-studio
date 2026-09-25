@@ -727,16 +727,6 @@
 
 @media (max-width: 1000px) {
   .workshops {
-    padding: 120px 5vw 90px;
-  }
-
-  .workshops__intro {
-    align-items: flex-start;
-    gap: 60px;
-  }
-
-@media (max-width: 1000px) {
-  .workshops {
     padding: 100px 4vw 80px;
   }
 

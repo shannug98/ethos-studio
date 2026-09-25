@@ -778,12 +778,24 @@
   color: #f6eee9;
 }
 
-.footer-bottom__creator-profile img {
+.footer-bottom__creator-profile img,
+.footer-bottom__creator-avatar {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   object-fit: cover;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.footer-bottom__creator-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dc8876 0%, #b85d49 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .footer-bottom__creator-profile strong {

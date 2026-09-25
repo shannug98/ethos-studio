@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
 import { getTrainerPermissionMeta } from "../../constants/trainerPermissions";
+import { getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName } from "../../utils/mediaUrl";
+import TrainerAvatar from "../../components/common/TrainerAvatar";
 import "./AdminTrainerDossier.css";
 
 function transformTrainerIssue(issue, dossier, setActiveTab, handleCopyReminder) {
@@ -27,7 +29,7 @@ function transformTrainerIssue(issue, dossier, setActiveTab, handleCopyReminder)
           onClick: () =>
             handleCopyReminder(
               code,
-              `Hi ${dossier?.fullName || "Trainer"}, please upload your pending verification document to your Ethos Trainer account. Thank you!`
+              `Hi ${getTrainerDisplayName(dossier)}, please upload your pending verification document to your Ethos Trainer account. Thank you!`
             ),
         },
       ],
@@ -359,16 +361,14 @@ export default function AdminTrainerDossier() {
       {/* Header Bar */}
       <div className="dossier-header-bar">
         <div className="dossier-identity">
-          <div className="avatar-placeholder trainer-avatar">
-            {dossier.profilePhotoUrl ? (
-              <img src={dossier.profilePhotoUrl} alt={dossier.fullName} />
-            ) : (
-              <span>{dossier.fullName?.charAt(0) || "T"}</span>
-            )}
-          </div>
+          <TrainerAvatar
+            trainer={dossier}
+            size={72}
+            bordered
+          />
           <div>
             <div className="name-tier-row">
-              <h1 className="student-name">{dossier.fullName}</h1>
+              <h1 className="student-name">{getTrainerDisplayName(dossier)}</h1>
               <span className={`tier-badge tier-${(dossier.tierName || "silver").toLowerCase()}`}>
                 {dossier.tierName || "Silver"}
               </span>

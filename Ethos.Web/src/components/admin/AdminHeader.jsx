@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { getAdminUser, clearAdminAuth, adminApi } from "../../services/adminApi";
 import { getAdminBreadcrumbs } from "../../constants/adminRouteRegistry";
 import AdminCommandPalette from "./common/AdminCommandPalette";
@@ -14,6 +15,7 @@ export default function AdminHeader({
   attentionItems = [],
   healthData = null,
   sessionsData = [],
+  onToggleSidebar,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -232,7 +234,32 @@ export default function AdminHeader({
 
   return (
     <header className="admin-header-bar ethos-visual-header" ref={headerRef}>
-      {/* LEFT: VISUAL SEARCH PILL INPUT */}
+      {/* Mobile Sidebar Hamburger Toggle */}
+      <button
+        type="button"
+        className="admin-header-mobile-toggle"
+        onClick={onToggleSidebar}
+        aria-label="Toggle navigation menu"
+        title="Open Navigation Menu"
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* Mobile Search Icon Trigger */}
+      <button
+        type="button"
+        className="admin-header-mobile-search-btn"
+        onClick={() => {
+          setActivePopover(null);
+          setPaletteOpen(true);
+        }}
+        aria-label="Search"
+        title="Search (Ctrl+K)"
+      >
+        <span>🔍</span>
+      </button>
+
+      {/* LEFT: VISUAL SEARCH PILL INPUT (Desktop) */}
       <div
         className="ethos-header-search-wrap"
         onClick={() => {

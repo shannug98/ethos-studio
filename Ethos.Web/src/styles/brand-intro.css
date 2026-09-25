@@ -300,26 +300,54 @@
 
 
 /* ========================================
-   MOBILE
+   MOBILE & TABLET RESPONSIVE
 ======================================== */
 
-@media (max-width: 600px) {
-  .brand-intro__loading {
-    top: 130px;
+@media (max-width: 768px) {
+  /* 1. Stack logo and text vertically so they center comfortably */
+  .brand-intro__logo {
+    flex-direction: column;
+    gap: 12px;
+    overflow: visible;
   }
 
+  /* 2. Scale logo image appropriately for mobile */
+  .brand-intro__logo-img {
+    width: clamp(64px, 18vw, 84px);
+    height: clamp(64px, 18vw, 84px);
+  }
+
+  /* 3. Lower the title minimum floor from 5.5rem (88px) to 3.2rem (51px) so 'ETHOS' never clips */
+  .brand-intro__title {
+    font-size: clamp(3.2rem, 14vw, 5.2rem);
+    line-height: 0.9;
+  }
+
+  /* 4. Subtitle letter spacing adjusted for compact mobile widths */
+  .brand-intro__subtitle {
+    margin-top: 8px;
+    font-size: clamp(10px, 2.8vw, 13px);
+    letter-spacing: 0.4em;
+    padding-left: 0.4em;
+  }
+
+  /* 5. Center tagline under the stacked logo with clean spacing */
   .brand-intro__tagline {
     width: 100%;
+    margin-top: 24px;
     margin-left: 0;
     margin-right: 0;
-
     justify-content: center;
     text-align: center;
+    gap: 8px;
+    font-size: clamp(9px, 2.5vw, 11px);
+    letter-spacing: 3px;
+  }
 
-    gap: 7px;
-    font-size: 8px;
-    letter-spacing: 2.5px;
-
-    /* IMPORTANT: don't redefine animation here */
+  /* 6. Release loading bar from absolute positioning so it flows naturally below tagline */
+  .brand-intro__loading {
+    position: relative;
+    top: auto;
+    margin-top: 22px;
   }
 }

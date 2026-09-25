@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../styles/navbar.css";
 import LoginComingSoonModal from "./common/LoginComingSoonModal";
 
-import emblem from "../assets/logo/ethos-emblem.png";
+import emblem from "../assets/brand/ethos-emblem.png";
 
 function Navbar() {
   const location = useLocation();

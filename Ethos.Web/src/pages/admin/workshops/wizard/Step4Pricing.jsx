@@ -209,6 +209,328 @@ export default function Step4Pricing({ form, onChange, errors }) {
         </div>
       </div>
 
+      {/* Workshop Pass Types Manager (Solo, Duo, Overall Pass) */}
+      <div className="pricing-tiers-card" style={{ marginTop: "24px" }}>
+        <div className="pricing-tiers-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h3 className="pricing-card-title">
+              Workshop Pass Types ({Array.isArray(form.passTypes) ? form.passTypes.length : 0})
+            </h3>
+            <p className="pricing-card-sub">
+              Create structured pass packages (e.g., Solo 1-Session Pass, Duo 2-Session Pass, or an All-Access Pass covering all sessions).
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="preset-chip-btn"
+              onClick={() => {
+                const currentPasses = Array.isArray(form.passTypes) ? form.passTypes : [];
+                const baseP = Number(form.price) || 500;
+                const newPass = {
+                  id: undefined,
+                  name: "Solo Pass",
+                  description: "Access to 1 workshop session of your choice",
+                  price: baseP,
+                  sessionsIncluded: 1,
+                  totalQuantity: 100,
+                  displayOrder: currentPasses.length + 1,
+                  isActive: true,
+                };
+                onChange("passTypes", [...currentPasses, newPass]);
+              }}
+            >
+              + Solo Pass (1 Session)
+            </button>
+            <button
+              type="button"
+              className="preset-chip-btn"
+              onClick={() => {
+                const currentPasses = Array.isArray(form.passTypes) ? form.passTypes : [];
+                const baseP = Number(form.price) || 500;
+                const newPass = {
+                  id: undefined,
+                  name: "Duo Pass",
+                  description: "Choose any 2 sessions from this workshop",
+                  price: Math.round(baseP * 1.8),
+                  sessionsIncluded: 2,
+                  totalQuantity: 100,
+                  displayOrder: currentPasses.length + 1,
+                  isActive: true,
+                };
+                onChange("passTypes", [...currentPasses, newPass]);
+              }}
+            >
+              + Duo Pass (2 Sessions)
+            </button>
+            <button
+              type="button"
+              className="preset-chip-btn"
+              onClick={() => {
+                const currentPasses = Array.isArray(form.passTypes) ? form.passTypes : [];
+                const baseP = Number(form.price) || 500;
+                const newPass = {
+                  id: undefined,
+                  name: "Trio Pass",
+                  description: "Choose any 3 sessions from this workshop",
+                  price: Math.round(baseP * 2.5),
+                  sessionsIncluded: 3,
+                  totalQuantity: 100,
+                  displayOrder: currentPasses.length + 1,
+                  isActive: true,
+                };
+                onChange("passTypes", [...currentPasses, newPass]);
+              }}
+            >
+              + Trio Pass (3 Sessions)
+            </button>
+            <button
+              type="button"
+              className="preset-chip-btn"
+              onClick={() => {
+                const currentPasses = Array.isArray(form.passTypes) ? form.passTypes : [];
+                const baseP = Number(form.price) || 500;
+                const newPass = {
+                  id: undefined,
+                  name: "Overall Pass",
+                  description: "All-access admission to all workshop sessions",
+                  price: Math.round(baseP * 3.2),
+                  sessionsIncluded: null,
+                  totalQuantity: 100,
+                  displayOrder: currentPasses.length + 1,
+                  isActive: true,
+                };
+                onChange("passTypes", [...currentPasses, newPass]);
+              }}
+            >
+              + Overall Pass (All Sessions)
+            </button>
+            <button
+              type="button"
+              className="preset-chip-btn"
+              style={{ background: "rgba(255, 85, 0, 0.15)", color: "#FF5500", border: "1px solid rgba(255, 85, 0, 0.4)" }}
+              onClick={() => {
+                const baseP = Number(form.price) || 500;
+                const defaultPasses = [
+                  {
+                    id: undefined,
+                    name: "Solo Pass",
+                    description: "Access to 1 workshop session of your choice",
+                    price: baseP,
+                    sessionsIncluded: 1,
+                    totalQuantity: 100,
+                    displayOrder: 1,
+                    isActive: true,
+                  },
+                  {
+                    id: undefined,
+                    name: "Duo Pass",
+                    description: "Choose any 2 sessions from this workshop",
+                    price: Math.round(baseP * 1.8),
+                    sessionsIncluded: 2,
+                    totalQuantity: 100,
+                    displayOrder: 2,
+                    isActive: true,
+                  },
+                  {
+                    id: undefined,
+                    name: "Trio Pass",
+                    description: "Choose any 3 sessions from this workshop",
+                    price: Math.round(baseP * 2.5),
+                    sessionsIncluded: 3,
+                    totalQuantity: 100,
+                    displayOrder: 3,
+                    isActive: true,
+                  },
+                  {
+                    id: undefined,
+                    name: "Overall Pass",
+                    description: "All-access admission to all workshop sessions",
+                    price: Math.round(baseP * 3.2),
+                    sessionsIncluded: null, // null indicates Overall Pass
+                    totalQuantity: 100,
+                    displayOrder: 4,
+                    isActive: true,
+                  },
+                ];
+                onChange("passTypes", defaultPasses);
+              }}
+            >
+              ⚡ Auto-Generate Standard Suite
+            </button>
+          </div>
+        </div>
+
+        {/* Pass Types Table */}
+        <div className="tiers-table-wrap">
+          <table className="tiers-table editable-tiers-table">
+            <thead>
+              <tr>
+                <th style={{ width: "160px" }}>Pass Name</th>
+                <th>Description</th>
+                <th style={{ width: "130px" }}>Price (₹)</th>
+                <th style={{ width: "160px" }}>Sessions Included</th>
+                <th style={{ width: "110px" }}>Pass Cap</th>
+                <th style={{ width: "60px" }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(form.passTypes) && form.passTypes.length > 0 ? (
+                form.passTypes.map((p, idx) => {
+                  const isOverall = p.sessionsIncluded == null;
+
+                  return (
+                    <tr key={idx}>
+                      <td>
+                        <input
+                          type="text"
+                          className="tier-input-field"
+                          placeholder="e.g. Solo Pass"
+                          value={p.name || ""}
+                          onChange={(e) => {
+                            const updated = [...form.passTypes];
+                            updated[idx] = { ...p, name: e.target.value };
+                            onChange("passTypes", updated);
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="tier-input-field"
+                          placeholder="Short description..."
+                          value={p.description || ""}
+                          onChange={(e) => {
+                            const updated = [...form.passTypes];
+                            updated[idx] = { ...p, description: e.target.value };
+                            onChange("passTypes", updated);
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <div className="tier-price-input-wrap">
+                          <span className="tier-rupee">₹</span>
+                          <input
+                            type="number"
+                            className="tier-input-field price-input"
+                            min={0}
+                            placeholder="500"
+                            value={p.price ?? ""}
+                            onChange={(e) => {
+                              const updated = [...form.passTypes];
+                              updated[idx] = { ...p, price: parseFloat(e.target.value) || 0 };
+                              onChange("passTypes", updated);
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", cursor: "pointer", color: isOverall ? "#FF5500" : "inherit" }}>
+                            <input
+                              type="checkbox"
+                              checked={isOverall}
+                              onChange={(e) => {
+                                const updated = [...form.passTypes];
+                                updated[idx] = {
+                                  ...p,
+                                  sessionsIncluded: e.target.checked ? null : 1,
+                                };
+                                onChange("passTypes", updated);
+                              }}
+                            />
+                            <span>All Sessions (Overall Pass)</span>
+                          </label>
+                          {!isOverall && (
+                            <input
+                              type="number"
+                              min={1}
+                              max={50}
+                              className="tier-input-field"
+                              placeholder="1"
+                              value={p.sessionsIncluded ?? 1}
+                              onChange={(e) => {
+                                const updated = [...form.passTypes];
+                                updated[idx] = {
+                                  ...p,
+                                  sessionsIncluded: parseInt(e.target.value, 10) || 1,
+                                };
+                                onChange("passTypes", updated);
+                              }}
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100000}
+                          className="tier-input-field text-center"
+                          value={p.totalQuantity ?? 1000}
+                          onChange={(e) => {
+                            const updated = [...form.passTypes];
+                            updated[idx] = {
+                              ...p,
+                              totalQuantity: parseInt(e.target.value, 10) || 1000,
+                            };
+                            onChange("passTypes", updated);
+                          }}
+                        />
+                      </td>
+                      <td className="text-center">
+                        <button
+                          type="button"
+                          className="tier-delete-btn"
+                          title="Remove Pass Type"
+                          onClick={() => {
+                            const updated = form.passTypes.filter((_, i) => i !== idx);
+                            onChange("passTypes", updated);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", padding: "20px", color: "var(--text-muted, #71717a)", fontSize: "12px" }}>
+                    No custom pass types configured. Click "+ Add Pass Type" or use the auto-generator above.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="add-tier-footer-row">
+          <button
+            type="button"
+            className="btn-add-tier"
+            onClick={() => {
+              const currentPasses = Array.isArray(form.passTypes) ? form.passTypes : [];
+              const newPass = {
+                id: undefined,
+                name: `Pass ${currentPasses.length + 1}`,
+                description: "",
+                price: Number(form.price) || 500,
+                sessionsIncluded: 1,
+                totalQuantity: 1000,
+                displayOrder: currentPasses.length + 1,
+                isActive: true,
+              };
+              onChange("passTypes", [...currentPasses, newPass]);
+            }}
+          >
+            <Plus size={15} />
+            <span>Add Pass Type</span>
+          </button>
+        </div>
+      </div>
+
       {/* Workshop Total Capacity & Student Discount Notice */}
       <div className="wizard-form-grid-2">
         <div className="wizard-form-group">

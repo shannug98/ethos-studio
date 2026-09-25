@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, UserPlus, Edit2, Power, Trash2, CheckCircle2, AlertCircle, RefreshCw, X, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import { adminApi } from "../../services/adminApi";
+import { getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName } from "../../utils/mediaUrl";
+import NumericInput from "../../components/common/NumericInput";
+import TrainerAvatar from "../../components/common/TrainerAvatar";
 import "./AdminTrainers.css";
 
 export default function AdminTrainers() {
@@ -32,6 +35,7 @@ export default function AdminTrainers() {
 
   // Device photo upload state
   const photoInputRef = useRef(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -47,29 +51,31 @@ export default function AdminTrainers() {
       return;
     }
 
-    setUploadingPhoto(true);
+    // Immediate local preview
+    const previewUrl = URL.createObjectURL(file);
+    setFormData((prev) => ({ ...prev, profilePhotoUrl: previewUrl }));
     setPhotoUploadError("");
 
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("section", "Trainers");
-      fd.append("title", `${formData.fullName || "Trainer"} Profile Photo`);
-      fd.append("mediaType", "Image");
-      fd.append("isPublished", "true");
-
-      const res = await adminApi.uploadMedia(fd);
-      const url = res?.publicUrl || res?.PublicUrl || res?.r2Url || res?.R2Url || res?.mediaItem?.r2Url;
-      if (url) {
-        setFormData((prev) => ({ ...prev, profilePhotoUrl: url }));
-      } else {
-        throw new Error("No URL returned from upload");
+    if (editingTrainer) {
+      setUploadingPhoto(true);
+      try {
+        const id = editingTrainer.trainerId || editingTrainer.id;
+        const res = await adminApi.uploadTrainerProfilePhoto(id, file);
+        const url = res?.profilePhotoUrl;
+        if (url) {
+          setFormData((prev) => ({ ...prev, profilePhotoUrl: url }));
+        } else {
+          throw new Error("No URL returned from photo upload");
+        }
+      } catch (err) {
+        console.error("Trainer photo upload failed:", err);
+        setPhotoUploadError(err.message || "Failed to upload photo from device.");
+      } finally {
+        setUploadingPhoto(false);
       }
-    } catch (err) {
-      console.error("Trainer photo upload failed:", err);
-      setPhotoUploadError(err.message || "Failed to upload photo from device.");
-    } finally {
-      setUploadingPhoto(false);
+    } else {
+      // New trainer - hold file to upload immediately upon creation
+      setPendingPhotoFile(file);
     }
   };
 
@@ -104,6 +110,7 @@ export default function AdminTrainers() {
 
   const openCreateModal = () => {
     setEditingTrainer(null);
+    setPendingPhotoFile(null);
     setFormData({
       fullName: "",
       phone: "",
@@ -126,6 +133,7 @@ export default function AdminTrainers() {
 
   const openEditModal = (t) => {
     setEditingTrainer(t);
+    setPendingPhotoFile(null);
     setFormData({
       fullName: t.fullName || "",
       phone: t.phone || "",
@@ -180,7 +188,8 @@ export default function AdminTrainers() {
         });
         setFormSuccess("Trainer profile updated successfully!");
       } else {
-        await adminApi.createTrainer({
+        const initialPhotoUrl = pendingPhotoFile ? null : (formData.profilePhotoUrl.trim() || null);
+        const created = await adminApi.createTrainer({
           fullName: formData.fullName.trim(),
           phone: cleanPhone,
           email: formData.email.trim() || null,
@@ -189,10 +198,19 @@ export default function AdminTrainers() {
           primaryDanceStyle: formData.primaryDanceStyle.trim(),
           secondaryDanceStyles: formData.secondaryDanceStyles.trim() || null,
           bio: formData.bio.trim() || null,
-          profilePhotoUrl: formData.profilePhotoUrl.trim() || null,
+          profilePhotoUrl: initialPhotoUrl,
           isActive: formData.isActive,
           dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         });
+
+        const newId = created?.trainerId || created?.TrainerId || created?.id || created?.Id;
+        if (pendingPhotoFile && newId) {
+          try {
+            await adminApi.uploadTrainerProfilePhoto(newId, pendingPhotoFile);
+          } catch (uploadErr) {
+            console.error("Failed to upload profile photo for new trainer:", uploadErr);
+          }
+        }
         setFormSuccess("Trainer created and activated successfully!");
       }
 
@@ -213,7 +231,7 @@ export default function AdminTrainers() {
     const nextStatus = currentActive ? "Suspended" : "Active";
     const actionLabel = currentActive ? "deactivate" : "activate";
 
-    if (!window.confirm(`Are you sure you want to ${actionLabel} ${t.fullName}?`)) return;
+    if (!window.confirm(`Are you sure you want to ${actionLabel} ${getTrainerDisplayName(t)}?`)) return;
 
     try {
       await adminApi.updateTrainerStatus(id, nextStatus, `Admin ${actionLabel}d trainer.`);
@@ -340,23 +358,16 @@ export default function AdminTrainers() {
                     <tr key={id} className={!isActive ? "row-inactive" : ""}>
                       {/* 1. Photo (Circle) */}
                       <td className="td-photo">
-                        {t.profilePhotoUrl ? (
-                          <img
-                            src={t.profilePhotoUrl}
-                            alt={t.fullName}
-                            className="trainer-circle-photo"
-                          />
-                        ) : (
-                          <div className="trainer-photo-fallback">
-                            {(t.fullName || "T")[0].toUpperCase()}
-                          </div>
-                        )}
+                        <TrainerAvatar
+                          trainer={t}
+                          size="md"
+                        />
                       </td>
 
                       {/* 2. Trainer Details */}
                       <td className="td-trainer">
                         <div className="trainer-name-col">
-                          <span className="trainer-fullname">{t.fullName}</span>
+                          <span className="trainer-fullname">{getTrainerDisplayName(t)}</span>
                           <span className="trainer-phone">{t.phone || "No phone"}</span>
                           {t.city && <span className="trainer-city-tag">{t.city}</span>}
                         </div>
@@ -426,7 +437,7 @@ export default function AdminTrainers() {
                               open: true,
                               trainer: t,
                               loading: false,
-                              message: `Are you sure you want to remove ${t.fullName}? If they are assigned to workshops, they will be safely archived.`
+                              message: `Are you sure you want to remove ${getTrainerDisplayName(t)}? If they are assigned to workshops, they will be safely archived.`
                             })}
                             title="Delete or Archive Trainer"
                           >
@@ -522,13 +533,13 @@ export default function AdminTrainers() {
               <div className="modal-form-grid-2">
                 <div className="form-field-group">
                   <label className="field-label">Years of Experience</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="40"
+                  <NumericInput
+                    min={0}
+                    max={40}
+                    step={1}
                     className="field-input"
                     value={formData.experienceYears}
-                    onChange={(e) => setFormData({ ...formData, experienceYears: Number(e.target.value) })}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, experienceYears: val ?? 0 }))}
                   />
                 </div>
 
@@ -575,12 +586,11 @@ export default function AdminTrainers() {
                 {formData.profilePhotoUrl ? (
                   <div className="trainer-photo-preview-wrap">
                     <div className="trainer-photo-preview-avatar">
-                      <img
-                        src={formData.profilePhotoUrl}
-                        alt={formData.fullName || "Trainer"}
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
+                      <TrainerAvatar
+                        trainer={formData.profilePhotoUrl}
+                        name={getTrainerDisplayName(formData)}
+                        size="xl"
+                        bordered
                       />
                     </div>
                     <div className="trainer-photo-preview-info">
@@ -609,7 +619,10 @@ export default function AdminTrainers() {
                         <button
                           type="button"
                           className="btn-photo-action delete"
-                          onClick={() => setFormData((prev) => ({ ...prev, profilePhotoUrl: "" }))}
+                          onClick={() => {
+                            setPendingPhotoFile(null);
+                            setFormData((prev) => ({ ...prev, profilePhotoUrl: "" }));
+                          }}
                           disabled={uploadingPhoto}
                         >
                           <Trash2 size={13} />
@@ -685,9 +698,10 @@ export default function AdminTrainers() {
                         className="field-input"
                         placeholder="https://images.unsplash.com/... or https://..."
                         value={formData.profilePhotoUrl}
-                        onChange={(e) =>
-                          setFormData({ ...formData, profilePhotoUrl: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setPendingPhotoFile(null);
+                          setFormData({ ...formData, profilePhotoUrl: e.target.value });
+                        }}
                         style={{ fontSize: "12px", padding: "6px 10px" }}
                       />
                     </div>

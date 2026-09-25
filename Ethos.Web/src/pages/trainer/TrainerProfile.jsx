@@ -8,10 +8,12 @@ import LoadingState from "../../components/trainer/LoadingState";
 import ErrorState from "../../components/trainer/ErrorState";
 import TrainerGallery from "../../components/trainer/TrainerGallery";
 import { getApiErrorMessage } from "../../utils/apiErrorMessage";
-import { getMediaUrl } from "../../utils/mediaUrl";
+import { getMediaUrl, getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName } from "../../utils/mediaUrl";
+import TrainerAvatar from "../../components/common/TrainerAvatar";
 import "./TrainerProfile.css";
 
-import tierArtwork from "../../assets/trainer/ethos-tier-emblems.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const tierArtwork = MEDIA_ASSETS.trainers.tierEmblems;
 
 const tierPositions = {
   SILVER: "silver",
@@ -411,23 +413,12 @@ export default function TrainerProfile() {
         {/* Profile Hero Section */}
         <section className="trainer-profile-hero-card">
           <div className="trainer-profile-avatar-area">
-            {photoPreview ? (
-              <img
-                src={photoPreview}
-                alt="Profile preview"
-                className="trainer-avatar-img"
-              />
-            ) : profile?.profilePhotoUrl ? (
-              <img
-                src={getMediaUrl(profile.profilePhotoUrl)}
-                alt={profile.fullName}
-                className="trainer-avatar-img"
-              />
-            ) : (
-              <div className="trainer-avatar-fallback">
-                <span>{getInitials(profile?.fullName)}</span>
-              </div>
-            )}
+            <TrainerAvatar
+              trainer={photoPreview || profile}
+              name={getTrainerDisplayName(profile)}
+              size={96}
+              bordered
+            />
 
             {editMode && canUpdateProfile && (
               <div className="trainer-photo-edit">
@@ -469,7 +460,7 @@ export default function TrainerProfile() {
               <span className="trainer-status-pill">{profile?.status?.toUpperCase() || "ACTIVE"}</span>
             </div>
 
-            <h2>{profile?.fullName || "Ethos Trainer"}</h2>
+            <h2>{getTrainerDisplayName(profile)}</h2>
 
             <p className="trainer-city-sub">{profile?.city || "India"}</p>
 
@@ -524,7 +515,7 @@ export default function TrainerProfile() {
                     )}
                   </>
                 ) : (
-                  <strong>{profile?.fullName || "—"}</strong>
+                  <strong>{getTrainerDisplayName(profile)}</strong>
                 )}
               </div>
 

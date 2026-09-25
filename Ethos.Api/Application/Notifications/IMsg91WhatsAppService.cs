@@ -12,6 +12,11 @@ public interface IMsg91WhatsAppService
         string recipientPhone,
         CancellationToken cancellationToken = default);
 
+    Task<Msg91DispatchResult> SendAdminPasswordResetAsync(
+        string resetUrl,
+        string recipientPhone,
+        CancellationToken cancellationToken = default);
+
     bool TryNormalizePhoneNumber(
         string? rawPhone,
         out string normalizedPhone,

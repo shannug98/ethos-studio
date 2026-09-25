@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./AdminTrainerApplicationDetailsModal.css";
 import { adminApi, getAdminToken } from "../../services/adminApi";
 import { API_BASE_URL } from "../../config/api";
+import TrainerAvatar from "../common/TrainerAvatar";
 
 export default function AdminTrainerApplicationDetailsModal({
   isOpen,
@@ -163,13 +164,14 @@ export default function AdminTrainerApplicationDetailsModal({
         <div className="app-details-body">
           {/* Candidate Hero Card */}
           <div className="candidate-hero-card">
-            <div className="candidate-avatar">
-              {application.profilePhotoUrl ? (
-                <img src={application.profilePhotoUrl} alt={application.fullName} />
-              ) : (
-                initials
-              )}
-            </div>
+            <TrainerAvatar
+              trainer={application.profilePhotoUrl}
+              name={application.fullName}
+              size="xl"
+              bordered
+              borderColor="#38bdf8"
+              className="candidate-avatar"
+            />
             <div className="candidate-meta" style={{ flex: 1 }}>
               <h4>{application.fullName || "Candidate Applicant"}</h4>
               <div className="candidate-meta-badges">

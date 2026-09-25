@@ -1,21 +1,33 @@
 import { apiClient } from "./apiClient";
 import { API_BASE_URL } from "../config/api";
 
+function withTimeout(promise, ms = 8000) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error(`Request timed out after ${ms}ms`);
+      err.name = "TimeoutError";
+      reject(err);
+    }, ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 export const workshopsApi = {
   getAll() {
-    return apiClient.get("/api/workshops");
+    return withTimeout(apiClient.get("/api/workshops"));
   },
 
   async getApprovedWorkshops() {
     try {
-      const data = await apiClient.get("/api/workshops");
+      const data = await withTimeout(apiClient.get("/api/workshops"));
       if (Array.isArray(data)) return data;
       if (Array.isArray(data?.items)) return data.items;
       return [];
     } catch (err) {
       console.warn("workshopsApi: apiClient error, trying direct API fallback:", err);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/workshops`);
+        const res = await withTimeout(fetch(`${API_BASE_URL}/api/workshops`), 4000);
         if (res.ok) {
           const fallbackData = await res.json();
           if (Array.isArray(fallbackData)) return fallbackData;
@@ -29,15 +41,24 @@ export const workshopsApi = {
   },
 
   getWorkshopById(id) {
-    return apiClient.get(`/api/workshops/${id}`);
+    return withTimeout(apiClient.get(`/api/workshops/${id}`));
   },
 
   getWorkshopPricing(id) {
-    return apiClient.get(`/api/workshops/${id}/pricing`);
+    return withTimeout(apiClient.get(`/api/workshops/${id}/pricing`));
   },
 
-  getWorkshopQuote(id, quantity = 1) {
-    return apiClient.get(`/api/workshops/${id}/quote?quantity=${quantity}`);
+  getWorkshopQuote(id, quantity = 1, passTypeId = null, selectedSessionIds = []) {
+    let url = `/api/workshops/${id}/quote?quantity=${quantity}`;
+    if (passTypeId) {
+      url += `&passTypeId=${encodeURIComponent(passTypeId)}`;
+    }
+    if (Array.isArray(selectedSessionIds) && selectedSessionIds.length > 0) {
+      selectedSessionIds.forEach((sid) => {
+        url += `&selectedSessionIds=${encodeURIComponent(sid)}`;
+      });
+    }
+    return apiClient.get(url);
   },
 
   createWorkshopOrder(workshopId, payload = { quantity: 1 }) {

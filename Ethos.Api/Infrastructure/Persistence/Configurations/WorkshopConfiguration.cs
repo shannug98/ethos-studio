@@ -95,6 +95,9 @@ public class WorkshopConfiguration : IEntityTypeConfiguration<Workshop>
         builder.Property(x => x.VenueAddress)
             .HasMaxLength(500);
 
+        builder.Property(x => x.LocationUrl)
+            .HasMaxLength(1000);
+
         builder.Property(x => x.Timezone)
             .HasMaxLength(100)
             .HasDefaultValue("Asia/Kolkata")
@@ -105,6 +108,8 @@ public class WorkshopConfiguration : IEntityTypeConfiguration<Workshop>
 
         builder.Property(x => x.EndUtc)
             .HasColumnType("timestamptz");
+
+        builder.Property(x => x.BookingCutoffTime);
 
         builder.Property(x => x.CreatedAt)
             .HasColumnType("timestamptz")

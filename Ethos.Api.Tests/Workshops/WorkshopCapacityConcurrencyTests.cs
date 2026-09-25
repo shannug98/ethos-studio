@@ -52,6 +52,23 @@ public class WorkshopCapacityConcurrencyTests
         public Task EnsureDefaultTiersAsync(Workshop workshop, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public decimal CalculatePublicPrice(decimal startingPrice, int bookedSeats) => startingPrice;
         public decimal CalculateStudentPrice(decimal startingPrice) => startingPrice;
+
+        public Task<WorkshopPriceQuoteResponse> CalculateTicketTypeQuoteAsync(WorkshopPassType ticketType, int quantity, int currentTicketsSold, Guid? userId = null, CancellationToken cancellationToken = default)
+        {
+            var unitPrice = ticketType.Price > 0 ? ticketType.Price : 500m;
+            return Task.FromResult(new WorkshopPriceQuoteResponse
+            {
+                WorkshopId = ticketType.WorkshopId,
+                RequestedQuantity = quantity,
+                TotalAmount = unitPrice * quantity,
+                Breakdown = new List<WorkshopPriceQuoteItem>
+                {
+                    new() { TierNumber = 1, TierName = "Standard", Quantity = quantity, UnitPrice = unitPrice, Subtotal = unitPrice * quantity }
+                }
+            });
+        }
+
+        public void ValidateTicketTypePricingTiers(int totalQuantity, List<Ethos.Api.Contracts.Admin.AdminWorkshopPricingTierItem>? tiers) { }
     }
 
     private class MockNotificationService : INotificationService
@@ -113,7 +130,8 @@ public class WorkshopCapacityConcurrencyTests
             notificationService,
             ticketService,
             fulfillmentService,
-            razorpaySettings);
+            razorpaySettings,
+            new TestWebHostEnvironment());
     }
 
     [Fact]

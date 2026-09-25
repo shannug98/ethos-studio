@@ -13,7 +13,12 @@ public record TicketPdfModel(
     string BookingReference,
     string TicketNumber,
     string QrToken,
-    string Status = "CONFIRMED / ACTIVE"
+    string Status = "CONFIRMED / ACTIVE",
+    string? VenueAddress = null,
+    string? MapsUrl = null,
+    string? PassName = null,
+    string? SessionTitle = null,
+    string? TrainerName = null
 );
 
 public static class TicketPdfGenerator
@@ -39,20 +44,26 @@ public static class TicketPdfGenerator
         sb.AppendLine("1 0.16 0.23 rg"); // Ethos Red #FF2A3A
         sb.AppendLine("70 746 525.28 4 re f");
 
+        // Logo in Top-Left Corner (60x60 pt at X=36, Y=766)
+        sb.AppendLine("q");
+        sb.AppendLine("60 0 0 60 36 766 cm");
+        sb.AppendLine("/Im1 Do");
+        sb.AppendLine("Q");
+
         // Header Title: ETHOS DANCE STUDIO
         sb.AppendLine("BT");
         sb.AppendLine("/F2 19 Tf");
         sb.AppendLine("0.06 0.09 0.16 rg"); // Deep Slate #0F172A
-        sb.AppendLine("36 798 Td");
-        sb.AppendLine($"({EscapePdf(model.WorkshopTitle.Length > 0 ? "ETHOS DANCE STUDIO" : "ETHOS DANCE STUDIO")}) Tj");
+        sb.AppendLine("106 800 Td");
+        sb.AppendLine("(ETHOS DANCE STUDIO) Tj");
         sb.AppendLine("ET");
 
         // Header Subtitle: OFFICIAL WORKSHOP PASS | DIGITAL ADMISSION PASS
         sb.AppendLine("BT");
         sb.AppendLine("/F2 8.5 Tf");
         sb.AppendLine("0.88 0.33 0.22 rg"); // Warm Peach #E05338
-        sb.AppendLine("36 784 Td");
-        sb.AppendLine($"(OFFICIAL WORKSHOP PASS  |  DIGITAL ADMISSION PASS) Tj");
+        sb.AppendLine("106 784 Td");
+        sb.AppendLine("(OFFICIAL WORKSHOP PASS  |  DIGITAL ADMISSION PASS) Tj");
         sb.AppendLine("ET");
 
         // Header Right: Status Tag Container (X: 390, Y: 770, W: 169, H: 38)
@@ -87,11 +98,12 @@ public static class TicketPdfGenerator
         sb.AppendLine("0.97 0.98 0.99 rg"); // Light background #F8FAFC
         sb.AppendLine("50 672 495.28 42 re f");
 
+        var bannerText = !string.IsNullOrWhiteSpace(model.PassName) ? model.PassName.ToUpperInvariant() : "MASTERCLASS & CHOREOGRAPHY INTENSIVE";
         sb.AppendLine("BT");
         sb.AppendLine("/F2 8.5 Tf");
         sb.AppendLine("0.88 0.33 0.22 rg");
         sb.AppendLine("62 696 Td");
-        sb.AppendLine($"(MASTERCLASS & CHOREOGRAPHY INTENSIVE) Tj");
+        sb.AppendLine($"({EscapePdf(bannerText)}) Tj");
         sb.AppendLine("ET");
 
         sb.AppendLine("BT");
@@ -124,11 +136,14 @@ public static class TicketPdfGenerator
         sb.AppendLine("ET");
 
         // Workshop Subtitle
+        var subText = !string.IsNullOrWhiteSpace(model.TrainerName)
+            ? $"Faculty: {model.TrainerName}  |  Official Workshop Pass"
+            : "Hosted by Ethos Faculty  |  Official Workshop Admission Pass";
         sb.AppendLine("BT");
         sb.AppendLine("/F1 9 Tf");
         sb.AppendLine("0.28 0.33 0.41 rg");
         sb.AppendLine("60 622 Td");
-        sb.AppendLine($"(Hosted by Ethos Faculty  |  Official Workshop Admission Pass) Tj");
+        sb.AppendLine($"({EscapePdf(subText)}) Tj");
         sb.AppendLine("ET");
 
         // Divider Line below title
@@ -139,12 +154,50 @@ public static class TicketPdfGenerator
 
         // 4. TWO COLUMN DETAILS & QR CONTAINER
         // Left Column Details
-        DrawDetailField(sb, 60, 582, "ATTENDEE NAME", model.AttendeeName, "Primary Ticket Holder", isLarge: true);
-        DrawDetailField(sb, 60, 532, "DATE", model.WorkshopDate, "Scheduled Workshop Session");
-        DrawDetailField(sb, 60, 482, "SESSION TIME", model.WorkshopTime, "Reporting time: 15 mins prior");
-        DrawDetailField(sb, 60, 432, "VENUE", model.Venue, "Main Studio Arena, Hyderabad");
-        DrawDetailField(sb, 60, 382, "BOOKING ID", model.BookingReference, "Confirmed Booking Record");
-        DrawDetailField(sb, 60, 332, "TICKET NUMBER", model.TicketNumber, "Admit: 1 Person (General Admission)");
+        var venueName = string.IsNullOrWhiteSpace(model.Venue) ? "Ethos Main Studio" : model.Venue;
+        if (venueName.Length > 36) venueName = venueName[..33] + "...";
+
+        var venueAddr = string.IsNullOrWhiteSpace(model.VenueAddress) ? "Main Studio Arena, Hyderabad" : model.VenueAddress;
+        if (venueAddr.Length > 52) venueAddr = venueAddr[..49] + "...";
+
+        var passTag = !string.IsNullOrWhiteSpace(model.PassName) ? model.PassName : "Primary Ticket Holder";
+        DrawDetailField(sb, 60, 582, "ATTENDEE NAME", model.AttendeeName, passTag, isLarge: true);
+
+        if (!string.IsNullOrWhiteSpace(model.SessionTitle))
+        {
+            var sessionSub = !string.IsNullOrWhiteSpace(model.TrainerName) ? $"Trainer: {model.TrainerName}" : "Workshop Session";
+            DrawDetailField(sb, 60, 536, "SESSION", model.SessionTitle, sessionSub);
+            DrawDetailField(sb, 60, 490, "DATE & TIME", $"{model.WorkshopDate} | {model.WorkshopTime}", "Reporting time: 15 mins prior");
+        }
+        else
+        {
+            DrawDetailField(sb, 60, 536, "DATE", model.WorkshopDate, "Scheduled Workshop Session");
+            DrawDetailField(sb, 60, 490, "SESSION TIME", model.WorkshopTime, "Reporting time: 15 mins prior");
+        }
+        DrawDetailField(sb, 60, 444, "VENUE & LOCATION", venueName, venueAddr);
+
+        float[]? linkRect = null;
+        if (!string.IsNullOrWhiteSpace(model.MapsUrl))
+        {
+            linkRect = new float[] { 60f, 395f, 215f, 413f };
+
+            // Clickable Maps Link Pill Button (X: 60, Y: 395, W: 155, H: 18)
+            sb.AppendLine("0.94 0.96 1.0 rg"); // Soft blue fill #EFF6FF
+            sb.AppendLine("60 395 155 18 re f");
+            sb.AppendLine("0.58 0.77 0.99 RG"); // Soft blue border #93C5FD
+            sb.AppendLine("0.75 w");
+            sb.AppendLine("60 395 155 18 re S");
+
+            sb.AppendLine("BT");
+            sb.AppendLine("/F2 7.5 Tf");
+            sb.AppendLine("0.11 0.31 0.85 rg"); // Deep blue text #1D4ED8
+            sb.AppendLine("68 400.5 Td");
+            sb.AppendLine("([MAP] OPEN LOCATION >) Tj");
+            sb.AppendLine("ET");
+        }
+
+        DrawDetailField(sb, 60, 360, "BOOKING ID", model.BookingReference, "Confirmed Booking Record");
+        DrawDetailField(sb, 60, 316, "TICKET NUMBER", model.TicketNumber, "Admit: 1 Person (General Admission)");
 
         // Right Column: QR Box Container (X: 315, Y: 295, W: 224, H: 298)
         sb.AppendLine("0.97 0.98 0.99 rg"); // Light box bg #F8FAFC
@@ -249,45 +302,42 @@ public static class TicketPdfGenerator
         sb.AppendLine($"(* Support: admissions@ethosdancestudio.com  -  www.ethosdancestudio.com) Tj");
         sb.AppendLine("ET");
 
-        // 7. BOTTOM FOOTER BANNER (Y: 0 to 64)
+        // 7. BOTTOM FOOTER BANNER (Y: 0 to 72)
         sb.AppendLine("0 0 0 rg"); // Black Footer #000000
-        sb.AppendLine("0 0 595.28 64 re f");
+        sb.AppendLine("0 0 595.28 72 re f");
 
         sb.AppendLine("1 0.16 0.23 rg"); // Red Top Accent Line #FF2A3A
-        sb.AppendLine("0 62 595.28 2 re f");
+        sb.AppendLine("0 70 595.28 2 re f");
 
+        // Row 1: Contact (Y: 50)
         sb.AppendLine("BT");
         sb.AppendLine("/F2 8 Tf");
         sb.AppendLine("0.97 0.98 0.99 rg");
-        sb.AppendLine("36 40 Td");
+        sb.AppendLine("36 50 Td");
         sb.AppendLine($"(Phone: +91 8466021834  |  +91 9110745710) Tj");
         sb.AppendLine("ET");
 
         sb.AppendLine("BT");
         sb.AppendLine("/F1 8 Tf");
         sb.AppendLine("0.80 0.84 0.88 rg");
-        sb.AppendLine("36 26 Td");
-        sb.AppendLine($"(Email: ethosdancestudio@gmail.com) Tj");
+        sb.AppendLine("330 50 Td");
+        sb.AppendLine($"(Email: ethosdancestudio@gmail.com  |  Instagram: @ethos_dancestudio) Tj");
         sb.AppendLine("ET");
 
+        // Row 2: Fixed Studio Headquarters Address (Y: 32)
         sb.AppendLine("BT");
-        sb.AppendLine("/F2 8 Tf");
-        sb.AppendLine("0.97 0.98 0.99 rg");
-        sb.AppendLine("400 40 Td");
-        sb.AppendLine($"(Instagram: @ethos_dancestudio) Tj");
-        sb.AppendLine("ET");
-
-        sb.AppendLine("BT");
-        sb.AppendLine("/F1 8 Tf");
+        sb.AppendLine("/F1 7.5 Tf");
         sb.AppendLine("0.80 0.84 0.88 rg");
-        sb.AppendLine("340 26 Td");
-        sb.AppendLine($"(Venue: Main Studio Arena, Kukatpally, Hyderabad, India) Tj");
+        sb.AppendLine("36 32 Td");
+        const string studioAddress = "Studio: second floor, 1/2/49/1, Nizampet Rd, Jai Bharat Nagar, Nagarjuna Homes, Kukatpally, Hyderabad, Telangana 500085";
+        sb.AppendLine($"({EscapePdf(studioAddress)}) Tj");
         sb.AppendLine("ET");
 
+        // Row 3: Copyright (Y: 14)
         sb.AppendLine("BT");
         sb.AppendLine("/F2 7 Tf");
         sb.AppendLine("0.58 0.64 0.72 rg");
-        sb.AppendLine("145 10 Td");
+        sb.AppendLine("130 14 Td");
         sb.AppendLine($"((C) 2026 ETHOS DANCE STUDIO  |  OFFICIAL WORKSHOP ADMISSION PASS  |  NOT FOR RESALE) Tj");
         sb.AppendLine("ET");
 
@@ -295,8 +345,8 @@ public static class TicketPdfGenerator
 
         var contentBytes = Encoding.ASCII.GetBytes(sb.ToString());
 
-        // Build Full Valid PDF 1.4 Binary Document
-        return BuildPdfDocument(contentBytes);
+        // Build Full Valid PDF 1.4 Binary Document with Clickable Maps Link Annotation
+        return BuildPdfDocument(contentBytes, model.MapsUrl, linkRect);
     }
 
     private static void DrawDetailField(StringBuilder sb, float x, float labelY, string label, string value, string subtitle, bool isLarge = false)
@@ -343,24 +393,23 @@ public static class TicketPdfGenerator
 
     private static void DrawVectorQrCode(StringBuilder sb, string rawToken, float startX, float startY, float targetSize)
     {
-        // QR Code Background Box (White)
-        sb.AppendLine("1 1 1 rg");
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0:F2} {1:F2} {2:F2} {3:F2} re f", startX - 5, startY - 5, targetSize + 10, targetSize + 10));
-        sb.AppendLine("0.80 0.84 0.88 RG");
-        sb.AppendLine("1 w");
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0:F2} {1:F2} {2:F2} {3:F2} re S", startX - 5, startY - 5, targetSize + 10, targetSize + 10));
-
         using var qrGenerator = new QRCodeGenerator();
         var safeToken = string.IsNullOrWhiteSpace(rawToken) ? "ETHOS-SAMPLE-TICKET" : rawToken;
-        using var qrCodeData = qrGenerator.CreateQrCode(safeToken, QRCodeGenerator.ECCLevel.M);
+        using var qrCodeData = qrGenerator.CreateQrCode(safeToken, QRCodeGenerator.ECCLevel.Q);
 
         var matrix = qrCodeData.ModuleMatrix;
         int moduleCount = matrix.Count;
         if (moduleCount == 0) return;
 
         float moduleSize = targetSize / moduleCount;
+        float quietZone = Math.Max(16f, moduleSize * 4f);
 
-        sb.AppendLine("0 0 0 rg"); // Black modules
+        // Standard ISO/IEC 18004 Quiet Zone: Clean pure white margin with NO tight borders touching finder patterns
+        sb.AppendLine("1 1 1 rg");
+        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0:F2} {1:F2} {2:F2} {3:F2} re f", 
+            startX - quietZone, startY - quietZone, targetSize + (quietZone * 2), targetSize + (quietZone * 2)));
+
+        sb.AppendLine("0 0 0 rg"); // Crisp Black modules
 
         for (int row = 0; row < moduleCount; row++)
         {
@@ -407,7 +456,7 @@ public static class TicketPdfGenerator
         return sb.ToString();
     }
 
-    private static byte[] BuildPdfDocument(byte[] contentBytes)
+    private static byte[] BuildPdfDocument(byte[] contentBytes, string? mapsUrl = null, float[]? linkRect = null)
     {
         using var ms = new MemoryStream();
         using var writer = new StreamWriter(ms, Encoding.ASCII, leaveOpen: true);
@@ -434,9 +483,18 @@ public static class TicketPdfGenerator
         writer.WriteLine("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
         writer.WriteLine("endobj");
 
+        bool hasLink = !string.IsNullOrWhiteSpace(mapsUrl) && linkRect != null && linkRect.Length == 4;
+
         // 3 0 obj: Page
         WriteObjHeader(3);
-        writer.WriteLine("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>");
+        if (hasLink)
+        {
+            writer.WriteLine("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R >> >> /Annots [8 0 R] >>");
+        }
+        else
+        {
+            writer.WriteLine("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Im1 7 0 R >> >>");
+        }
         writer.WriteLine("endobj");
 
         // 4 0 obj: Content Stream
@@ -458,6 +516,44 @@ public static class TicketPdfGenerator
         WriteObjHeader(6);
         writer.WriteLine("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
         writer.WriteLine("endobj");
+
+        // 7 0 obj: Logo Image XObject
+        var imageBytes = TicketPdfAssets.EmblemJpeg;
+        WriteObjHeader(7);
+        writer.WriteLine("<<");
+        writer.WriteLine("  /Type /XObject");
+        writer.WriteLine("  /Subtype /Image");
+        writer.WriteLine($"  /Width {TicketPdfAssets.EmblemWidth}");
+        writer.WriteLine($"  /Height {TicketPdfAssets.EmblemHeight}");
+        writer.WriteLine("  /ColorSpace /DeviceRGB");
+        writer.WriteLine("  /BitsPerComponent 8");
+        writer.WriteLine("  /Filter /DCTDecode");
+        writer.WriteLine($"  /Length {imageBytes.Length}");
+        writer.WriteLine(">>");
+        writer.WriteLine("stream");
+        writer.Flush();
+        ms.Write(imageBytes, 0, imageBytes.Length);
+        writer.WriteLine();
+        writer.WriteLine("endstream");
+        writer.WriteLine("endobj");
+
+        // 8 0 obj: Link Annotation (if maps URL configured)
+        if (hasLink)
+        {
+            WriteObjHeader(8);
+            writer.WriteLine("<<");
+            writer.WriteLine("  /Type /Annot");
+            writer.WriteLine("  /Subtype /Link");
+            writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "  /Rect [{0:F2} {1:F2} {2:F2} {3:F2}]", linkRect![0], linkRect[1], linkRect[2], linkRect[3]));
+            writer.WriteLine("  /Border [0 0 0]");
+            writer.WriteLine("  /A <<");
+            writer.WriteLine("    /Type /Action");
+            writer.WriteLine("    /S /URI");
+            writer.WriteLine($"    /URI ({EscapePdf(mapsUrl!)})");
+            writer.WriteLine("  >>");
+            writer.WriteLine(">>");
+            writer.WriteLine("endobj");
+        }
 
         // xref Table
         writer.Flush();

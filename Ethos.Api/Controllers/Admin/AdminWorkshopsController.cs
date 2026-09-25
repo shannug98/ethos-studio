@@ -4,6 +4,7 @@ using Ethos.Api.Contracts.Admin;
 using Ethos.Api.Contracts.Trainers;
 using Ethos.Api.Domain.Constants;
 using Ethos.Api.Domain.Enums;
+using Ethos.Api.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -57,7 +58,10 @@ public class AdminWorkshopsController : ControllerBase
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", null, HttpContext, cancellationToken);
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
-        var result = await _workshopService.GetWorkshopCountsAsync(cancellationToken);
+        Guid? adminId = null;
+        try { adminId = AdminUserId; } catch { }
+
+        var result = await _workshopService.GetWorkshopCountsAsync(adminId, cancellationToken);
         return Ok(result);
     }
 
@@ -102,6 +106,10 @@ public class AdminWorkshopsController : ControllerBase
         {
             var result = await _workshopService.UpdateWorkshopAsync(id, AdminUserId, request, cancellationToken);
             return Ok(result);
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { code = ex.Code, message = ex.Message });
         }
         catch (ArgumentException ex)
         {
@@ -337,6 +345,44 @@ public class AdminWorkshopsController : ControllerBase
         }
     }
 
+    [HttpGet("workshops/{id:guid}/cancel-stats")]
+    public async Task<ActionResult<AdminWorkshopCancellationStatsDto>> GetWorkshopCancellationStats(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", id, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var stats = await _workshopService.GetWorkshopCancellationStatsAsync(id, cancellationToken);
+            return Ok(stats);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("workshops/{id:guid}/refund-progress")]
+    public async Task<ActionResult<AdminWorkshopRefundProgressDto>> GetWorkshopRefundProgress(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", id, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var progress = await _workshopService.GetWorkshopRefundProgressAsync(id, cancellationToken);
+            return Ok(progress);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("workshops/{id:guid}/cancel")]
     public async Task<IActionResult> CancelWorkshop(
         Guid id,
@@ -366,9 +412,29 @@ public class AdminWorkshopsController : ControllerBase
         }
     }
 
+    [HttpPost("workshops/{id:guid}/retry-refunds")]
+    public async Task<IActionResult> RetryWorkshopRefunds(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopCancel, "Workshop", id, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var retried = await _workshopService.RetryFailedWorkshopRefundsAsync(id, AdminUserId, cancellationToken);
+            return Ok(new { count = retried, message = $"Successfully requeued {retried} failed refund(s) for processing." });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("workshops/{id:guid}/complete")]
     public async Task<IActionResult> CompleteWorkshop(
         Guid id,
+        [FromBody] AdminCompleteWorkshopRequest? request,
         CancellationToken cancellationToken)
     {
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", id, HttpContext, cancellationToken);
@@ -376,7 +442,37 @@ public class AdminWorkshopsController : ControllerBase
 
         try
         {
-            await _workshopService.CompleteWorkshopAsync(id, AdminUserId, cancellationToken);
+            await _workshopService.CompleteWorkshopAsync(
+                id,
+                AdminUserId,
+                request?.ForceComplete ?? false,
+                request?.OverrideReason,
+                cancellationToken);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            if (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                return NotFound(new { message = ex.Message });
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("workshops/{id:guid}")]
+    public async Task<IActionResult> DeleteWorkshop(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopDelete, "Workshop", id, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            await _workshopService.DeleteWorkshopAsync(id, AdminUserId, cancellationToken);
             return NoContent();
         }
         catch (ArgumentException ex)
@@ -557,12 +653,13 @@ public class AdminWorkshopsController : ControllerBase
         Guid workshopId,
         [FromQuery] string? filter,
         [FromQuery] string? search,
+        [FromQuery] Guid? sessionId,
         CancellationToken cancellationToken)
     {
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
-        var result = await _workshopService.GetWorkshopAttendeesAsync(workshopId, filter, search, cancellationToken);
+        var result = await _workshopService.GetWorkshopAttendeesAsync(workshopId, filter, search, sessionId, cancellationToken);
         return Ok(result);
     }
 
@@ -576,6 +673,70 @@ public class AdminWorkshopsController : ControllerBase
 
         var result = await _workshopService.GetWorkshopFeedbackAsync(workshopId, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("workshops/drafts")]
+    public async Task<ActionResult<AdminWorkshopDraftResponse>> GetDraft(
+        [FromQuery] Guid? workshopId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var draft = await _workshopService.GetDraftAsync(AdminUserId, workshopId, cancellationToken);
+        if (draft == null) return NotFound(new { message = "No draft found." });
+
+        return Ok(draft);
+    }
+
+    [HttpPut("workshops/drafts")]
+    [RequestSizeLimit(2 * 1024 * 1024)] // 2 MB size cap
+    public async Task<ActionResult<AdminWorkshopDraftResponse>> SaveDraft(
+        [FromBody] AdminSaveWorkshopDraftRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopCreate, "Workshop", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var draft = await _workshopService.SaveDraftAsync(AdminUserId, request, cancellationToken);
+            return Ok(draft);
+        }
+        catch (ConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                code = ex.Code,
+                message = ex.Message,
+                serverVersion = ex.ServerVersion
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("workshops/drafts/{id:guid}")]
+    public async Task<IActionResult> DiscardDraft(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopCreate, "Workshop", null, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        try
+        {
+            var deleted = await _workshopService.DiscardDraftAsync(AdminUserId, id, cancellationToken);
+            if (!deleted) return NotFound(new { message = "Draft not found." });
+
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
     }
 }
 

@@ -268,13 +268,3 @@ public class AdminAuthPasswordLockoutTests
         Assert.Equal("Invalid or expired password reset token.", reuseRes.Message);
     }
 }
-
-internal class TestWebHostEnvironment : IWebHostEnvironment
-{
-    public string EnvironmentName { get; set; } = Environments.Development;
-    public string ApplicationName { get; set; } = "Ethos.Api";
-    public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
-    public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
-    public string WebRootPath { get; set; } = AppContext.BaseDirectory;
-    public Microsoft.Extensions.FileProviders.IFileProvider WebRootFileProvider { get; set; } = null!;
-}

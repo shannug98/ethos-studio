@@ -72,14 +72,14 @@ public class AdminAuthController : ControllerBase
             });
         }
 
-        // Set HttpOnly, Secure, SameSite=Lax cookies for browser session
+        // Set HttpOnly, Secure, SameSite=Strict cookies for browser session
         if (!string.IsNullOrWhiteSpace(result.RawDeviceCredential))
         {
             Response.Cookies.Append("ethos_admin_device", result.RawDeviceCredential, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
-                SameSite = SameSiteMode.Lax,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
                 Path = "/api/admin",
                 Expires = DateTimeOffset.UtcNow.AddDays(365)
             });
@@ -90,8 +90,8 @@ public class AdminAuthController : ControllerBase
             Response.Cookies.Append("ethos_admin_session", result.RawSessionToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
-                SameSite = SameSiteMode.Lax,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
                 Path = "/api/admin",
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
@@ -137,7 +137,9 @@ public class AdminAuthController : ControllerBase
 
         Response.Cookies.Delete("ethos_admin_session", new CookieOptions
         {
-            Path = "/api/admin"
+            Path = "/api/admin",
+            Secure = true,
+            SameSite = SameSiteMode.Strict
         });
 
         return Ok(new { message = "Logged out successfully." });
@@ -154,7 +156,9 @@ public class AdminAuthController : ControllerBase
 
         Response.Cookies.Delete("ethos_admin_session", new CookieOptions
         {
-            Path = "/api/admin"
+            Path = "/api/admin",
+            Secure = true,
+            SameSite = SameSiteMode.Strict
         });
 
         return Ok(new { message = $"Terminated {count} admin sessions." });

@@ -13,6 +13,8 @@ public interface IWorkshopService
     Task<WorkshopPriceQuoteResponse> GetWorkshopQuoteAsync(
         Guid id,
         int quantity,
+        Guid? passTypeId = null,
+        List<Guid>? selectedSessionIds = null,
         CancellationToken cancellationToken = default);
 
     Task<CreateWorkshopOrderResponse> CreateWorkshopOrderAsync(Guid workshopId, CreateWorkshopOrderRequest request, CancellationToken cancellationToken = default);

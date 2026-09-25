@@ -31,6 +31,7 @@ public static class AdminPermissions
     public const string WorkshopApprove = "WORKSHOP_APPROVE";
     public const string WorkshopUpdate = "WORKSHOP_UPDATE";
     public const string WorkshopCancel = "WORKSHOP_CANCEL";
+    public const string WorkshopDelete = "WORKSHOP_DELETE";
 
     // Bookings & Attendance
     public const string BookingView = "BOOKING_VIEW";
@@ -92,7 +93,7 @@ public static class AdminPermissions
         StudentView, StudentUpdate, StudentSuspend, StudentCorrect,
         TrainerView, TrainerApprove, TrainerReject, TrainerCorrect,
         ClassView, ClassCreate, ClassUpdate, ClassCancel,
-        WorkshopView, WorkshopCreate, WorkshopApprove, WorkshopUpdate, WorkshopCancel,
+        WorkshopView, WorkshopCreate, WorkshopApprove, WorkshopUpdate, WorkshopCancel, WorkshopDelete,
         PackageView, PackageCreate, PackageUpdate, PackageDelete,
         BookingView, BookingCorrect, AttendanceView, AttendanceCorrect,
         PaymentView, PaymentReconcile,

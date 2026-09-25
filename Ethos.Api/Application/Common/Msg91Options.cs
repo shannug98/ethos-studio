@@ -20,6 +20,10 @@ public class Msg91Options
 
     public string? TicketPdfNamespace { get; set; } = null;
 
+    public string PasswordResetTemplateName { get; set; } = "ethos_admin_password_reset";
+
+    public string? PasswordResetNamespace { get; set; } = null;
+
     public string DefaultCountryCode { get; set; } = "91";
 
     public int TimeoutSeconds { get; set; } = 15;

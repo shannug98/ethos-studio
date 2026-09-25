@@ -7,7 +7,8 @@ public record TicketPdfResult(
     string? StorageKey,
     string? SignedHttpsUrl,
     string? FileHash,
-    string? ErrorMessage = null
+    string? ErrorMessage = null,
+    byte[]? PdfBytes = null
 );
 
 public interface ITicketPdfService

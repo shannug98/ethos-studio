@@ -54,6 +54,7 @@ public class Msg91ServiceHttpTests
             WorkshopTitle: "Bollywood",
             WorkshopDate: "25 Oct 2026",
             WorkshopTime: "6 PM",
+            Location: "Ethos Dance Studio, Hyderabad",
             BookingId: "BK-001");
 
         var result = await service.SendBookingConfirmedAsync(data, "9876543210");
@@ -83,6 +84,7 @@ public class Msg91ServiceHttpTests
             WorkshopTitle: "Bollywood",
             WorkshopDate: "25 Oct 2026",
             WorkshopTime: "6 PM",
+            Location: "Ethos Dance Studio, Hyderabad",
             BookingId: "BK-001",
             PdfHttpsUrl: "http://localhost:5000/uploads/tickets/ticket.pdf", // INSECURE HTTP / LOCAL
             FileName: "ticket.pdf");
@@ -115,7 +117,7 @@ public class Msg91ServiceHttpTests
 
         var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
 
-        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "BK-001");
+        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "Ethos Dance Studio, Hyderabad", "BK-001");
         var result = await service.SendBookingConfirmedAsync(data, "9876543210");
 
         Assert.False(result.Success);
@@ -136,7 +138,7 @@ public class Msg91ServiceHttpTests
 
         var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
 
-        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "BK-001");
+        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "Ethos Dance Studio, Hyderabad", "BK-001");
         var result = await service.SendBookingConfirmedAsync(data, "9876543210");
 
         Assert.False(result.Success);

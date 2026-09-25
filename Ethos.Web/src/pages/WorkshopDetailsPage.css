@@ -82,19 +82,39 @@
 }
 
 .workshop-hero-card {
+  position: relative;
   width: 100%;
-  max-height: 440px;
+  height: 460px;
+  max-height: 460px;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d0d11;
+}
+
+.workshop-hero-card-backdrop {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.32);
+  pointer-events: none;
 }
 
 .workshop-hero-img {
-  width: 100%;
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* CONTAINER & GRID */
@@ -113,7 +133,31 @@
 
 @media (max-width: 960px) {
   .workshop-details-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .workshop-content-col {
+    display: contents;
+  }
+
+  .workshop-header-meta {
+    order: 1;
+  }
+
+  .workshop-sidebar-col {
+    order: 2;
+    margin-bottom: 8px;
+  }
+
+  .details-trainers-section,
+  .workshop-host-info {
+    order: 3;
+  }
+
+  .workshop-accordion-item {
+    order: 4;
   }
 }
 
@@ -438,3 +482,882 @@
   z-index: 10000;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
+
+/* MULTI-TRAINER LINEUP */
+.details-trainers-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.trainers-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #df806c;
+}
+
+.trainers-cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.trainer-chip-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 14px;
+  border-radius: 999px;
+  min-width: 160px;
+}
+
+.trainer-chip-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #df806c;
+}
+
+.trainer-chip-avatar.fallback {
+  background: #27272a;
+  color: #df806c;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trainer-chip-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.trainer-chip-styles {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+/* PASSES GRID IN DETAILS */
+.details-passes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.details-pass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.details-pass-card:hover {
+  border-color: rgba(223, 128, 108, 0.35);
+  background: rgba(223, 128, 108, 0.04);
+}
+
+.details-pass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.details-pass-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.details-pass-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #df806c;
+}
+
+.details-pass-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.details-pass-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.details-pass-badge.overall {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.details-pass-badge.finite {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.details-pass-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.4;
+}
+
+.details-select-pass-btn {
+  background: rgba(223, 128, 108, 0.15);
+  color: #df806c;
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.details-select-pass-btn:hover:not(:disabled) {
+  background: #df806c;
+  color: #fff;
+}
+
+.details-select-pass-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* SCHEDULE & TIMETABLE */
+.schedule-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.schedule-date-header {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e4e4e7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.schedule-sessions-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.schedule-session-card {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.schedule-session-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #df806c;
+  white-space: nowrap;
+  min-width: 140px;
+}
+
+.schedule-session-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedule-session-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.schedule-session-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.schedule-session-trainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.trainer-tag {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.trainer-tag strong {
+  color: #f4f4f5;
+}
+
+.session-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.session-tag.open {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.session-tag.closed {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.session-tag.sold-out {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* PASSES SUMMARY IN SIDEBAR */
+.passes-summary-sidebar-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(223, 128, 108, 0.1);
+  border: 1px solid rgba(223, 128, 108, 0.3);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f87171;
+}
+
+.pass-sparkle-icon {
+  color: #df806c;
+  flex-shrink: 0;
+}
+
+/* MOBILE TOP BAR (HIDDEN ON DESKTOP) */
+.mobile-details-top-bar {
+  display: none;
+}
+
+/* MORE WORKSHOPS / MORE EVENTS SECTION (IMAGE 2) */
+.more-workshops-section {
+  margin-top: 56px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.more-workshops-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.more-workshops-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.more-workshops-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.more-workshops-sub {
+  font-size: 14px;
+  color: #a1a1aa;
+}
+
+.more-carousel-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.more-carousel-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.more-carousel-btn:hover {
+  background: rgba(223, 128, 108, 0.2);
+  border-color: rgba(223, 128, 108, 0.45);
+  color: #ffffff;
+  transform: scale(1.06);
+}
+
+.more-carousel-btn:active {
+  transform: scale(0.96);
+}
+
+.more-workshops-track {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 14px;
+}
+
+.more-workshops-track::-webkit-scrollbar {
+  display: none;
+}
+
+.more-workshop-card {
+  flex: 0 0 clamp(290px, 26vw, 340px);
+  max-width: 340px;
+  scroll-snap-align: start;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.2s;
+}
+
+.more-workshop-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(223, 128, 108, 0.4);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+
+.more-workshop-poster-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: #18181b;
+  overflow: hidden;
+}
+
+.more-workshop-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.more-workshop-card:hover .more-workshop-poster {
+  transform: scale(1.03);
+}
+
+.more-workshop-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(18, 18, 22, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  color: #df806c;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.more-workshop-details {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.more-workshop-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.more-workshop-info-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.more-box-icon {
+  color: #df806c;
+  flex-shrink: 0;
+}
+
+.more-box-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.more-box-meta strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.more-box-meta span {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.more-workshop-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.more-card-price {
+  display: flex;
+  flex-direction: column;
+}
+
+.more-price-caption {
+  font-size: 11px;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.more-price-value {
+  font-size: 19px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.more-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-card-book-btn {
+  background: #df806c;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(223, 128, 108, 0.3);
+  transition: all 0.2s ease;
+}
+
+.more-card-book-btn:hover {
+  background: #e89583;
+  transform: translateY(-1px);
+}
+
+.more-card-share-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d4d4d8;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.more-card-share-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* MOBILE STICKY BOTTOM ACTION BAR (HIDDEN ON DESKTOP) */
+.mobile-sticky-booking-bar {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  /* Mobile Details Top Bar (Image 1) */
+  .mobile-details-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: rgba(18, 18, 22, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    width: 100%;
+  }
+
+  .mobile-details-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: #f4f4f5;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    max-width: 75%;
+  }
+
+  .mobile-details-top-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-details-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f4f4f5;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .workshop-hero-banner .workshop-back-btn {
+    display: none;
+  }
+
+  .workshop-details-page {
+    padding-bottom: 90px;
+  }
+
+  /* Booking Card on mobile (Image 1 style: clean, unboxed cards) */
+  .sticky-booking-card {
+    position: static;
+    top: auto;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 16px;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .booking-card-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+  }
+
+  .booking-card-price-row > div {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .price-label {
+    font-size: 14px;
+    color: #a1a1aa;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .price-figure {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .price-figure span {
+    font-size: 13px;
+    color: #a1a1aa;
+    font-weight: 500;
+  }
+
+  /* Mobile quick info boxes (Image 1) */
+  .booking-info-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+  }
+
+  .box-icon {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(223, 128, 108, 0.12);
+    color: #df806c;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .box-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .box-content strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .box-content span {
+    font-size: 12px;
+    color: #a1a1aa;
+  }
+
+  /* Always visible sticky bottom bar on mobile (Image 1 & 2) */
+  .mobile-sticky-booking-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(18, 18, 22, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 12px 18px;
+    z-index: 999;
+    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.5);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobile-sticky-booking-bar.visible {
+    transform: translateY(0);
+  }
+
+  .mobile-sticky-bar-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-sticky-bar-label {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-weight: 500;
+  }
+
+  .mobile-sticky-bar-price {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .mobile-sticky-bar-price span {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-weight: 500;
+  }
+
+  .mobile-sticky-bar-btn {
+    background: #df806c;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(223, 128, 108, 0.4);
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .mobile-sticky-bar-btn:active {
+    transform: scale(0.97);
+  }
+
+  .mobile-sticky-bar-btn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: #71717a;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* More workshops swipeable track on mobile */
+  .more-workshops-section {
+    margin-top: 36px;
+    padding-top: 28px;
+    overflow: hidden;
+  }
+
+  .more-carousel-controls {
+    display: none;
+  }
+
+  .more-workshops-track {
+    gap: 16px;
+    padding-bottom: 8px;
+  }
+
+  .more-workshop-card {
+    flex: 0 0 82vw;
+    max-width: 320px;
+    min-width: 260px;
+    scroll-snap-align: start;
+  }
+
+  /* Lift floating socials cleanly when mobile sticky bottom bar is visible */
+  .ethos-floating-socials,
+  body.has-sticky-booking-bar .ethos-floating-socials {
+    bottom: 82px !important;
+    transition: bottom 0.25s ease;
+  }
+}
+
+@media (max-width: 768px) {
+  .workshop-hero-banner {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .workshop-hero-card {
+    height: 300px;
+    max-height: 300px;
+    border-radius: 16px;
+  }
+
+  .workshop-details-container {
+    padding: 16px 14px;
+  }
+
+  .workshop-title {
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    margin-bottom: 12px;
+  }
+
+  .sticky-booking-card {
+    position: static;
+    top: auto;
+    padding: 18px 16px;
+    border-radius: 16px;
+    gap: 14px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .price-figure {
+    font-size: 24px;
+  }
+
+  .booking-info-box {
+    padding: 11px 12px;
+    gap: 10px;
+  }
+
+  .primary-book-now-btn {
+    padding: 13px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .more-workshops-title {
+    font-size: 22px;
+  }
+
+  .more-workshops-sub {
+    font-size: 13px;
+  }
+
+  .more-workshop-card {
+    flex: 0 0 84vw;
+    max-width: 290px;
+    min-width: 240px;
+  }
+}
+
+

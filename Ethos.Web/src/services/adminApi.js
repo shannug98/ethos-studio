@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../config/api";
+import { API_BASE_URL } from "../config/api.js";
 
 const ADMIN_TOKEN_KEY = "ethos_admin_token";
 const ADMIN_USER_KEY = "ethos_admin_user";
@@ -7,6 +7,7 @@ const ADMIN_DEVICE_CRED_KEY = "ethos_admin_device_cred";
 let lastTraceId = null;
 
 export function getAdminDeviceId() {
+  if (typeof localStorage === "undefined") return "dev_node_test_id";
   let deviceId = localStorage.getItem(ADMIN_DEVICE_ID_KEY);
   if (!deviceId) {
     deviceId = crypto.randomUUID ? crypto.randomUUID() : `dev_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -16,10 +17,12 @@ export function getAdminDeviceId() {
 }
 
 export function getAdminDeviceCredential() {
+  if (typeof localStorage === "undefined") return null;
   return localStorage.getItem(ADMIN_DEVICE_CRED_KEY);
 }
 
 export function setAdminDeviceCredential(cred) {
+  if (typeof localStorage === "undefined") return;
   if (cred) {
     localStorage.setItem(ADMIN_DEVICE_CRED_KEY, cred);
   } else {
@@ -28,10 +31,12 @@ export function setAdminDeviceCredential(cred) {
 }
 
 export function getAdminToken() {
+  if (typeof localStorage === "undefined") return null;
   return localStorage.getItem(ADMIN_TOKEN_KEY);
 }
 
 export function setAdminToken(token) {
+  if (typeof localStorage === "undefined") return;
   if (token) {
     localStorage.setItem(ADMIN_TOKEN_KEY, token);
   } else {
@@ -40,6 +45,7 @@ export function setAdminToken(token) {
 }
 
 export function getAdminUser() {
+  if (typeof localStorage === "undefined") return null;
   const raw = localStorage.getItem(ADMIN_USER_KEY);
   if (!raw) return null;
   try {
@@ -50,6 +56,7 @@ export function getAdminUser() {
 }
 
 export function setAdminUser(user) {
+  if (typeof localStorage === "undefined") return;
   if (user) {
     localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
   } else {
@@ -58,6 +65,7 @@ export function setAdminUser(user) {
 }
 
 export function clearAdminAuth() {
+  if (typeof localStorage === "undefined") return;
   localStorage.removeItem(ADMIN_TOKEN_KEY);
   localStorage.removeItem(ADMIN_USER_KEY);
 }
@@ -68,11 +76,59 @@ export function isAdminAuthenticated() {
   return !!token && !!user && Array.isArray(user.roles) && user.roles.includes("ADMIN");
 }
 
+export const DEFAULT_TIMEOUT_MS = 8000;
+export const UPLOAD_TIMEOUT_MS = 600000; // 10 minutes (600,000 ms) for large media uploads up to 100MB
+
+export function createComposedTimeoutSignal(timeoutMs, externalSignal) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    const err = new Error(`Admin request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    err.name = "TimeoutError";
+    controller.abort(err);
+  }, timeoutMs);
+
+  let onExternalAbort = null;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timer);
+      controller.abort(externalSignal.reason);
+    } else {
+      onExternalAbort = () => {
+        clearTimeout(timer);
+        controller.abort(externalSignal.reason);
+      };
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      if (externalSignal && onExternalAbort) {
+        externalSignal.removeEventListener("abort", onExternalAbort);
+      }
+    },
+  };
+}
+
 export function getLastTraceId() {
   return lastTraceId;
 }
 
-async function adminRequest(endpoint, options = {}) {
+export function getCandidateUrls(endpoint, isDev = (typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV)), apiBaseUrl = API_BASE_URL) {
+  const urls = [];
+  if (apiBaseUrl && apiBaseUrl !== "http://localhost:5252" && apiBaseUrl !== "http://127.0.0.1:5252") {
+    urls.push(`${apiBaseUrl}${endpoint}`);
+  }
+  urls.push(endpoint);
+  if (isDev) {
+    urls.push(`http://127.0.0.1:5252${endpoint}`);
+  }
+  return urls;
+}
+
+export async function adminRequest(endpoint, options = {}) {
   const headers = {
     ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
@@ -88,35 +144,73 @@ async function adminRequest(endpoint, options = {}) {
     headers["X-Admin-Device-Credential"] = deviceCred;
   }
 
-  // Determine candidate URLs (primary relative/configured, fallback direct backend)
-  const candidateUrls = [];
-  if (API_BASE_URL) {
-    candidateUrls.push(`${API_BASE_URL}${endpoint}`);
-    if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-      candidateUrls.push(endpoint);
-      candidateUrls.push(`http://127.0.0.1:5252${endpoint}`);
-    }
-  } else {
-    candidateUrls.push(endpoint);
-    candidateUrls.push(`http://127.0.0.1:5252${endpoint}`);
-    candidateUrls.push(`http://localhost:5252${endpoint}`);
-  }
+  const isUpload = options.body instanceof FormData || endpoint.includes("/upload") || endpoint.includes("/replace");
+  const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+  const method = (options.method || "GET").toUpperCase();
+  const isMutatingOrUpload = method !== "GET" || isUpload;
+
+  const defaultTimeoutMs = isUpload ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+  const timeoutMs = options.timeout ?? defaultTimeoutMs;
+
+  // Determine candidate URLs (primary relative/configured, dev-only fallback direct backend)
+  const allCandidates = getCandidateUrls(endpoint, isDev);
+
+  // In production, mutating requests (POST, PUT, PATCH, DELETE) and uploads must NEVER
+  // fall back to the frontend/Netlify host (which is what relative endpoints resolve to).
+  // They must strictly target the authoritative API base URL.
+  const candidateUrls = (!isDev && isMutatingOrUpload)
+    ? [allCandidates[0]]
+    : allCandidates;
 
   let response = null;
   let lastError = null;
 
   for (const url of candidateUrls) {
+    const { signal, cleanup } = createComposedTimeoutSignal(timeoutMs, options.signal);
+
     try {
       response = await fetch(url, {
         ...options,
+        signal,
         headers,
       });
       if (response) {
         break; // Successfully connected to backend
       }
     } catch (err) {
+      // If the request timed out or was aborted by caller/timer, NEVER retry on another candidate URL!
+      const isTimeoutOrAbort =
+        signal.aborted ||
+        err?.name === "AbortError" ||
+        err?.name === "TimeoutError" ||
+        (err?.message && err.message.toLowerCase().includes("timed out"));
+
+      if (isTimeoutOrAbort) {
+        cleanup();
+        const callerAborted = options.signal?.aborted;
+        if (callerAborted) {
+          throw err;
+        }
+        const timeoutSeconds = Math.round(timeoutMs / 1000);
+        const timeoutMessage = isUpload
+          ? `Media upload timed out after ${timeoutSeconds}s. Please check your network connection and retry.`
+          : `Admin request timed out after ${timeoutSeconds}s.`;
+        const timeoutError = new Error(timeoutMessage);
+        timeoutError.name = "TimeoutError";
+        timeoutError.isTimeout = true;
+        throw timeoutError;
+      }
+
+      // If mutating request failed with network error, do not retry on another host in production
+      if (isMutatingOrUpload && !isDev) {
+        cleanup();
+        throw err;
+      }
+
       console.warn(`[Admin API] Request to ${url} failed, trying next candidate:`, err);
       lastError = err;
+    } finally {
+      cleanup();
     }
   }
 
@@ -142,11 +236,23 @@ async function adminRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    let msg = data?.message || data?.Message || data?.detail || data?.Detail;
+    if (!msg && data?.errors && typeof data.errors === "object") {
+      const errList = Object.entries(data.errors)
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+        .filter(Boolean);
+      if (errList.length > 0) {
+        msg = errList.join(" | ");
+      }
+    }
+    if (!msg && data?.title) {
+      msg = data.title;
+    }
     const error = new Error(
-      data?.message || data?.detail || `Admin request failed (${response.status})`
+      msg || `Admin request failed (${response.status})`
     );
     error.status = response.status;
-    error.code = data?.errorCode || data?.code;
+    error.code = data?.code || data?.Code || data?.errorCode;
     error.traceId = traceHeader;
     error.data = data;
     throw error;
@@ -340,6 +446,25 @@ export const adminApi = {
       body: JSON.stringify({ status, reason }),
     }),
 
+  uploadTrainerProfilePhoto: (trainerId, file) => {
+    const token = getAdminToken();
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetch(`${API_BASE_URL}/api/admin/trainers/${trainerId}/profile-photo`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Photo upload failed (${res.status})`);
+      }
+      return res.json();
+    });
+  },
+
   getTrainerPermissions: (id) =>
     adminRequest(`/api/admin/trainers/${id}/permissions`),
 
@@ -495,11 +620,23 @@ export const adminApi = {
   // Phase 18.9: Workshops Management & Review
   getWorkshopCounts: () => adminRequest("/api/admin/workshops/counts"),
 
-  searchVenues: (query) =>
-    adminRequest(`/api/admin/venues/autocomplete?query=${encodeURIComponent(query)}`),
+  searchVenues: (query, sessionToken = null) => {
+    let url = `/api/admin/venues/autocomplete?query=${encodeURIComponent(query)}`;
+    if (sessionToken) url += `&sessionToken=${encodeURIComponent(sessionToken)}`;
+    return adminRequest(url);
+  },
 
-  getPlaceDetails: (placeId) =>
-    adminRequest(`/api/admin/venues/details?placeId=${encodeURIComponent(placeId)}`),
+  getPlaceDetails: (placeId, sessionToken = null) => {
+    let url = `/api/admin/venues/details?placeId=${encodeURIComponent(placeId)}`;
+    if (sessionToken) url += `&sessionToken=${encodeURIComponent(sessionToken)}`;
+    return adminRequest(url);
+  },
+
+  resolveVenueUrl: (url) =>
+    adminRequest("/api/admin/venues/resolve-url", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
 
   getWorkshops: (params = "") =>
     adminRequest(`/api/admin/workshops${params ? `?${params}` : ""}`),
@@ -518,7 +655,7 @@ export const adminApi = {
 
   getPendingWorkshops: () => adminRequest("/api/admin/workshops/pending"),
 
-  getWorkshopById: (id) => adminRequest(`/api/admin/workshops/${id}`),
+  getWorkshopById: (id, options = {}) => adminRequest(`/api/admin/workshops/${id}`, options),
 
   getWorkshopPricingTiers: (id) => adminRequest(`/api/admin/workshops/${id}/pricing-tiers`),
 
@@ -552,9 +689,26 @@ export const adminApi = {
       body: JSON.stringify({ reason }),
     }),
 
-  completeWorkshop: (id) =>
+  getWorkshopCancellationStats: (id) =>
+    adminRequest(`/api/admin/workshops/${id}/cancel-stats`),
+
+  getWorkshopRefundProgress: (id) =>
+    adminRequest(`/api/admin/workshops/${id}/refund-progress`),
+
+  retryWorkshopRefunds: (id) =>
+    adminRequest(`/api/admin/workshops/${id}/retry-refunds`, {
+      method: "POST",
+    }),
+
+  completeWorkshop: (id, data) =>
     adminRequest(`/api/admin/workshops/${id}/complete`, {
       method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+
+  deleteWorkshop: (id) =>
+    adminRequest(`/api/admin/workshops/${id}`, {
+      method: "DELETE",
     }),
 
   publishWorkshop: (id) =>
@@ -572,22 +726,25 @@ export const adminApi = {
       method: "POST",
     }),
 
-  uploadMedia: (formData) => {
-    const token = getAdminToken();
-    return fetch(`${API_BASE_URL}/api/admin/media/upload`, {
-      method: "POST",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    }).then(async (res) => {
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Upload failed (${res.status})`);
-      }
-      return res.json();
-    });
-  },
+  getWorkshopDraft: (workshopId = null) =>
+    adminRequest(`/api/admin/workshops/drafts${workshopId ? `?workshopId=${workshopId}` : ""}`).catch((err) => {
+      if (err?.status === 404 || err?.message?.includes("404")) return null;
+      return null; // A non-existent draft is an expected state, never a breaking failure
+    }),
+
+  saveWorkshopDraft: (data) =>
+    adminRequest("/api/admin/workshops/drafts", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  discardWorkshopDraft: (id) =>
+    adminRequest(`/api/admin/workshops/drafts/${id}`, {
+      method: "DELETE",
+    }),
+
+  uploadMedia: (formData, options = {}) =>
+    adminApi.uploadAdminMedia(formData, options),
 
   getAdminMedia: (params = "") =>
     adminRequest(`/api/admin/media${params ? `?${params}` : ""}`),
@@ -620,6 +777,12 @@ export const adminApi = {
       method: "POST",
     }),
 
+  modifyWorkshopBookingSession: (bookingId, payload) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/modify-session`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   getWorkshopTickets: (id) =>
     adminRequest(`/api/admin/workshops/${id}/tickets`),
 
@@ -632,8 +795,20 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
-  getWorkshopAttendees: (workshopId, params = "") =>
-    adminRequest(`/api/admin/workshops/${workshopId}/attendees${params ? `?${params}` : ""}`),
+  getWorkshopAttendees: (workshopId, params = "") => {
+    let queryStr = "";
+    if (typeof params === "string") {
+      queryStr = params ? (params.startsWith("?") ? params : `?${params}`) : "";
+    } else if (params && typeof params === "object") {
+      const q = new URLSearchParams();
+      if (params.filter) q.set("filter", params.filter);
+      if (params.search) q.set("search", params.search);
+      if (params.sessionId) q.set("sessionId", params.sessionId);
+      const s = q.toString();
+      queryStr = s ? `?${s}` : "";
+    }
+    return adminRequest(`/api/admin/workshops/${workshopId}/attendees${queryStr}`);
+  },
 
   getWorkshopFeedback: (workshopId) =>
     adminRequest(`/api/admin/workshops/${workshopId}/feedback`),
@@ -684,9 +859,27 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
+  updateCustomerDetails: (bookingId, payload) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/customer`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
   resendWhatsAppTicket: (bookingId) =>
     adminRequest(`/api/admin/bookings/workshops/${bookingId}/resend-whatsapp`, {
       method: "POST",
+    }),
+
+  sendWhatsAppNotification: (bookingId, phone = null) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/send-whatsapp`, {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    }),
+
+  refundWorkshopBooking: (bookingId, reason) =>
+    adminRequest(`/api/admin/bookings/workshops/${bookingId}/refund`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
     }),
 
   manualClassEnrollment: (data) =>
@@ -953,16 +1146,20 @@ export const adminApi = {
   getAdminVideos: (params = "") =>
     adminRequest(`/api/admin/videos${params ? `?${params}` : ""}`),
 
-  uploadVideo: (formData) =>
+  uploadVideo: (formData, options = {}) =>
     adminRequest("/api/admin/videos/upload", {
       method: "POST",
       body: formData,
+      timeout: options.timeout ?? UPLOAD_TIMEOUT_MS,
+      ...options,
     }),
 
-  replaceVideo: (id, formData) =>
+  replaceVideo: (id, formData, options = {}) =>
     adminRequest(`/api/admin/videos/${id}/replace`, {
       method: "POST",
       body: formData,
+      timeout: options.timeout ?? UPLOAD_TIMEOUT_MS,
+      ...options,
     }),
 
   updateVideo: (id, data) =>
@@ -1002,10 +1199,24 @@ export const adminApi = {
     return adminRequest(`/api/admin/media${qs ? `?${qs}` : ""}`);
   },
 
-  uploadAdminMedia: (formData) =>
+  uploadAdminMedia: (formData, options = {}) =>
     adminRequest("/api/admin/media/upload", {
       method: "POST",
       body: formData,
+      timeout: options.timeout ?? UPLOAD_TIMEOUT_MS,
+      ...options,
+    }),
+
+  presignGalleryVideoUpload: (data) =>
+    adminRequest("/api/admin/media/gallery-video/presign", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  confirmGalleryVideoUpload: (data) =>
+    adminRequest("/api/admin/media/gallery-video/confirm", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 
   updateAdminMedia: (id, data) =>
@@ -1078,6 +1289,12 @@ export const adminApi = {
   permanentDeleteAdminMedia: (id) =>
     adminRequest(`/api/admin/media/${id}?permanent=true`, {
       method: "DELETE",
+    }),
+
+  migrateReactAssets: (data = {}) =>
+    adminRequest("/api/admin/media/migrate-react-assets", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 };
 

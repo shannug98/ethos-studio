@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/footer.css";
 import ethosEmblem from "../assets/brand/ethos-emblem.png";
-import shanmukaPhoto from "../assets/shanmuka.jpg";
 
 function Footer({ onOpenPolicy }) {
   const navigate = useNavigate();
@@ -280,7 +279,7 @@ function Footer({ onOpenPolicy }) {
           <span className="footer-bottom__heart">♥</span>
           <span>for Ethos Dance Studio by</span>
           <div className="footer-bottom__creator-profile">
-            <img src={shanmukaPhoto} alt="Shanmuka" />
+            <span className="footer-bottom__creator-avatar">S</span>
             <strong>Shanmuka</strong>
           </div>
         </div>

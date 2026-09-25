@@ -68,10 +68,22 @@ public class AppDbContext : DbContext
 
     public DbSet<Workshop> Workshops => Set<Workshop>();
 
+    public DbSet<WorkshopTrainer> WorkshopTrainers => Set<WorkshopTrainer>();
+
+    public DbSet<WorkshopSession> WorkshopSessions => Set<WorkshopSession>();
+
+    public DbSet<WorkshopPassType> WorkshopPassTypes => Set<WorkshopPassType>();
+
     public DbSet<WorkshopPricingTier> WorkshopPricingTiers => Set<WorkshopPricingTier>();
 
     public DbSet<WorkshopBooking> WorkshopBookings => Set<WorkshopBooking>();
+
+    public DbSet<WorkshopBookingSession> WorkshopBookingSessions => Set<WorkshopBookingSession>();
  
+    public DbSet<WorkshopSessionTrainer> WorkshopSessionTrainers => Set<WorkshopSessionTrainer>();
+
+    public DbSet<WorkshopDraft> WorkshopDrafts => Set<WorkshopDraft>();
+
     public DbSet<WorkshopTicket> WorkshopTickets => Set<WorkshopTicket>();
 
     public DbSet<WorkshopAttendance> WorkshopAttendances => Set<WorkshopAttendance>();
@@ -112,6 +124,10 @@ public class AppDbContext : DbContext
     public DbSet<TicketPdf> TicketPdfs => Set<TicketPdf>();
 
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
+    public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
+
+    public DbSet<RefundJob> RefundJobs => Set<RefundJob>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

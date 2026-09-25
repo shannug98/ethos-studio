@@ -250,10 +250,12 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               ))}
             </div>
 
-            {/* WHATSAPP DELIVERY NOTIFICATION BAR */}
+            {/* WHATSAPP & PASS CONFIRMATION BANNER */}
             <div className="whatsapp-delivery-note">
               <MessageSquare size={14} className="wa-icon" />
-              <span>All {tickets.length} individual ticket passes are sent directly to your registered WhatsApp number.</span>
+              <span>
+                Your pass has been confirmed. A separate ticket has been generated for each selected session. All {tickets.length} passes are also sent to your WhatsApp.
+              </span>
             </div>
           </div>
         ) : (
@@ -276,7 +278,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               <span className="ticket-brand-emblem">✦</span>
               <div className="ticket-brand-text">
                 <strong>ETHOS DANCE STUDIO</strong>
-                <small>OFFICIAL WORKSHOP PASS</small>
+                <small>{booking.passName ? `${booking.passName.toUpperCase()} · TICKET` : "OFFICIAL WORKSHOP PASS"}</small>
               </div>
             </div>
 
@@ -291,7 +293,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
             <div className="ticket-title-section">
               <div className="ticket-title-header">
                 <span className="ticket-eyebrow">
-                  {isGroupBooking ? `GROUP PASS ${activeIndex + 1} OF ${tickets.length}` : "MASTERCLASS & INTENSIVE"}
+                  {currentTicket?.sessionTitle 
+                    ? `SESSION: ${currentTicket.sessionTitle.toUpperCase()}`
+                    : (isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "MASTERCLASS & INTENSIVE")}
                 </span>
                 {currentTicket?.ticketNumber && (
                   <span className="ticket-num-badge">{currentTicket.ticketNumber}</span>
@@ -306,7 +310,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
                 <Calendar size={16} className="ticket-detail-icon" />
                 <div>
                   <span className="detail-label">DATE</span>
-                  <strong className="detail-value">{formatDate(booking.workshopDate)}</strong>
+                  <strong className="detail-value">
+                    {formatDate(currentTicket?.sessionDate || booking.workshopDate)}
+                  </strong>
                 </div>
               </div>
 
@@ -315,9 +321,11 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
                 <div>
                   <span className="detail-label">TIME</span>
                   <strong className="detail-value">
-                    {booking.startTime && booking.endTime
-                      ? `${formatTime(booking.startTime)} – ${formatTime(booking.endTime)}`
-                      : "Session Time Confirmed"}
+                    {currentTicket?.sessionStartTime && currentTicket?.sessionEndTime
+                      ? `${formatTime(currentTicket.sessionStartTime)} – ${formatTime(currentTicket.sessionEndTime)}`
+                      : (booking.startTime && booking.endTime
+                          ? `${formatTime(booking.startTime)} – ${formatTime(booking.endTime)}`
+                          : "Session Time Confirmed")}
                   </strong>
                 </div>
               </div>
@@ -326,7 +334,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
                 <User size={16} className="ticket-detail-icon" />
                 <div>
                   <span className="detail-label">INSTRUCTOR</span>
-                  <strong className="detail-value">{booking.trainerName || "Elite Faculty"}</strong>
+                  <strong className="detail-value">
+                    {currentTicket?.sessionTrainerName || booking.trainerName || "Elite Faculty"}
+                  </strong>
                 </div>
               </div>
 
@@ -366,7 +376,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               <div className="ticket-meta-col">
                 <span className="meta-label">ADMISSION TYPE</span>
                 <strong className="meta-value ticket-price-highlight">
-                  {isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "SOLO PASS"}
+                  {currentTicket?.passName || booking.passName || (isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "SOLO PASS")}
                 </strong>
                 <small className="meta-sub">Verified Razorpay</small>
               </div>

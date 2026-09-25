@@ -352,6 +352,11 @@ public class AdminWorkshopRegistrationResponse
     public string FeedbackStatus { get; set; } = "Pending";
     public int? FeedbackRating { get; set; }
     public string? FeedbackComment { get; set; }
+
+    public string? PassName { get; set; }
+    public int? SessionsIncludedCount { get; set; }
+    public List<Ethos.Api.Contracts.Workshops.WorkshopTicketResponse> Tickets { get; set; } = new();
+    public List<Ethos.Api.Contracts.Workshops.WorkshopBookingSessionDto> BookingSessions { get; set; } = new();
 }
 
 public class AdminPaymentTransactionResponse
@@ -1351,5 +1356,39 @@ public class AdminResendWhatsAppRequest
     public string? Phone { get; set; }
 }
 
+public class AdminWorkshopCancellationStatsDto
+{
+    public Guid WorkshopId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int TotalBookings { get; set; }
+    public int PaidBookings { get; set; }
+    public decimal TotalRefundableAmount { get; set; }
+    public int TotalAttendees { get; set; }
+    public int ExistingRefundCount { get; set; }
+}
 
+public class AdminWorkshopRefundProgressDto
+{
+    public Guid WorkshopId { get; set; }
+    public int TotalJobs { get; set; }
+    public int ProcessedJobs { get; set; }
+    public int FailedJobs { get; set; }
+    public int ProcessingJobs { get; set; }
+    public int RequestedJobs { get; set; }
+    public int ReconciliationRequiredJobs { get; set; }
+    public List<AdminWorkshopRefundJobItemDto> Jobs { get; set; } = new();
+}
 
+public class AdminWorkshopRefundJobItemDto
+{
+    public Guid JobId { get; set; }
+    public Guid BookingId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? RazorpayRefundId { get; set; }
+    public string? LastError { get; set; }
+    public DateTime? ProcessedAtUtc { get; set; }
+}

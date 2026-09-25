@@ -1,0 +1,144 @@
+/* =========================================================
+   ETHOS DANCE STUDIO - COMING SOON PAGE
+   ========================================================= */
+
+.coming-soon-page {
+  position: relative;
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0c0a09;
+  color: #f5eee8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  padding: 100px 24px 60px;
+}
+
+.coming-soon-ambient-glow {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(255, 85, 0, 0.15) 0%, rgba(255, 85, 0, 0.03) 60%, transparent 80%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.coming-soon-container {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.coming-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 85, 0, 0.08);
+  border: 1px solid rgba(255, 85, 0, 0.25);
+  color: #ff7733;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.coming-soon-category {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #888888;
+  margin: 0 0 12px;
+}
+
+.coming-soon-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(2.8rem, 7vw, 4.8rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  color: #ffffff;
+  margin: 0 0 20px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ffffff 40%, rgba(255, 255, 255, 0.65) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.coming-soon-subtitle {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.6;
+  color: rgba(245, 238, 232, 0.7);
+  max-width: 520px;
+  margin: 0 0 36px;
+}
+
+.coming-soon-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.coming-soon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 26px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.coming-soon-btn.primary {
+  background: #ff5500;
+  color: #ffffff;
+  box-shadow: 0 4px 18px rgba(255, 85, 0, 0.35);
+}
+
+.coming-soon-btn.primary:hover {
+  background: #e04b00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(255, 85, 0, 0.45);
+}
+
+.coming-soon-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(245, 238, 232, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.coming-soon-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 600px) {
+  .coming-soon-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .coming-soon-btn {
+    width: 100%;
+  }
+}

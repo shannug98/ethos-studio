@@ -209,4 +209,49 @@ public class AdminTrainersController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Dedicated administrative upload endpoint for a trainer's operational profile photo.
+    /// Completely separated from promotional Media Library placements.
+    /// </summary>
+    [HttpPost("trainers/{id:guid}/profile-photo")]
+    public async Task<ActionResult<object>> UploadTrainerProfilePhoto(
+        Guid id,
+        IFormFile file,
+        [FromServices] Ethos.Api.Infrastructure.Persistence.AppDbContext dbContext,
+        [FromServices] Ethos.Api.Application.Storage.ITrainerProfilePhotoStorageService photoStorageService,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.TrainerApprove, "Trainer", id, HttpContext, cancellationToken);
+        if (!authCheck.Success)
+            return StatusCode(authCheck.StatusCode, new { error = authCheck.ErrorCode, message = authCheck.ErrorMessage });
+
+        var trainer = await dbContext.TrainerProfiles.FindAsync(new object[] { id }, cancellationToken);
+        if (trainer == null)
+        {
+            return NotFound(new { message = "Trainer profile not found." });
+        }
+
+        try
+        {
+            var photoUrl = await photoStorageService.SaveAsync(trainer.UserId, file, cancellationToken);
+            trainer.ProfilePhotoUrl = photoUrl;
+            trainer.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return Ok(new
+            {
+                profilePhotoUrl = photoUrl,
+                message = "Trainer profile photo updated successfully."
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

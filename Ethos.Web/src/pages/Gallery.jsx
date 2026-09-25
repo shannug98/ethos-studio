@@ -1,27 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Play, Pause, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 
-import workshop01 from "../assets/workshops/workshop-01.jpg";
-import workshop02 from "../assets/workshops/workshop-02.jpg";
-import workshop03 from "../assets/workshops/workshop-03.jpg";
-import workshop04 from "../assets/workshops/workshop-04.jpg";
-
-import aboutMain from "../assets/about/about-main.jpg";
-import aboutSecondary from "../assets/about/about-secondary.jpg";
-import aboutCommunity from "../assets/about/about-community.jpg";
-
-import founders from "../assets/founders/founders.jpg";
-
-import trainer01 from "../assets/trainers/trainer-01.jpg";
-import trainer02 from "../assets/trainers/trainer-02.jpg";
-import trainer03 from "../assets/trainers/trainer-03.jpg";
-import trainer04 from "../assets/trainers/trainer-04.jpg";
-
-import hero01 from "../assets/hero/hero-01.jpg";
-import hero02 from "../assets/hero/hero-02.jpg";
-import hero03 from "../assets/hero/hero-03.jpg";
-
-import visualReel from "../assets/gallery/ethos-visual-reel.mp4";
 import { publicApi } from "../services/publicApi";
+import { getMediaUrl, handleMediaImgError } from "../utils/mediaUrl";
+import { buildNormalizedShowcaseVideos } from "../utils/galleryPresentation";
 
 import "../styles/gallery.css";
 
@@ -34,138 +16,31 @@ const categories = [
   "BEHIND THE SCENES",
 ];
 
-const galleryItems = [
-  {
-    id: "workshop-01",
-    type: "image",
-    src: workshop01,
-    category: "WORKSHOPS",
-    title: "Workshop Sessions",
-    className: "gallery-item--tall",
-  },
-  {
-    id: "hero-01",
-    type: "image",
-    src: hero01,
-    category: "PERFORM",
-    title: "In Motion",
-    className: "gallery-item--wide",
-  },
-  {
-    id: "founders",
-    type: "image",
-    src: founders,
-    category: "COMMUNITY",
-    title: "The People Behind Ethos",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "workshop-02",
-    type: "image",
-    src: workshop02,
-    category: "WORKSHOPS",
-    title: "Movement & Energy",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "about-main",
-    type: "image",
-    src: aboutMain,
-    category: "BEHIND THE SCENES",
-    title: "Inside Ethos",
-    className: "gallery-item--tall",
-  },
-  {
-    id: "trainer-01",
-    type: "image",
-    src: trainer01,
-    category: "COMMUNITY",
-    title: "Ethos Faculty",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "workshop-03",
-    type: "image",
-    src: workshop03,
-    category: "WORKSHOPS",
-    title: "Learn. Move. Grow.",
-    className: "gallery-item--wide",
-  },
-  {
-    id: "hero-02",
-    type: "image",
-    src: hero02,
-    category: "PERFORM",
-    title: "Find Your Rhythm",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "about-secondary",
-    type: "image",
-    src: aboutSecondary,
-    category: "BEHIND THE SCENES",
-    title: "The Ethos Space",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "trainer-02",
-    type: "image",
-    src: trainer02,
-    category: "COMMUNITY",
-    title: "Faculty",
-    className: "gallery-item--tall",
-  },
-  {
-    id: "workshop-04",
-    type: "image",
-    src: workshop04,
-    category: "WORKSHOPS",
-    title: "Workshop Energy",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "hero-03",
-    type: "image",
-    src: hero03,
-    category: "PERFORM",
-    title: "Move With Purpose",
-    className: "gallery-item--wide",
-  },
-  {
-    id: "about-community",
-    type: "image",
-    src: aboutCommunity,
-    category: "COMMUNITY",
-    title: "The Ethos Community",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "trainer-03",
-    type: "image",
-    src: trainer03,
-    category: "COMMUNITY",
-    title: "Ethos Faculty",
-    className: "gallery-item--standard",
-  },
-  {
-    id: "trainer-04",
-    type: "image",
-    src: trainer04,
-    category: "COMMUNITY",
-    title: "Teaching Through Movement",
-    className: "gallery-item--tall",
-  },
-];
-
 function Gallery() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [selectedItem, setSelectedItem] = useState(null);
   const [dynamicVideos, setDynamicVideos] = useState([]);
-
+  const [slideshowMedia, setSlideshowMedia] = useState([]);
   const [cloudMedia, setCloudMedia] = useState([]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
+
+    // Load gallery featured slideshow (GallerySlideshow section)
+    publicApi
+      .getPublicMedia({ section: "GallerySlideshow" })
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setSlideshowMedia(data);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Gallery] Unable to load slideshow media:", err);
+      });
 
     // Load gallery videos (GalleryVideos section)
     publicApi
@@ -195,7 +70,7 @@ function Gallery() {
             return {
               id: m.id,
               type: (m.mediaType || "image").toLowerCase(),
-              src: m.publicUrl,
+              src: getMediaUrl(m),
               category: cat,
               title: m.title || "Ethos Moment",
               className,
@@ -214,7 +89,7 @@ function Gallery() {
   }, []);
 
   const allItems = useMemo(() => {
-    return [...cloudMedia, ...galleryItems];
+    return cloudMedia;
   }, [cloudMedia]);
 
   const filteredItems = useMemo(() => {
@@ -226,6 +101,116 @@ function Gallery() {
       (item) => item.category === activeCategory
     );
   }, [activeCategory, allItems]);
+
+  // Normalized video showcase presentation model (dynamic API reels)
+  const normalizedShowcaseVideos = useMemo(() => {
+    return buildNormalizedShowcaseVideos(dynamicVideos, []);
+  }, [dynamicVideos]);
+
+  // Dynamic image columns for top moving wall (GallerySlideshow section)
+  const motionColumns = useMemo(() => {
+    if (slideshowMedia && slideshowMedia.length > 0) {
+      const urls = slideshowMedia.map((m) => getMediaUrl(m)).filter(Boolean);
+      if (urls.length > 0) {
+        const col1 = [];
+        const col2 = [];
+        const col3 = [];
+        urls.forEach((url, i) => {
+          if (i % 3 === 0) col1.push(url);
+          else if (i % 3 === 1) col2.push(url);
+          else col3.push(url);
+        });
+        const fillTrack = (arr) => {
+          const base = arr.length > 0 ? arr : urls;
+          let res = [...base];
+          while (res.length < 8) res = res.concat(base);
+          return res.slice(0, 10);
+        };
+        return [fillTrack(col1), fillTrack(col2), fillTrack(col3)];
+      }
+    }
+
+    return [[], [], []];
+  }, [slideshowMedia]);
+
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const featuredVideoRef = useRef(null);
+
+  // Safely clamp featuredIndex if video list length changes
+  const currentFeaturedVideo = normalizedShowcaseVideos[featuredIndex] || normalizedShowcaseVideos[0];
+
+  // At any time, strictly at most ONE <video> element exists in the DOM.
+  // When the video lightbox is open, the background featured <video> is unmounted and replaced by its poster <img>.
+  const isLightboxVideoOpen = Boolean(selectedItem && selectedItem.type === "video");
+
+  const handlePrevVideo = () => {
+    setFeaturedIndex((prev) => (prev > 0 ? prev - 1 : normalizedShowcaseVideos.length - 1));
+    setIsPlaying(false);
+  };
+
+  const handleNextVideo = () => {
+    setFeaturedIndex((prev) => (prev < normalizedShowcaseVideos.length - 1 ? prev + 1 : 0));
+    setIsPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (!featuredVideoRef.current) return;
+    if (isPlaying) {
+      featuredVideoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      featuredVideoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
+  const getCarouselPosition = (index) => {
+    const total = normalizedShowcaseVideos.length;
+    if (total <= 1) return "active";
+
+    let offset = index - featuredIndex;
+    if (offset > total / 2) offset -= total;
+    if (offset < -total / 2) offset += total;
+
+    if (offset === 0) return "active";
+    if (offset === -1) return "previous";
+    if (offset === 1) return "next";
+    if (offset === -2) return "previous-2";
+    if (offset === 2) return "next-2";
+    return "hidden";
+  };
+
+  const touchStartX = useRef(null);
+
+  const handleTouchStart = (event) => {
+    if (event.touches && event.touches[0]) {
+      touchStartX.current = event.touches[0].clientX;
+    }
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartX.current == null) return;
+    const touchEndX = event.changedTouches?.[0]?.clientX;
+    if (touchEndX == null) return;
+    const delta = touchEndX - touchStartX.current;
+    touchStartX.current = null;
+
+    if (Math.abs(delta) < 45) return;
+
+    if (delta < 0) {
+      handleNextVideo();
+    } else {
+      handlePrevVideo();
+    }
+  };
+
+  // Pause featured video if lightbox modal opens
+  useEffect(() => {
+    if (selectedItem && featuredVideoRef.current) {
+      featuredVideoRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [selectedItem]);
 
   useEffect(() => {
     if (!selectedItem) {
@@ -249,7 +234,11 @@ function Gallery() {
     };
   }, [selectedItem]);
 
-  const openImage = (item) => {
+  const openLightbox = (item) => {
+    if (featuredVideoRef.current) {
+      featuredVideoRef.current.pause();
+    }
+    setIsPlaying(false);
     setSelectedItem(item);
   };
 
@@ -288,61 +277,38 @@ function Gallery() {
 
           {/* RIGHT — MOVING IMAGE WALL */}
           <div className="gallery-motion-wall">
+            {motionColumns[0].length > 0 ? (
+              <>
+                {/* COLUMN 1 — UP on desktop / ROW 1 — LEFT on mobile */}
+                <div className="gallery-motion-column gallery-motion-column--up">
+                  <div className="gallery-motion-track">
+                    {motionColumns[0].concat(motionColumns[0]).map((src, i) => (
+                      <img key={i} src={src} alt="" onError={(e) => handleMediaImgError(e)} />
+                    ))}
+                  </div>
+                </div>
 
-            {/* COLUMN 1 — UP */}
-            <div className="gallery-motion-column gallery-motion-column--up">
-              <div className="gallery-motion-track">
-                <img src={workshop01} alt="" />
-                <img src={hero02} alt="" />
-                <img src={trainer02} alt="" />
-                <img src={workshop03} alt="" />
-                <img src={hero01} alt="" />
+                {/* COLUMN 2 — DOWN on desktop / ROW 2 — RIGHT on mobile */}
+                <div className="gallery-motion-column gallery-motion-column--down">
+                  <div className="gallery-motion-track">
+                    {motionColumns[1].concat(motionColumns[1]).map((src, i) => (
+                      <img key={i} src={src} alt="" onError={(e) => handleMediaImgError(e)} />
+                    ))}
+                  </div>
+                </div>
 
-                {/* Duplicate set for seamless loop */}
-                <img src={workshop01} alt="" />
-                <img src={hero02} alt="" />
-                <img src={trainer02} alt="" />
-                <img src={workshop03} alt="" />
-                <img src={hero01} alt="" />
-              </div>
-            </div>
-
-            {/* COLUMN 2 — DOWN */}
-            <div className="gallery-motion-column gallery-motion-column--down">
-              <div className="gallery-motion-track">
-                <img src={founders} alt="" />
-                <img src={workshop02} alt="" />
-                <img src={trainer03} alt="" />
-                <img src={hero03} alt="" />
-                <img src={workshop04} alt="" />
-
-                {/* Duplicate set for seamless loop */}
-                <img src={founders} alt="" />
-                <img src={workshop02} alt="" />
-                <img src={trainer03} alt="" />
-                <img src={hero03} alt="" />
-                <img src={workshop04} alt="" />
-              </div>
-            </div>
-
-            {/* COLUMN 3 — UP */}
-            <div className="gallery-motion-column gallery-motion-column--up">
-              <div className="gallery-motion-track">
-                <img src={trainer01} alt="" />
-                <img src={aboutMain} alt="" />
-                <img src={hero01} alt="" />
-                <img src={trainer04} alt="" />
-                <img src={aboutSecondary} alt="" />
-
-                {/* Duplicate set for seamless loop */}
-                <img src={trainer01} alt="" />
-                <img src={aboutMain} alt="" />
-                <img src={hero01} alt="" />
-                <img src={trainer04} alt="" />
-                <img src={aboutSecondary} alt="" />
-              </div>
-            </div>
-
+                {/* COLUMN 3 — UP on desktop */}
+                <div className="gallery-motion-column gallery-motion-column--up">
+                  <div className="gallery-motion-track">
+                    {motionColumns[2].concat(motionColumns[2]).map((src, i) => (
+                      <img key={i} src={src} alt="" onError={(e) => handleMediaImgError(e)} />
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="gallery-motion-wall__empty" />
+            )}
           </div>
 
         </div>
@@ -350,123 +316,198 @@ function Gallery() {
       </section>
 
       {/* =====================================================
-          FEATURED VISUAL REEL
+          FEATURED MOVEMENT — CINEMATIC VIDEO SHOWCASE
           ===================================================== */}
-
-      <section className="gallery-reel">
-
-        <div className="gallery-reel__header">
-
+      <section className="gallery-showcase-section">
+        <div className="gallery-showcase-header">
           <div>
-            <p className="gallery-section-label">
-              ETHOS IN MOTION
-            </p>
-
+            <p className="gallery-section-label">FEATURED MOVEMENT</p>
             <h2>
               MOVEMENT,
               <br />
               <em>CAPTURED.</em>
             </h2>
           </div>
-
-          <p className="gallery-reel__description">
-            A glimpse into the energy, expression and
-            stories that live inside the studio.
+          <p className="gallery-showcase-subtitle">
+            A curated collection of explosive routines, masterclasses, and visual films produced at Ethos.
           </p>
-
         </div>
 
-        <button
-          type="button"
-          className="gallery-reel__frame"
-          onClick={() =>
-            setSelectedItem({
-              id: "visual-reel",
-              type: "video",
-              src: visualReel,
-              title: "Ethos In Motion",
-            })
-          }
-          aria-label="Open Ethos visual reel"
-        >
-          <video
-            className="gallery-reel__video"
-            src={visualReel}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
+        {normalizedShowcaseVideos.length > 0 ? (
+          <>
+            {/* 3D Video Carousel Stage (Single-video rule strictly maintained) */}
+            <div
+              className="gallery-video-carousel"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {normalizedShowcaseVideos.map((video, idx) => {
+                const position = getCarouselPosition(idx);
+                const isActive = position === "active";
 
-          <div className="gallery-reel__overlay" />
+                return (
+                  <div
+                    key={video.id}
+                    className={`gallery-carousel-card ${isActive ? "is-active" : ""}`}
+                    data-position={position}
+                    onClick={() => {
+                      if (!isActive) {
+                        setFeaturedIndex(idx);
+                        setIsPlaying(false);
+                      }
+                    }}
+                    role={isActive ? undefined : "button"}
+                    tabIndex={isActive ? undefined : 0}
+                    aria-label={isActive ? undefined : `Switch to ${video.title}`}
+                    onKeyDown={(e) => {
+                      if (!isActive && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        setFeaturedIndex(idx);
+                        setIsPlaying(false);
+                      }
+                    }}
+                  >
+                    {/* Media: Single-video rule strictly maintained */}
+                    {isActive ? (
+                      isLightboxVideoOpen ? (
+                        <img
+                          src={video.poster}
+                          alt={video.title}
+                          className="gallery-carousel-media"
+                        />
+                      ) : (
+                        <video
+                          key={video.id}
+                          ref={featuredVideoRef}
+                          className="gallery-carousel-media"
+                          src={video.src}
+                          poster={video.poster}
+                          playsInline
+                          preload="metadata"
+                          onPlay={() => setIsPlaying(true)}
+                          onPause={() => setIsPlaying(false)}
+                          onEnded={() => setIsPlaying(false)}
+                          onClick={togglePlay}
+                        />
+                      )
+                    ) : (
+                      <img
+                        src={video.poster}
+                        alt={video.title}
+                        className="gallery-carousel-media"
+                        loading="lazy"
+                      />
+                    )}
 
-          <div className="gallery-reel__play">
-            <span>PLAY</span>
-            <span>↗</span>
-          </div>
+                    {/* Center Play Button Overlay for active video */}
+                    {isActive && !isLightboxVideoOpen && !isPlaying && (
+                      <button
+                        type="button"
+                        className="gallery-video-play"
+                        onClick={togglePlay}
+                        aria-label={`Play ${video.title}`}
+                      >
+                        <Play size={28} fill="#171513" style={{ marginLeft: "4px" }} />
+                      </button>
+                    )}
 
-          <div className="gallery-reel__caption">
-            <span>ETHOS VISUAL REEL</span>
-            <span>IN MOTION</span>
-          </div>
-        </button>
+                    {/* Translucent Play Icon on side preview cards matching reference */}
+                    {!isActive && (
+                      <div className="gallery-card-preview-play">
+                        <Play size={20} fill="rgba(255, 255, 255, 0.8)" style={{ marginLeft: "2px" }} />
+                      </div>
+                    )}
 
-      </section>
+                    {/* Expand to Lightbox Modal (active card only) */}
+                    {isActive && (
+                      <button
+                        type="button"
+                        className="gallery-video-expand-btn"
+                        onClick={() => openLightbox(video)}
+                        title="Open full screen lightbox"
+                        aria-label="Open full screen lightbox"
+                      >
+                        <Maximize2 size={16} />
+                      </button>
+                    )}
 
-      {/* =====================================================
-          DYNAMIC CLOUDFLARE R2 GALLERY VIDEO SHOWCASES
-          ===================================================== */}
-      {dynamicVideos.length > 0 && (
-        <section className="gallery-showcases-section">
-          <div className="gallery-reel__header">
-            <div>
-              <p className="gallery-section-label">CURATED SHOWCASES</p>
-              <h2>
-                FEATURED
-                <br />
-                <em>PERFORMANCES.</em>
-              </h2>
+                    {/* Cinematic Metadata Overlay on active card */}
+                    {isActive && (
+                      <div className="gallery-featured-info">
+                        <span className="gallery-featured-category">
+                          {video.category}
+                        </span>
+                        <h3 className="gallery-featured-title">
+                          {video.title}
+                        </h3>
+                        {video.description && (
+                          <p className="gallery-featured-description">
+                            {video.description}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <p className="gallery-reel__description">
-              Handpicked full routines, masterclasses, and showcase films produced at Ethos Dance Studio.
-            </p>
-          </div>
 
-          <div className="gallery-videos-grid">
-            {dynamicVideos.map((video) => (
-              <div
-                key={video.id}
-                className="gallery-video-card"
-                onClick={() =>
-                  setSelectedItem({
-                    id: video.id,
-                    type: "video",
-                    src: video.publicUrl,
-                    title: video.title,
-                    category: "SHOWCASE",
-                  })
-                }
-              >
-                <div className="gallery-video-thumb-wrap">
-                  <video
-                    src={video.publicUrl}
-                    className="gallery-video-thumb"
-                    muted
-                    preload="metadata"
-                    playsInline
-                  />
-                  <div className="gallery-video-play-btn">▶</div>
-                </div>
-                <div className="gallery-video-info">
-                  <h3>{video.title}</h3>
-                  {video.description && <p>{video.description}</p>}
-                </div>
+            {/* Controls Bar: Counter + Pagination Dots + Circular Navigation */}
+            <div className="gallery-showcase-controls-bar">
+              <div className="gallery-video-counter" aria-label={`Video ${featuredIndex + 1} of ${normalizedShowcaseVideos.length}`}>
+                <span className="gallery-video-counter-current">
+                  {String(featuredIndex + 1).padStart(2, "0")}
+                </span>
+                <span className="gallery-video-counter-divider">/</span>
+                <span className="gallery-video-counter-total">
+                  {String(normalizedShowcaseVideos.length).padStart(2, "0")}
+                </span>
               </div>
-            ))}
+
+              {/* Center Pagination Dots */}
+              <div className="gallery-carousel-dots" role="tablist" aria-label="Video carousel pagination">
+                {normalizedShowcaseVideos.map((vid, idx) => (
+                  <button
+                    key={vid.id || idx}
+                    type="button"
+                    className={`gallery-carousel-dot ${idx === featuredIndex ? "active" : ""}`}
+                    onClick={() => {
+                      setFeaturedIndex(idx);
+                      setIsPlaying(false);
+                    }}
+                    aria-label={`Go to video ${idx + 1}: ${vid.title}`}
+                    role="tab"
+                    aria-selected={idx === featuredIndex}
+                  />
+                ))}
+              </div>
+
+              <div className="gallery-video-nav">
+                <button
+                  type="button"
+                  onClick={handlePrevVideo}
+                  aria-label="Previous featured video"
+                  title="Previous video"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextVideo}
+                  aria-label="Next featured video"
+                  title="Next video"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="gallery-showcase-empty">
+            <p>Cinematic video reels are being prepared for the new season.</p>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* =====================================================
           FILTERS
@@ -518,48 +559,50 @@ function Gallery() {
             MASONRY
             ================================================= */}
 
-        <div className="gallery-grid">
+        {filteredItems.length > 0 ? (
+          <div className="gallery-grid">
+            {filteredItems.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`gallery-item ${item.className}`}
+                onClick={() => openLightbox(item)}
+                style={{
+                  "--gallery-index": index,
+                }}
+              >
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  loading="lazy"
+                  onError={(e) => handleMediaImgError(e)}
+                />
 
-          {filteredItems.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`gallery-item ${item.className}`}
-              onClick={() => openImage(item)}
-              style={{
-                "--gallery-index": index,
-              }}
-            >
+                <span className="gallery-item__shade" />
 
-              <img
-                src={item.src}
-                alt={item.title}
-                loading="lazy"
-              />
+                <span className="gallery-item__info">
+                  <span className="gallery-item__category">
+                    {item.category}
+                  </span>
 
-              <span className="gallery-item__shade" />
-
-              <span className="gallery-item__info">
-
-                <span className="gallery-item__category">
-                  {item.category}
+                  <span className="gallery-item__title">
+                    {item.title}
+                  </span>
                 </span>
 
-                <span className="gallery-item__title">
-                  {item.title}
+                <span className="gallery-item__arrow">
+                  ↗
                 </span>
-
-              </span>
-
-              <span className="gallery-item__arrow">
-                ↗
-              </span>
-
-            </button>
-          ))}
-
-        </div>
-
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="gallery-empty-category">
+            <p>
+              No photos uploaded for {activeCategory === "ALL" ? "the gallery" : `the "${activeCategory}" category`} yet.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* =====================================================
@@ -604,6 +647,7 @@ function Gallery() {
                 src={selectedItem.src}
                 alt={selectedItem.title}
                 className="gallery-lightbox__image"
+                onError={(e) => handleMediaImgError(e)}
               />
             )}
 

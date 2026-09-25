@@ -529,3 +529,84 @@
     flex-shrink: 0;
   }
 }
+
+/* WORKSHOP PASS SUMMARY IN CHECKOUT */
+.checkout-pass-summary-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ticket-pill-black.pass-pill {
+  background: rgba(223, 128, 108, 0.15);
+  color: #f87171;
+  border-color: rgba(223, 128, 108, 0.4);
+  font-weight: 600;
+}
+
+.checkout-selected-sessions-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+
+.sessions-list-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.checkout-session-pill {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.session-pill-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-pill-dot {
+  color: #df806c;
+}
+
+.session-pill-title {
+  font-size: 13px;
+  color: #f4f4f5;
+}
+
+.session-pill-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #71717a;
+  padding-left: 12px;
+}
+
+.session-pill-trainer {
+  color: #a1a1aa;
+}
+
+.checkout-all-access-badge {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+

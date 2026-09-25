@@ -4,10 +4,8 @@ import { createSlug } from "../../utils/createSlug";
 import { workshopsApi } from "../../services/workshopsApi";
 import "../../styles/workshops.css";
 
-import workshop01 from "../../assets/workshops/workshop-01.jpg";
-import workshop02 from "../../assets/workshops/workshop-02.jpg";
-import workshop03 from "../../assets/workshops/workshop-03.jpg";
-import workshop04 from "../../assets/workshops/workshop-04.jpg";
+import { handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../../utils/mediaUrl";
+import TrainerAvatar from "../common/TrainerAvatar";
 
 function formatWorkshopTime(startTime, endTime) {
   const formatSingle = (timeStr) => {
@@ -65,14 +63,13 @@ function Workshops() {
       .then((res) => {
         const list = Array.isArray(res) ? res : res?.items || [];
         if (list.length > 0) {
-          const fallbackImgs = [workshop01, workshop02, workshop03, workshop04];
-          const mapped = list.map((w, idx) => {
+          const mapped = list.map((w) => {
             const d = new Date(w.workshopDate);
             const startDateTime = getWorkshopStartDateTime(w);
             const endDateTime = getWorkshopEndDateTime(w);
             return {
               id: w.id,
-              image: w.imageUrl || fallbackImgs[idx % fallbackImgs.length],
+              image: w.imageUrl || ETHOS_MEDIA_FALLBACK_SVG,
               date: d.toLocaleDateString("en-IN", {
                 day: "numeric",
                 month: "short",
@@ -227,7 +224,7 @@ function Workshops() {
               style={{ cursor: "pointer" }}
             >
               <div className="workshops__featured-image">
-                <img src={featured.image} alt={featured.title} />
+                <img src={featured.image} alt={featured.title} onError={(e) => handleMediaImgError(e)} />
                 <div className="workshops__featured-overlay" />
 
                 <div className="workshops__featured-content">
@@ -242,11 +239,12 @@ function Workshops() {
                     </div>
 
                     <div className="hp-meta-pill hp-meta-trainer">
-                      {featured.trainerPhotoUrl ? (
-                        <img src={featured.trainerPhotoUrl} alt={featured.trainerName} className="hp-meta-avatar" />
-                      ) : (
-                        <span className="hp-meta-avatar-initial">{featured.trainerName.charAt(0)}</span>
-                      )}
+                      <TrainerAvatar
+                        trainer={featured.trainerPhotoUrl}
+                        name={featured.trainerName}
+                        size="xs"
+                        className="hp-meta-avatar"
+                      />
                       <span className="hp-meta-text">{featured.trainer}</span>
                     </div>
 
@@ -286,7 +284,7 @@ function Workshops() {
                   onClick={() => navigate(`/workshops/${createSlug(workshop.title || workshop.name || workshop.id)}`)}
                 >
                   <div className="workshop-card__image">
-                    <img src={workshop.image} alt={workshop.title} />
+                    <img src={workshop.image} alt={workshop.title} onError={(e) => handleMediaImgError(e)} />
                     <div className="workshop-card__overlay" />
                     <span className="workshop-card__arrow">↗</span>
                   </div>
@@ -313,11 +311,12 @@ function Workshops() {
 
                     {/* Prominent Trainer Row with High Visibility Text & Avatar */}
                     <div className="homepage-workshop-trainer-row">
-                      {workshop.trainerPhotoUrl ? (
-                        <img src={workshop.trainerPhotoUrl} alt={workshop.trainer} className="hp-trainer-avatar" />
-                      ) : (
-                        <span className="hp-trainer-avatar-initial">{workshop.trainerName.charAt(0)}</span>
-                      )}
+                      <TrainerAvatar
+                        trainer={workshop.trainerPhotoUrl}
+                        name={workshop.trainerName}
+                        size="sm"
+                        className="hp-trainer-avatar"
+                      />
                       <div className="hp-trainer-info">
                         <span className="hp-trainer-label">INSTRUCTOR</span>
                         <span className="hp-trainer-text">{workshop.trainer}</span>

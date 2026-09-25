@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Check, AlertCircle, Calendar, Clock, MapPin, Users, IndianRupee, Eye, ShieldCheck, Sparkles, User, AlertTriangle } from "lucide-react";
+import { Check, AlertCircle, Calendar, Clock, MapPin, Users, IndianRupee, Eye, ShieldCheck, Sparkles, User, AlertTriangle, ExternalLink } from "lucide-react";
+import { getTrainerPhotoUrl, DEFAULT_AVATAR_PLACEHOLDER } from "../../../../utils/mediaUrl";
+import { getChronologicalGroupedSessions, getWorkshopTimingDisplay } from "../../../../utils/workshopPresentation";
 
 export default function Step5Review({
   form,
@@ -13,12 +15,23 @@ export default function Step5Review({
 }) {
   const [modalPreviewOpen, setModalPreviewOpen] = useState(false);
 
-  const selectedTrainer = trainers.find(
+  const assignedTrainerIds = Array.isArray(form.trainerProfileIds) && form.trainerProfileIds.length > 0
+    ? form.trainerProfileIds
+    : (form.trainerProfileId ? [form.trainerProfileId] : []);
+
+  const selectedTrainers = assignedTrainerIds
+    .map((id) => trainers.find((t) => (t.id || t.trainerProfileId || t.trainerId) === id))
+    .filter(Boolean);
+
+  const chronologicalGroupedSessions = getChronologicalGroupedSessions(form.sessions, form.workshopDate);
+  const distinctDates = chronologicalGroupedSessions.map(([dateKey]) => dateKey);
+
+  const selectedTrainer = selectedTrainers[0] || trainers.find(
     (t) => (t.id || t.trainerProfileId) === form.trainerProfileId
   );
   const trainerName = selectedTrainer?.name || selectedTrainer?.fullName || "Assigned Choreographer";
   const trainerStyles = selectedTrainer?.danceStyles || "";
-  const trainerPhoto = selectedTrainer?.profilePhotoUrl || selectedTrainer?.photoUrl || "";
+  const trainerPhoto = selectedTrainer ? getTrainerPhotoUrl(selectedTrainer) : "";
 
   const allValid = Object.values(validationChecklist).every(Boolean);
 
@@ -81,17 +94,15 @@ export default function Step5Review({
 
               {/* Trainer Chip */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "6px 0 10px" }}>
-                {trainerPhoto ? (
-                  <img
-                    src={trainerPhoto}
-                    alt={trainerName}
-                    style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #e11d48" }}
-                  />
-                ) : (
-                  <span style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#333", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>
-                    {trainerName.charAt(0)}
-                  </span>
-                )}
+                <img
+                  src={trainerPhoto || DEFAULT_AVATAR_PLACEHOLDER}
+                  alt={trainerName}
+                  style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #df806c" }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = DEFAULT_AVATAR_PLACEHOLDER;
+                  }}
+                />
                 <span style={{ fontSize: "12px", color: "#fff", fontWeight: 600 }}>{trainerName}</span>
                 {trainerStyles && (
                   <span style={{ fontSize: "11px", color: "#a1a1aa" }}>• {trainerStyles}</span>
@@ -101,12 +112,20 @@ export default function Step5Review({
               <div className="preview-meta-row">
                 <div className="preview-meta-item">
                   <Calendar size={13} />
-                  <span>{form.workshopDate || "TBD"}</span>
+                  <span>
+                    {distinctDates.length > 1
+                      ? `${distinctDates[0]} – ${distinctDates[distinctDates.length - 1]}`
+                      : (distinctDates[0] || form.workshopDate || "TBD")}
+                  </span>
                 </div>
                 <div className="preview-meta-item">
                   <Clock size={13} />
                   <span>
-                    {form.startTime || "00:00"} – {form.endTime || "00:00"} IST
+                    {(() => {
+                      const timingText = getWorkshopTimingDisplay(form.sessions, form.startTime, form.endTime);
+                      if (!timingText) return "TBD";
+                      return timingText.includes("Multiple") ? timingText : `${timingText} IST`;
+                    })()}
                   </span>
                 </div>
               </div>
@@ -118,6 +137,19 @@ export default function Step5Review({
                   {form.city ? `, ${form.city}` : ""}
                 </span>
               </div>
+              {form.locationUrl && (
+                <div style={{ marginTop: "4px", paddingLeft: "18px" }}>
+                  <a
+                    href={form.locationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#FF5500", fontSize: "11px", fontWeight: 600, textDecoration: "none" }}
+                  >
+                    <ExternalLink size={11} />
+                    <span>Open Location Link ↗</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -200,37 +232,107 @@ export default function Step5Review({
             </div>
           </div>
 
-          {/* Configuration Summary */}
+          {/* Configuration Summary per Requirement H */}
           <div className="review-summary-card">
-            <h4 className="summary-title">Workshop Specifications</h4>
-            <div className="summary-grid">
-              <div className="summary-row">
-                <span className="summary-lbl">Capacity:</span>
-                <span className="summary-val">{form.capacity} seats</span>
+            <h4 className="summary-title" style={{ fontSize: "14px", fontWeight: 800, color: "#f8fafc", marginBottom: "12px" }}>
+              Workshop Architectural Summary
+            </h4>
+
+            {/* DATES */}
+            <div style={{ marginBottom: "14px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                Workshop Dates ({distinctDates.length})
+              </span>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {distinctDates.map((d, i) => (
+                  <span key={i} style={{ padding: "3px 8px", borderRadius: "6px", background: "rgba(255, 85, 0, 0.12)", color: "#FF5500", border: "1px solid rgba(255, 85, 0, 0.3)", fontSize: "12px", fontWeight: 600 }}>
+                    📅 {d}
+                  </span>
+                ))}
               </div>
-              <div className="summary-row">
-                <span className="summary-lbl">Registration:</span>
-                <span className="summary-val">{form.registrationType}</span>
+            </div>
+
+            {/* TRAINERS */}
+            <div style={{ marginBottom: "14px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                Instructors / Faculty ({selectedTrainers.length})
+              </span>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {selectedTrainers.map((t, idx) => (
+                  <div key={t.id || idx} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "4px 8px", borderRadius: "6px", background: "#1e293b", border: "1px solid #334155", fontSize: "12px" }}>
+                    <span style={{ fontWeight: 600, color: "#f8fafc" }}>{t.fullName || t.name}</span>
+                    {idx === 0 && (
+                      <span style={{ fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", background: "#FF5500", color: "#fff", textTransform: "uppercase" }}>
+                        Lead
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="summary-row">
-                <span className="summary-lbl">Visibility:</span>
-                <span className="summary-val">
-                  {form.publicVisibility ? "Public (Live on Website)" : "Private (Direct Link Only)"}
-                </span>
+            </div>
+
+            {/* SESSIONS */}
+            <div style={{ marginBottom: "14px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                Scheduled Sessions ({Array.isArray(form.sessions) ? form.sessions.length : 0})
+              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto" }}>
+                {chronologicalGroupedSessions.map(([dateKey, dateSessions]) => (
+                  <div key={dateKey} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#FF5500", textTransform: "uppercase" }}>
+                      📅 {dateKey}
+                    </span>
+                    {dateSessions.map((s, idx) => {
+                      const tr = trainers.find((t) => (t.id || t.trainerProfileId || t.trainerId) === s.trainerProfileId);
+                      return (
+                        <div key={s.id || idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderRadius: "6px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.06)", fontSize: "11px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ color: "#94a3b8" }}>{s.startTime ? s.startTime.slice(0, 5) : ""} - {s.endTime ? s.endTime.slice(0, 5) : ""}</span>
+                            <strong style={{ color: "#f8fafc" }}>{s.title || `Session ${idx + 1}`}</strong>
+                          </div>
+                          <span style={{ color: "#38bdf8" }}>{tr?.fullName || tr?.name || "Trainer"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-              <div className="summary-row">
-                <span className="summary-lbl">Pricing Tiers:</span>
-                <span className="summary-val">₹500 / ₹600 / ₹700 / ₹800 (Server Authoritative)</span>
+            </div>
+
+            {/* PASS TYPES */}
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                Configured Pass Types ({Array.isArray(form.passTypes) ? form.passTypes.length : 0})
+              </span>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {(form.passTypes || []).map((p, idx) => (
+                  <div key={idx} style={{ padding: "4px 8px", borderRadius: "6px", background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.3)", fontSize: "11px", color: "#38bdf8" }}>
+                    <strong>{p.name}</strong>: ₹{p.price} ({p.sessionsIncluded == null ? "All Sessions" : `${p.sessionsIncluded} S`})
+                  </div>
+                ))}
               </div>
-              <div className="summary-row">
-                <span className="summary-lbl">Contact:</span>
-                <span className="summary-val">
-                  {form.contactPerson || "Admin"} • {form.contactNumber || "—"}
-                </span>
-              </div>
-              <div className="summary-row">
-                <span className="summary-lbl">Timezone:</span>
-                <span className="summary-val">Asia/Kolkata (IST)</span>
+            </div>
+
+            {/* VENUE & LOCATION LINK */}
+            <div style={{ marginTop: "14px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", display: "block", marginBottom: "4px" }}>
+                Venue & Location Link
+              </span>
+              <div style={{ fontSize: "12px", color: "#f8fafc" }}>
+                <div><strong>{form.venue || "Venue not set"}</strong>{form.venueAddress ? ` — ${form.venueAddress}` : ""}</div>
+                {form.locationUrl && (
+                  <div style={{ marginTop: "4px" }}>
+                    <a
+                      href={form.locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#38bdf8", textDecoration: "none" }}
+                    >
+                      <ExternalLink size={12} />
+                      <span>Open Location Link ↗</span>
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -303,11 +405,15 @@ export default function Step5Review({
 
             <h2 style={{ fontSize: "22px", margin: "0 0 10px" }}>{form.title || "Untitled Workshop"}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              {trainerPhoto ? (
-                <img src={trainerPhoto} alt={trainerName} style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
-              ) : (
-                <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#333", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{trainerName.charAt(0)}</span>
-              )}
+              <img
+                src={trainerPhoto || DEFAULT_AVATAR_PLACEHOLDER}
+                alt={trainerName}
+                style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = DEFAULT_AVATAR_PLACEHOLDER;
+                }}
+              />
               <div>
                 <div style={{ fontWeight: "bold" }}>{trainerName}</div>
                 <div style={{ fontSize: "12px", color: "#a1a1aa" }}>{trainerStyles || "Ethos Choreographer"}</div>

@@ -1,6 +1,7 @@
 using Ethos.Api.Application.Workshops;
 using Ethos.Api.Contracts.Workshops;
 using Ethos.Api.Domain.Entities;
+using Ethos.Api.Domain.Enums;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,11 +57,13 @@ public class WorkshopsController : ControllerBase
     public async Task<ActionResult<WorkshopPriceQuoteResponse>> GetWorkshopQuote(
         Guid id,
         [FromQuery] int quantity = 1,
+        [FromQuery] Guid? passTypeId = null,
+        [FromQuery] List<Guid>? selectedSessionIds = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _workshopService.GetWorkshopQuoteAsync(id, quantity, cancellationToken);
+            var response = await _workshopService.GetWorkshopQuoteAsync(id, quantity, passTypeId, selectedSessionIds, cancellationToken);
             return Ok(response);
         }
         catch (ArgumentException ex)
@@ -92,6 +95,8 @@ public class WorkshopsController : ControllerBase
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("already have a confirmed booking", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("already belongs to another request", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("different order parameters", StringComparison.OrdinalIgnoreCase) ||
                 ex.Message.Contains("full", StringComparison.OrdinalIgnoreCase))
             {
                 return Conflict(new { message = ex.Message });
@@ -269,6 +274,7 @@ public class WorkshopsController : ControllerBase
         [FromQuery] string? token,
         [FromServices] AppDbContext dbContext,
         [FromServices] IWorkshopTicketService ticketService,
+        [FromServices] ITicketPdfService ticketPdfService,
         CancellationToken cancellationToken)
     {
         var ticket = await dbContext.WorkshopTickets
@@ -276,22 +282,28 @@ public class WorkshopsController : ControllerBase
                 .ThenInclude(b => b!.Workshop)
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b!.StudentProfile)
+            .Include(t => t.WorkshopBooking)
+                .ThenInclude(b => b!.WorkshopPassType)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
             .FirstOrDefaultAsync(t => t.Id == ticketId || t.WorkshopBookingId == ticketId, cancellationToken);
 
         WorkshopBooking? booking = null;
         Workshop? workshop = null;
-        string attendeeName;
-        string ticketNumber;
-        string qrToken;
         Guid effectiveTicketId;
+
+        if (ticket != null && ticket.Status == TicketStatus.Replaced)
+        {
+            return StatusCode(StatusCodes.Status410Gone, new
+            {
+                message = "This ticket pass has been modified or replaced with an updated session pass."
+            });
+        }
 
         if (ticket != null && ticket.WorkshopBooking != null && ticket.WorkshopBooking.Workshop != null)
         {
             booking = ticket.WorkshopBooking;
             workshop = ticket.WorkshopBooking.Workshop;
-            attendeeName = ticket.AttendeeName;
-            ticketNumber = ticket.TicketNumber;
-            qrToken = ticketService.DeriveQrToken(ticket);
             effectiveTicketId = ticket.Id;
         }
         else
@@ -299,6 +311,7 @@ public class WorkshopsController : ControllerBase
             booking = await dbContext.WorkshopBookings
                 .Include(b => b.Workshop)
                 .Include(b => b.StudentProfile)
+                .Include(b => b.WorkshopPassType)
                 .FirstOrDefaultAsync(b => b.Id == ticketId, cancellationToken);
 
             if (booking == null || booking.Workshop == null)
@@ -307,10 +320,26 @@ public class WorkshopsController : ControllerBase
             }
 
             workshop = booking.Workshop;
-            attendeeName = booking.GuestName ?? "Ethos Student";
-            ticketNumber = "ETH-WS-" + booking.Id.ToString()[..8].ToUpperInvariant() + "-01";
-            qrToken = "ETHOS-TKT-" + booking.Id;
             effectiveTicketId = booking.Id;
+
+            // Load existing ticket for booking if available, or create transient model
+            ticket = await dbContext.WorkshopTickets
+                .Include(t => t.WorkshopSession)
+                    .ThenInclude(s => s!.TrainerProfile)
+                .FirstOrDefaultAsync(t => t.WorkshopBookingId == booking.Id, cancellationToken);
+
+            if (ticket == null)
+            {
+                ticket = new WorkshopTicket
+                {
+                    Id = Guid.NewGuid(),
+                    WorkshopBookingId = booking.Id,
+                    AttendeeName = booking.GuestName ?? "Ethos Student",
+                    TicketNumber = "ETH-WS-" + booking.Id.ToString()[..8].ToUpperInvariant() + "-01",
+                    Status = TicketStatus.Issued,
+                    IssuedAt = DateTime.UtcNow
+                };
+            }
         }
 
         if (booking == null || workshop == null)
@@ -324,7 +353,7 @@ public class WorkshopsController : ControllerBase
         // 1. Check authenticated user claims (owner or admin)
         if (User.Identity?.IsAuthenticated == true)
         {
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole("ADMIN") || User.IsInRole("Admin"))
             {
                 isAuthorized = true;
             }
@@ -360,24 +389,21 @@ public class WorkshopsController : ControllerBase
             });
         }
 
-        var bookingRef = "BK-" + booking!.Id.ToString()[..8].ToUpperInvariant();
+        var pdfResult = await ticketPdfService.GetOrCreateTicketPdfAsync(
+            ticket!,
+            workshop,
+            booking!,
+            rawQrToken: null,
+            cancellationToken);
 
-        var startTimeStr = DateTime.Today.Add(workshop.StartTime).ToString("h:mm tt");
-        var endTimeStr = DateTime.Today.Add(workshop.EndTime).ToString("h:mm tt");
-        var timeDisplay = $"{startTimeStr} - {endTimeStr}";
-        var dateDisplay = workshop.WorkshopDate.ToString("dd MMMM yyyy");
+        if (!pdfResult.Success || pdfResult.PdfBytes == null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = pdfResult.ErrorMessage ?? "Failed to generate ticket PDF pass."
+            });
+        }
 
-        var model = new TicketPdfModel(
-            WorkshopTitle: workshop.Title,
-            WorkshopDate: dateDisplay,
-            WorkshopTime: timeDisplay,
-            Venue: workshop.Venue ?? "Ethos Dance Studio",
-            AttendeeName: attendeeName,
-            BookingReference: bookingRef,
-            TicketNumber: ticketNumber,
-            QrToken: qrToken);
-
-        var pdfBytes = TicketPdfGenerator.Generate(model);
-        return File(pdfBytes, "application/pdf", $"{ticketNumber}.pdf");
+        return File(pdfResult.PdfBytes, "application/pdf", $"{ticket!.TicketNumber}.pdf");
     }
 }

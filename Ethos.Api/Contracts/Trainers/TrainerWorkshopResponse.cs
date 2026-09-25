@@ -64,10 +64,18 @@ public class TrainerWorkshopResponse
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? VenueAddress { get; set; }
+    public string? LocationUrl { get; set; }
 
     public string Timezone { get; set; } = "Asia/Kolkata";
     public DateTime? StartUtc { get; set; }
     public DateTime? EndUtc { get; set; }
+    public TimeSpan? BookingCutoffTime { get; set; }
+    public DateTime? BookingCutoffUtc { get; set; }
+    public bool IsBookingClosed { get; set; }
+
+    public List<Ethos.Api.Contracts.Workshops.WorkshopTrainerDto> Trainers { get; set; } = new();
+    public List<Ethos.Api.Contracts.Workshops.WorkshopSessionDto> Sessions { get; set; } = new();
+    public List<Ethos.Api.Contracts.Workshops.WorkshopPassTypeDto> PassTypes { get; set; } = new();
 
     public DateTime CreatedAt { get; set; }
 }

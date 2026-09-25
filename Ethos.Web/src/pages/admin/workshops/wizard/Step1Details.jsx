@@ -9,9 +9,19 @@ import {
   ExternalLink,
   Check,
   AlertCircle,
+  AlertTriangle,
   ChevronDown,
   X,
+  Plus,
 } from "lucide-react";
+import {
+  getTrainerPhotoUrl,
+  handleTrainerImgError,
+  getTrainerDisplayName,
+  DEFAULT_AVATAR_PLACEHOLDER,
+  ETHOS_DEFAULT_TRAINER_AVATAR,
+} from "../../../../utils/mediaUrl";
+import TrainerAvatar from "../../../../components/common/TrainerAvatar";
 
 export const DANCE_STYLE_PRESETS = [
   "Hip Hop",
@@ -47,6 +57,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
   // Searchable Trainer Dropdown State
   const [trainerDropdownOpen, setTrainerDropdownOpen] = useState(false);
   const [trainerSearch, setTrainerSearch] = useState("");
+  const [removalWarning, setRemovalWarning] = useState(null);
   const dropdownRef = useRef(null);
 
   // Close dropdown on outside click
@@ -75,22 +86,63 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
     return status === "active" || status === "approved" || !t.status;
   };
 
-  // Selected trainer object
-  const selectedTrainer = trainers.find(
-    (t) => (t.trainerId || t.id || t.trainerProfileId) === form.trainerProfileId
-  );
+  // Selected trainer IDs list (supports arbitrary number of trainers 1, 2, 3, 4, 5+)
+  const selectedTrainerIds = Array.isArray(form.trainerProfileIds) && form.trainerProfileIds.length > 0
+    ? form.trainerProfileIds
+    : (form.trainerProfileId ? [form.trainerProfileId] : []);
 
-  const handleSelectTrainer = (t) => {
-    if (!isTrainerEligible(t)) return;
-    const id = t.trainerId || t.id || t.trainerProfileId;
-    onChange("trainerProfileId", id);
-    setTrainerDropdownOpen(false);
-    setTrainerSearch("");
+  const selectedTrainers = selectedTrainerIds
+    .map((id) => trainers.find((t) => (t.trainerId || t.id || t.trainerProfileId) === id))
+    .filter(Boolean);
+
+  const checkAssignedSessions = (id) => {
+    return (form.sessions || []).filter(
+      (s) => s.trainerProfileId === id || (Array.isArray(s.trainerProfileIds) && s.trainerProfileIds.includes(id))
+    );
   };
 
-  const handleClearTrainer = (e) => {
+  const handleToggleTrainer = (t) => {
+    if (!isTrainerEligible(t)) return;
+    const id = t.trainerId || t.id || t.trainerProfileId;
+    let updated;
+    if (selectedTrainerIds.includes(id)) {
+      const assigned = checkAssignedSessions(id);
+      if (assigned.length > 0) {
+        setRemovalWarning({
+          trainerName: getTrainerDisplayName(t),
+          sessionNames: assigned.map((s) => `"${s.title || "Session"}"`).join(", "),
+        });
+        return;
+      }
+      updated = selectedTrainerIds.filter((x) => x !== id);
+    } else {
+      updated = [...selectedTrainerIds, id];
+    }
+    onChange("trainerProfileIds", updated);
+    onChange("trainerProfileId", updated[0] || "");
+  };
+
+  const handleMakeLead = (id, e) => {
     e.stopPropagation();
-    onChange("trainerProfileId", "");
+    const updated = [id, ...selectedTrainerIds.filter((x) => x !== id)];
+    onChange("trainerProfileIds", updated);
+    onChange("trainerProfileId", id);
+  };
+
+  const handleRemoveTrainer = (id, e) => {
+    e.stopPropagation();
+    const assigned = checkAssignedSessions(id);
+    if (assigned.length > 0) {
+      const trainerObj = trainers.find((t) => (t.trainerId || t.id || t.trainerProfileId) === id);
+      setRemovalWarning({
+        trainerName: trainerObj ? getTrainerDisplayName(trainerObj) : "Selected instructor",
+        sessionNames: assigned.map((s) => `"${s.title || "Session"}"`).join(", "),
+      });
+      return;
+    }
+    const updated = selectedTrainerIds.filter((x) => x !== id);
+    onChange("trainerProfileIds", updated);
+    onChange("trainerProfileId", updated[0] || "");
   };
 
   const handleStyleSelect = (style) => {
@@ -109,7 +161,7 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
       <div className="wizard-section-header">
         <h2 className="wizard-section-title">Workshop Details</h2>
         <p className="wizard-section-desc">
-          Enter core information about your workshop, lead instructor, dance style, and public visibility.
+          Enter core information about your workshop, instructors, dance style, and public visibility.
         </p>
       </div>
 
@@ -136,11 +188,11 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
 
       {/* Trainer & Level Row */}
       <div className="wizard-form-grid-2">
-        {/* Searchable Lead Trainer Selector */}
+        {/* Searchable Multi-Trainer Selector */}
         <div className="wizard-form-group" ref={dropdownRef}>
           <div className="wizard-label-row">
             <label className="wizard-label">
-              Lead Trainer / Choreographer <span className="req" aria-hidden="true">*</span>
+              Workshop Trainers / Faculty ({selectedTrainers.length}) <span className="req" aria-hidden="true">*</span>
             </label>
             <Link
               to="/admin_portal/trainers"
@@ -155,84 +207,105 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
           </div>
 
           <div className="trainer-selector-container">
-            {/* Display box (Click to toggle dropdown) */}
-            <div
-              className={`trainer-select-display ${trainerDropdownOpen ? "open" : ""} ${errors.trainerProfileId ? "has-error" : ""}`}
-              onClick={() => setTrainerDropdownOpen(!trainerDropdownOpen)}
-            >
-              {selectedTrainer ? (
-                <div className="selected-trainer-info">
-                  {selectedTrainer.profilePhotoUrl ? (
-                    <img
-                      src={selectedTrainer.profilePhotoUrl}
-                      alt={selectedTrainer.fullName}
-                      className="trainer-avatar-img"
-                    />
-                  ) : (
-                    <div className="trainer-avatar-placeholder">
-                      {(selectedTrainer.fullName || selectedTrainer.name || "T")[0]}
+            {/* Selected Trainers List Cards */}
+            {selectedTrainers.length > 0 && (
+              <div className="selected-trainers-cards-list">
+                {selectedTrainers.map((t, idx) => {
+                  const id = t.trainerId || t.id || t.trainerProfileId;
+                  const isLead = idx === 0;
+                  const displayName = getTrainerDisplayName(t);
+                  return (
+                    <div
+                      key={id}
+                      className={`selected-trainer-card ${isLead ? "lead-card" : "faculty-card"}`}
+                    >
+                      <div className="selected-trainer-left">
+                        <TrainerAvatar
+                          trainer={t}
+                          size="md"
+                          bordered={isLead}
+                        />
+                        <div className="selected-trainer-info-col">
+                          <div className="selected-trainer-header-row">
+                            <span className="selected-trainer-name">{displayName}</span>
+                            <span className={`selected-trainer-role-badge ${isLead ? "lead-badge" : "faculty-badge"}`}>
+                              {isLead ? "★ Lead Trainer" : "Faculty"}
+                            </span>
+                          </div>
+                          <span className="selected-trainer-sub">
+                            {t.primaryDanceStyle || t.danceStyle || t.specialty || "Instructor"}
+                            {t.phone ? ` • ${t.phone}` : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="selected-trainer-actions">
+                        {!isLead && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleMakeLead(id, e)}
+                            className="trainer-make-lead-btn"
+                            title="Designate as Lead Trainer"
+                          >
+                            Make Lead
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemoveTrainer(id, e)}
+                          className="trainer-remove-card-btn"
+                          title={`Remove ${displayName}`}
+                          aria-label={`Remove ${displayName}`}
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <div className="trainer-text-group">
-                    <span className="trainer-display-name">
-                      {selectedTrainer.fullName || selectedTrainer.name}
-                    </span>
-                    <span className="trainer-display-style">
-                      Lead Trainer {selectedTrainer.primaryDanceStyle ? `• ${selectedTrainer.primaryDanceStyle}` : ""}
-                    </span>
-                  </div>
-                  <div className="trainer-actions-group">
-                    <button
-                      type="button"
-                      className="trainer-change-link-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTrainerDropdownOpen(true);
-                      }}
-                    >
-                      Change
-                    </button>
-                    <button
-                      type="button"
-                      className="trainer-clear-btn"
-                      onClick={handleClearTrainer}
-                      title="Remove trainer"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="trainer-placeholder-text">
-                  <User size={16} className="trainer-placeholder-icon" />
-                  <span>
-                    {loadingTrainers ? "Loading active trainers..." : "Search & Select an Active Trainer"}
-                  </span>
-                  <ChevronDown size={16} className="trainer-chevron" />
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Trigger Button to Open / Close Trainer Selection Dropdown */}
+            <button
+              type="button"
+              className={`trainer-select-trigger-btn ${trainerDropdownOpen ? "open" : ""} ${errors.trainerProfileId && selectedTrainers.length === 0 ? "has-error" : ""}`}
+              onClick={() => setTrainerDropdownOpen(!trainerDropdownOpen)}
+              aria-expanded={trainerDropdownOpen}
+            >
+              <div className="trigger-left">
+                <User size={16} className="trigger-icon" />
+                <span className="trigger-text">
+                  {selectedTrainers.length === 0
+                    ? (loadingTrainers ? "Loading active trainers..." : "Search & Select Workshop Trainers (Supports Multiple)")
+                    : `+ Add / Change Workshop Faculty (${selectedTrainers.length} Assigned)`}
+                </span>
+              </div>
+              <ChevronDown size={16} className={`trigger-chevron ${trainerDropdownOpen ? "rotated" : ""}`} />
+            </button>
 
             {/* Dropdown Menu */}
             {trainerDropdownOpen && (
-              <div className="trainer-search-dropdown">
+              <div className="trainer-search-dropdown" role="listbox">
                 {/* Search Input Box */}
                 <div className="trainer-search-box">
-                  <Search size={14} className="search-box-icon" />
+                  <Search size={15} className="search-box-icon" />
                   <input
                     type="text"
                     className="trainer-search-input"
-                    placeholder="Search by name, phone, or style..."
+                    placeholder="Search trainers by name, phone, or dance style..."
                     value={trainerSearch}
                     onChange={(e) => setTrainerSearch(e.target.value)}
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
+                    aria-label="Search trainers"
                   />
                   {trainerSearch && (
                     <button
                       type="button"
                       className="clear-search-mini"
                       onClick={() => setTrainerSearch("")}
+                      aria-label="Clear search"
                     >
                       ✕
                     </button>
@@ -243,38 +316,51 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                 <div className="trainer-items-list">
                   {filteredTrainers.length === 0 ? (
                     <div className="trainer-no-results">
-                      <p>No active trainers found.</p>
+                      <p>No active trainers found matching "{trainerSearch}".</p>
                       <Link
                         to="/admin_portal/trainers"
                         target="_blank"
                         className="trainer-add-btn-link"
                       >
-                        + Add or approve a trainer first
+                        + Add or approve a trainer
                       </Link>
                     </div>
                   ) : (
                     filteredTrainers.map((t) => {
                       const id = t.trainerId || t.id || t.trainerProfileId;
                       const eligible = isTrainerEligible(t);
-                      const isSelected = form.trainerProfileId === id;
+                      const isSelected = selectedTrainerIds.includes(id);
+                      const isLead = selectedTrainerIds[0] === id;
+                      const displayName = getTrainerDisplayName(t);
 
                       return (
                         <div
                           key={id}
                           className={`trainer-dropdown-item ${eligible ? "eligible" : "ineligible"} ${isSelected ? "selected" : ""}`}
-                          onClick={() => eligible && handleSelectTrainer(t)}
+                          onClick={() => eligible && handleToggleTrainer(t)}
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={eligible ? 0 : -1}
+                          onKeyDown={(e) => {
+                            if ((e.key === "Enter" || e.key === " ") && eligible) {
+                              e.preventDefault();
+                              handleToggleTrainer(t);
+                            }
+                          }}
                         >
                           <div className="trainer-item-left">
-                            {t.profilePhotoUrl ? (
-                              <img src={t.profilePhotoUrl} alt="" className="trainer-item-img" />
-                            ) : (
-                              <div className="trainer-item-placeholder">
-                                {(t.fullName || t.name || "T")[0]}
-                              </div>
-                            )}
+                            <TrainerAvatar
+                              trainer={t}
+                              size="sm"
+                            />
                             <div className="trainer-item-details">
                               <div className="trainer-item-name-row">
-                                <span className="trainer-item-name">{t.fullName || t.name}</span>
+                                <span className="trainer-item-name">{displayName}</span>
+                                {isLead && (
+                                  <span className="trainer-badge-lead-tag">
+                                    ★ Lead
+                                  </span>
+                                )}
                                 {eligible ? (
                                   <span className="trainer-badge-active">Active</span>
                                 ) : (
@@ -284,13 +370,22 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                                 )}
                               </div>
                               <span className="trainer-item-meta">
-                                {t.primaryDanceStyle || t.specialty || "Instructor"}
+                                {t.primaryDanceStyle || t.danceStyle || t.specialty || "Instructor"}
                                 {t.phone ? ` • ${t.phone}` : ""}
                               </span>
                             </div>
                           </div>
 
-                          {isSelected && <Check size={16} className="trainer-check-icon" />}
+                          <div className="trainer-item-right">
+                            {isSelected ? (
+                              <div className="trainer-selected-indicator">
+                                <Check size={15} />
+                                <span>Selected</span>
+                              </div>
+                            ) : eligible ? (
+                              <span className="trainer-select-action-hint">+ Select</span>
+                            ) : null}
+                          </div>
                         </div>
                       );
                     })
@@ -534,6 +629,41 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
           onChange={(e) => onChange("termsAndCancellationPolicy", e.target.value)}
         />
       </div>
+
+      {/* Invariant Warning Modal */}
+      {removalWarning && (
+        <div className="wizard-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="invariant-modal-title">
+          <div className="wizard-modal-card" style={{ maxWidth: "480px" }}>
+            <div className="wizard-modal-header" style={{ display: "flex", alignItems: "center", gap: "10px", color: "#b45309" }}>
+              <AlertTriangle size={24} color="#d97706" />
+              <h3 id="invariant-modal-title" style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#1e293b" }}>
+                Cannot Remove Trainer
+              </h3>
+            </div>
+            <div className="wizard-modal-body" style={{ margin: "14px 0", fontSize: "14px", lineHeight: "1.5", color: "#475569" }}>
+              <p>
+                <strong>{removalWarning.trainerName}</strong> cannot be removed from the workshop faculty pool because they are currently assigned to the following session(s):
+              </p>
+              <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: "6px", padding: "10px 14px", margin: "12px 0", color: "#92400e", fontWeight: 600 }}>
+                {removalWarning.sessionNames}
+              </div>
+              <p style={{ margin: 0 }}>
+                Please reassign or remove this instructor from those sessions in <em>Step 3 (Venue &amp; Schedule)</em> before removing them from the faculty pool.
+              </p>
+            </div>
+            <div className="wizard-modal-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "18px" }}>
+              <button
+                type="button"
+                className="wizard-btn-primary"
+                style={{ padding: "8px 20px", fontSize: "14px", fontWeight: 600, background: "#FF5500", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                onClick={() => setRemovalWarning(null)}
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

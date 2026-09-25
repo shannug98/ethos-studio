@@ -5,7 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import { studentDashboardCache } from "../../services/studentDashboardCache";
 import { studentStateSync } from "../../services/studentStateSync";
 import WorkshopPassModal from "../../components/student/WorkshopPassModal";
-import membershipCardBg from "../../assets/hero/hero-02.jpg";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const membershipCardBg = MEDIA_ASSETS.student.membershipCardBg;
 import "./StudentDashboard.css";
 
 export default function StudentDashboard() {
@@ -223,7 +224,9 @@ export default function StudentDashboard() {
               <div
                 className="student-card student-membership-card"
                 style={{
-                  backgroundImage: `linear-gradient(135deg, rgba(14, 13, 12, 0.88) 0%, rgba(20, 18, 16, 0.82) 100%), url(${membershipCardBg})`,
+                  backgroundImage: membershipCardBg
+                    ? `linear-gradient(135deg, rgba(14, 13, 12, 0.88) 0%, rgba(20, 18, 16, 0.82) 100%), url(${membershipCardBg})`
+                    : "linear-gradient(135deg, #181514 0%, #0d0c0b 100%)",
                   backgroundSize: "cover",
                   backgroundPosition: "center right",
                 }}

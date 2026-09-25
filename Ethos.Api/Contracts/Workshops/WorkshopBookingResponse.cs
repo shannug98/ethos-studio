@@ -36,5 +36,9 @@ public class WorkshopBookingResponse
 
     public DateTime BookedAt { get; set; }
 
+    public Guid? WorkshopPassTypeId { get; set; }
+    public string? PassName { get; set; }
+    public List<WorkshopBookingSessionDto> BookingSessions { get; set; } = new();
+
     public List<WorkshopTicketResponse> Tickets { get; set; } = new();
 }

@@ -20,6 +20,15 @@ public class WorkshopTicketResponse
 
     public TimeSpan EndTime { get; set; }
 
+    public Guid? WorkshopSessionId { get; set; }
+    public string? SessionTitle { get; set; }
+    public DateTime? SessionDate { get; set; }
+    public TimeSpan? SessionStartTime { get; set; }
+    public TimeSpan? SessionEndTime { get; set; }
+    public string? SessionTrainerName { get; set; }
+    public string? PassName { get; set; }
+    public string? PassCategory { get; set; }
+
     public string Venue { get; set; } = string.Empty;
 
     public string AttendeeName { get; set; } = string.Empty;

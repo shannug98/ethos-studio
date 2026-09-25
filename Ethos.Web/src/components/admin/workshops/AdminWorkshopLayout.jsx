@@ -129,19 +129,11 @@ export default function AdminWorkshopLayout() {
             </NavLink>
 
             <NavLink
-              to={`/admin_portal/workshops/${workshopId}/attendees`}
+              to={`/admin_portal/workshops/${workshopId}/bookings-attendees`}
               className={({ isActive }) => `sub-nav-item ${isActive ? "active" : ""}`}
             >
-              <span className="nav-icon">👥</span>
-              <span className="nav-label">Attendees ({attendeeCount})</span>
-            </NavLink>
-
-            <NavLink
-              to={`/admin_portal/workshops/${workshopId}/bookings`}
-              className={({ isActive }) => `sub-nav-item ${isActive ? "active" : ""}`}
-            >
-              <span className="nav-icon">📅</span>
-              <span className="nav-label">Bookings</span>
+              <span className="nav-icon">📑</span>
+              <span className="nav-label">Bookings & Attendees ({attendeeCount})</span>
             </NavLink>
 
             <NavLink

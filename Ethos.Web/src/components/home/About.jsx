@@ -1,12 +1,52 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "../../styles/about.css";
-
-import aboutMain from "../../assets/about/about-main.jpg";
-import aboutSecondary from "../../assets/about/about-secondary.jpg";
-import aboutCommunity from "../../assets/about/about-community.jpg";
+import { publicApi } from "../../services/publicApi";
+import { getMediaUrl, handleMediaImgError } from "../../utils/mediaUrl";
+import ethosEmblem from "../../assets/brand/ethos-emblem.png";
 
 function About() {
   const sectionRef = useRef(null);
+  const [images, setImages] = useState({
+    main: null,
+    secondary: null,
+    community: null,
+  });
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setFetchError(null);
+    publicApi
+      .getPublicMedia({ section: "AboutEthos" })
+      .then((data) => {
+        if (!isMounted) return;
+        if (Array.isArray(data) && data.length > 0) {
+          const slot1 = data.find((m) => Number(m.displayOrder) === 1);
+          const slot2 = data.find((m) => Number(m.displayOrder) === 2);
+          const slot3 = data.find((m) => Number(m.displayOrder) === 3);
+          setImages({
+            main: slot1 ? getMediaUrl(slot1.publicUrl, slot1.id) : null,
+            secondary: slot2 ? getMediaUrl(slot2.publicUrl, slot2.id) : null,
+            community: slot3 ? getMediaUrl(slot3.publicUrl, slot3.id) : null,
+          });
+        } else {
+          setImages({ main: null, secondary: null, community: null });
+        }
+      })
+      .catch((err) => {
+        console.warn("[About] Public media fetch failed:", err);
+        if (isMounted) setFetchError(err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -100,12 +140,20 @@ function About() {
       <article className="about-story about-story--image-left about-reveal">
 
         <div className="about-story__image">
-          <img
-            src={aboutMain}
-            alt="Dancers performing at Ethos Dance Studio"
-          />
-
-          <div className="about-story__image-shade" />
+          {images.main ? (
+            <>
+              <img
+                src={images.main}
+                alt="Dancers performing at Ethos Dance Studio"
+                onError={(e) => handleMediaImgError(e)}
+              />
+              <div className="about-story__image-shade" />
+            </>
+          ) : (
+            <div className="about-story__placeholder-frame">
+              <img src={ethosEmblem} alt="Ethos Dance Studio" className="about-story__placeholder-emblem" />
+            </div>
+          )}
         </div>
 
         <div className="about-story__content">
@@ -193,14 +241,20 @@ function About() {
         </div>
 
         <div className="about-story__image">
-
-          <img
-            src={aboutSecondary}
-            alt="Dancers training together at Ethos"
-          />
-
-          <div className="about-story__image-shade" />
-
+          {images.secondary ? (
+            <>
+              <img
+                src={images.secondary}
+                alt="Dancers training together at Ethos"
+                onError={(e) => handleMediaImgError(e)}
+              />
+              <div className="about-story__image-shade" />
+            </>
+          ) : (
+            <div className="about-story__placeholder-frame">
+              <img src={ethosEmblem} alt="Ethos Dance Studio" className="about-story__placeholder-emblem" />
+            </div>
+          )}
         </div>
 
       </article>
@@ -213,14 +267,20 @@ function About() {
       <article className="about-story about-story--community about-reveal">
 
         <div className="about-story__image">
-
-          <img
-            src={aboutCommunity}
-            alt="Ethos dance community"
-          />
-
-          <div className="about-story__image-shade" />
-
+          {images.community ? (
+            <>
+              <img
+                src={images.community}
+                alt="Ethos dance community"
+                onError={(e) => handleMediaImgError(e)}
+              />
+              <div className="about-story__image-shade" />
+            </>
+          ) : (
+            <div className="about-story__placeholder-frame">
+              <img src={ethosEmblem} alt="Ethos Dance Studio" className="about-story__placeholder-emblem" />
+            </div>
+          )}
         </div>
 
         <div className="about-story__content">

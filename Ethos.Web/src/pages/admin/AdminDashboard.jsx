@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -24,6 +24,20 @@ const WORKSHOP_COLORS = {
   Completed: "#10b981", // Emerald
   Archived: "#9ca3af",  // Slate gray
   Cancelled: "#ef4444", // Red
+};
+
+const formatRevenueTick = (val) => {
+  const num = Number(val) || 0;
+  if (num === 0) return "₹0";
+  if (num >= 100000) {
+    const inLakhs = num / 100000;
+    return inLakhs % 1 === 0 ? `₹${inLakhs.toFixed(0)}L` : `₹${inLakhs.toFixed(1)}L`;
+  }
+  if (num >= 1000) {
+    const inThousands = num / 1000;
+    return inThousands % 1 === 0 ? `₹${inThousands.toFixed(0)}k` : `₹${inThousands.toFixed(1)}k`;
+  }
+  return `₹${num}`;
 };
 
 export default function AdminDashboard() {
@@ -53,6 +67,18 @@ export default function AdminDashboard() {
     range: "last6months",
     dataPoints: [],
   });
+
+  const trendMaxes = useMemo(() => {
+    if (!trends?.dataPoints || trends.dataPoints.length === 0) {
+      return { maxBookings: 10, maxRevenue: 10000 };
+    }
+    const maxB = Math.max(...trends.dataPoints.map((d) => Number(d.bookingsCount) || 0), 1);
+    const maxR = Math.max(...trends.dataPoints.map((d) => Number(d.revenueAmount) || 0), 1000);
+    return {
+      maxBookings: Math.ceil(maxB * 1.15),
+      maxRevenue: Math.ceil(maxR * 1.15),
+    };
+  }, [trends]);
 
   const [workshopStatus, setWorkshopStatus] = useState({
     publishedCount: 0,
@@ -291,7 +317,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Card 4: Unread Messages */}
+        {/* Card 4: Communications */}
         <div
           className="ethos-kpi-card tone-blue"
           onClick={() => navigate("/admin_portal/communications")}
@@ -300,15 +326,17 @@ export default function AdminDashboard() {
         >
           <div className="kpi-icon-wrap">💬</div>
           <div className="kpi-content">
-            <span className="kpi-label">Unread Messages</span>
+            <span className="kpi-label">Communications</span>
             <div className="kpi-value">{Number(summary?.unreadMessagesCount ?? 0)}</div>
-            {summary?.messagesGrowthPercent ? (
+            {Number(summary?.unreadMessagesCount ?? 0) === 0 ? (
+              <div className="kpi-subtext normal">No dispatches yet</div>
+            ) : summary?.messagesGrowthPercent ? (
               <div className={`kpi-subtext ${summary.messagesGrowthPercent <= 0 ? "growth-up" : "growth-down"}`}>
                 <span className="subtext-arrow">{summary.messagesGrowthPercent <= 0 ? "↓" : "↑"}</span>{" "}
                 {Math.abs(summary.messagesGrowthPercent)}% vs last week
               </div>
             ) : (
-              <div className="kpi-subtext normal">All messages reviewed</div>
+              <div className="kpi-subtext normal">All dispatches logged</div>
             )}
           </div>
         </div>
@@ -368,17 +396,19 @@ export default function AdminDashboard() {
                   />
                   <YAxis
                     yAxisId="bookings"
+                    domain={[0, trendMaxes.maxBookings]}
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 11, fill: "#94a3b8" }}
                   />
                   <YAxis
                     yAxisId="revenue"
+                    domain={[0, trendMaxes.maxRevenue]}
                     orientation="right"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 10, fill: "#94a3b8" }}
-                    tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`}
+                    tickFormatter={formatRevenueTick}
                   />
                   <Tooltip
                     contentStyle={{
@@ -393,13 +423,15 @@ export default function AdminDashboard() {
                       name,
                     ]}
                   />
-                  <Bar
+                  <Line
                     yAxisId="revenue"
+                    type="monotone"
                     dataKey="revenueAmount"
                     name="Revenue"
-                    fill="#e0e7ff"
-                    radius={[4, 4, 0, 0]}
-                    barSize={20}
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "#10b981" }}
+                    activeDot={{ r: 5 }}
                   />
                   <Line
                     yAxisId="bookings"
@@ -761,7 +793,7 @@ export default function AdminDashboard() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 10, fill: "#94a3b8" }}
-                    tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}K`}
+                    tickFormatter={formatRevenueTick}
                   />
                   <Tooltip
                     contentStyle={{

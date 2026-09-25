@@ -35,6 +35,7 @@ public class Msg91PayloadSerializationTests
             WorkshopTitle: "Bollywood Masterclass",
             WorkshopDate: "25 October 2026",
             WorkshopTime: "6:00 PM – 8:00 PM",
+            Location: "Ethos Dance Studio, Jubilee Hills, Hyderabad",
             BookingId: "ETHOS-WKS-8F31A2C4");
 
         var json = _service.BuildBookingConfirmedJson(data, "919876543210");
@@ -60,7 +61,8 @@ public class Msg91PayloadSerializationTests
         Assert.Equal("Bollywood Masterclass", comps.GetProperty("body_2").GetProperty("value").GetString());
         Assert.Equal("25 October 2026", comps.GetProperty("body_3").GetProperty("value").GetString());
         Assert.Equal("6:00 PM – 8:00 PM", comps.GetProperty("body_4").GetProperty("value").GetString());
-        Assert.Equal("ETHOS-WKS-8F31A2C4", comps.GetProperty("body_5").GetProperty("value").GetString());
+        Assert.Equal("Ethos Dance Studio, Jubilee Hills, Hyderabad", comps.GetProperty("body_5").GetProperty("value").GetString());
+        Assert.Equal("ETHOS-WKS-8F31A2C4", comps.GetProperty("body_6").GetProperty("value").GetString());
     }
 
     [Fact]
@@ -71,6 +73,7 @@ public class Msg91PayloadSerializationTests
             WorkshopTitle: "Bollywood Masterclass",
             WorkshopDate: "25 October 2026",
             WorkshopTime: "6:00 PM – 8:00 PM",
+            Location: "Ethos Dance Studio, Jubilee Hills, Hyderabad",
             BookingId: "ETHOS-WKS-8F31A2C4",
             PdfHttpsUrl: "https://media.ethosdancestudio.com/tickets/ETHOS-TKT-001.pdf",
             FileName: "ETHOS-TKT-001.pdf");
@@ -96,6 +99,10 @@ public class Msg91PayloadSerializationTests
         Assert.Equal("ETHOS-TKT-001.pdf", header.GetProperty("filename").GetString());
 
         Assert.Equal("Rahul Sharma", comps.GetProperty("body_1").GetProperty("value").GetString());
-        Assert.Equal("ETHOS-WKS-8F31A2C4", comps.GetProperty("body_5").GetProperty("value").GetString());
+        Assert.Equal("Bollywood Masterclass", comps.GetProperty("body_2").GetProperty("value").GetString());
+        Assert.Equal("25 October 2026", comps.GetProperty("body_3").GetProperty("value").GetString());
+        Assert.Equal("6:00 PM – 8:00 PM", comps.GetProperty("body_4").GetProperty("value").GetString());
+        Assert.Equal("Ethos Dance Studio, Jubilee Hills, Hyderabad", comps.GetProperty("body_5").GetProperty("value").GetString());
+        Assert.Equal("ETHOS-WKS-8F31A2C4", comps.GetProperty("body_6").GetProperty("value").GetString());
     }
 }

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Ethos.Api.Application.Common;
 using Ethos.Api.Application.Storage;
 using Ethos.Api.Domain.Entities;
+using Ethos.Api.Domain.Enums;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,16 @@ public class TicketPdfService : ITicketPdfService
         ArgumentNullException.ThrowIfNull(workshop);
         ArgumentNullException.ThrowIfNull(booking);
 
+        if (ticket.Status == TicketStatus.Replaced)
+        {
+            return new TicketPdfResult(
+                Success: false,
+                StorageKey: string.Empty,
+                SignedHttpsUrl: null,
+                FileHash: string.Empty,
+                ErrorMessage: "Ticket pass has been replaced and cannot have a PDF generated.");
+        }
+
         // 1. Check if a TicketPdf record already exists (deterministic reuse)
         var existing = await _dbContext.TicketPdfs
             .AsNoTracking()
@@ -59,13 +70,6 @@ public class TicketPdfService : ITicketPdfService
                     "Cached TicketPdf for Ticket {TicketId} generated a non-HTTPS signed URL: {Url}",
                     ticket.Id,
                     SanitizeUrl(signedUrl));
-
-                return new TicketPdfResult(
-                    Success: false,
-                    StorageKey: existing.StorageKey,
-                    SignedHttpsUrl: null,
-                    FileHash: existing.FileHash,
-                    ErrorMessage: "Cloudflare R2 is unconfigured or returned a non-HTTPS signed URL. Cannot dispatch to WhatsApp.");
             }
 
             _logger.LogInformation(
@@ -73,31 +77,38 @@ public class TicketPdfService : ITicketPdfService
                 ticket.Id,
                 existing.StorageKey);
 
+            byte[]? existingBytes = null;
+            try
+            {
+                var r2Stream = await _r2Storage.GetObjectStreamAsync(existing.StorageKey, cancellationToken);
+                if (r2Stream != null)
+                {
+                    using var ms = new MemoryStream();
+                    await r2Stream.Value.Stream.CopyToAsync(ms, cancellationToken);
+                    existingBytes = ms.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to stream cached PDF from R2 for Ticket {TicketId}", ticket.Id);
+            }
+
+            if (existingBytes == null || existingBytes.Length == 0)
+            {
+                var fallbackModel = await BuildModelAsync(ticket, workshop, booking, rawQrToken, cancellationToken);
+                existingBytes = TicketPdfGenerator.Generate(fallbackModel);
+            }
+
             return new TicketPdfResult(
                 Success: true,
                 StorageKey: existing.StorageKey,
                 SignedHttpsUrl: signedUrl,
-                FileHash: existing.FileHash);
+                FileHash: existing.FileHash,
+                PdfBytes: existingBytes);
         }
 
-        // 2. Generate the PDF bytes
-        var qrToken = rawQrToken ?? _ticketService.DeriveQrToken(ticket);
-        var bookingRef = "BK-" + booking.Id.ToString()[..8].ToUpperInvariant();
-
-        var startTimeStr = DateTime.Today.Add(workshop.StartTime).ToString("h:mm tt");
-        var endTimeStr = DateTime.Today.Add(workshop.EndTime).ToString("h:mm tt");
-        var timeDisplay = $"{startTimeStr} – {endTimeStr}";
-        var dateDisplay = workshop.WorkshopDate.ToString("dd MMMM yyyy");
-
-        var model = new TicketPdfModel(
-            WorkshopTitle: workshop.Title,
-            WorkshopDate: dateDisplay,
-            WorkshopTime: timeDisplay,
-            Venue: workshop.Venue ?? "Ethos Dance Studio",
-            AttendeeName: ticket.AttendeeName,
-            BookingReference: bookingRef,
-            TicketNumber: ticket.TicketNumber,
-            QrToken: qrToken);
+        // 2. Build authoritative PDF model
+        var model = await BuildModelAsync(ticket, workshop, booking, rawQrToken, cancellationToken);
 
         byte[] pdfBytes;
         try
@@ -141,13 +152,6 @@ public class TicketPdfService : ITicketPdfService
                 "Uploaded TicketPdf for Ticket {TicketId} generated a non-HTTPS signed URL: {Url}",
                 ticket.Id,
                 SanitizeUrl(freshSignedUrl));
-
-            return new TicketPdfResult(
-                Success: false,
-                StorageKey: storageKey,
-                SignedHttpsUrl: null,
-                FileHash: fileHash,
-                ErrorMessage: "Cloudflare R2 is unconfigured or returned a non-HTTPS URL. Local paths cannot be dispatched to WhatsApp.");
         }
 
         // 4. Save TicketPdf record atomically
@@ -179,7 +183,8 @@ public class TicketPdfService : ITicketPdfService
                     Success: true,
                     StorageKey: reloaded.StorageKey,
                     SignedHttpsUrl: freshSignedUrl,
-                    FileHash: reloaded.FileHash);
+                    FileHash: reloaded.FileHash,
+                    PdfBytes: pdfBytes);
             }
         }
 
@@ -187,7 +192,86 @@ public class TicketPdfService : ITicketPdfService
             Success: true,
             StorageKey: storageKey,
             SignedHttpsUrl: freshSignedUrl,
-            FileHash: fileHash);
+            FileHash: fileHash,
+            PdfBytes: pdfBytes);
+    }
+
+    private async Task<TicketPdfModel> BuildModelAsync(
+        WorkshopTicket ticket,
+        Workshop workshop,
+        WorkshopBooking booking,
+        string? rawQrToken,
+        CancellationToken cancellationToken)
+    {
+        // Ensure WorkshopSession and WorkshopPassType are loaded if available
+        if (ticket.WorkshopSessionId.HasValue && ticket.WorkshopSession == null)
+        {
+            ticket.WorkshopSession = await _dbContext.WorkshopSessions
+                .Include(s => s.TrainerProfile)
+                .FirstOrDefaultAsync(s => s.Id == ticket.WorkshopSessionId.Value, cancellationToken);
+        }
+
+        if (booking.WorkshopPassTypeId.HasValue && booking.WorkshopPassType == null)
+        {
+            booking.WorkshopPassType = await _dbContext.WorkshopPassTypes
+                .FirstOrDefaultAsync(p => p.Id == booking.WorkshopPassTypeId.Value, cancellationToken);
+        }
+
+        // QR Token resolution: strictly raw token if provided, else derived cryptographic QR token, never TicketNumber
+        var qrToken = !string.IsNullOrWhiteSpace(rawQrToken)
+            ? rawQrToken
+            : _ticketService.DeriveQrToken(ticket);
+
+        var bookingRef = "BK-" + booking.Id.ToString()[..8].ToUpperInvariant();
+
+        var effDate = ticket.WorkshopSession?.SessionDate ?? workshop.WorkshopDate;
+        var effStartTime = ticket.WorkshopSession?.StartTime ?? workshop.StartTime;
+        var effEndTime = ticket.WorkshopSession?.EndTime ?? workshop.EndTime;
+
+        var startTimeStr = DateTime.Today.Add(effStartTime).ToString("h:mm tt");
+        var endTimeStr = DateTime.Today.Add(effEndTime).ToString("h:mm tt");
+        var timeDisplay = $"{startTimeStr} – {endTimeStr}";
+        var dateDisplay = effDate.ToString("dd MMMM yyyy");
+
+        var venueName = workshop.Venue ?? "Ethos Dance Studio";
+        var venueAddress = !string.IsNullOrWhiteSpace(workshop.VenueAddress)
+            ? workshop.VenueAddress.Trim()
+            : (!string.IsNullOrWhiteSpace(workshop.City) ? $"{workshop.City}, India" : "Hyderabad, India");
+
+        string mapsUrl;
+        if (!string.IsNullOrWhiteSpace(workshop.LocationUrl))
+        {
+            mapsUrl = workshop.LocationUrl.Trim();
+        }
+        else if (workshop.Latitude.HasValue && workshop.Longitude.HasValue)
+        {
+            mapsUrl = $"https://www.google.com/maps/search/?api=1&query={workshop.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)},{workshop.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+        else
+        {
+            var query = Uri.EscapeDataString($"{venueName}, {venueAddress}".Trim(' ', ','));
+            mapsUrl = $"https://www.google.com/maps/search/?api=1&query={query}";
+        }
+
+        var passName = booking.PassName ?? booking.WorkshopPassType?.Name;
+        var sessionTitle = ticket.WorkshopSession?.Title;
+        var trainerName = ticket.WorkshopSession?.TrainerProfile?.FullName;
+
+        return new TicketPdfModel(
+            WorkshopTitle: workshop.Title,
+            WorkshopDate: dateDisplay,
+            WorkshopTime: timeDisplay,
+            Venue: venueName,
+            AttendeeName: ticket.AttendeeName,
+            BookingReference: bookingRef,
+            TicketNumber: ticket.TicketNumber,
+            QrToken: qrToken,
+            Status: "CONFIRMED / ACTIVE",
+            VenueAddress: venueAddress,
+            MapsUrl: mapsUrl,
+            PassName: passName,
+            SessionTitle: sessionTitle,
+            TrainerName: trainerName);
     }
 
     private static bool IsSecureHttpsUrl(string url)

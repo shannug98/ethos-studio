@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Upload, Crop, Trash2, Image as ImageIcon, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, Crop, Trash2, Image as ImageIcon, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import ImageCropperModal from "../../../../components/admin/common/ImageCropperModal";
 
 export default function Step2Photos({
@@ -19,23 +19,53 @@ export default function Step2Photos({
     targetField: null, // "imageUrl" | "landscapeImageUrl"
   });
 
+  const [portraitMeta, setPortraitMeta] = useState({ fileName: "", sizeBytes: 0, orientationWarning: "" });
+  const [landscapeMeta, setLandscapeMeta] = useState({ fileName: "", sizeBytes: 0, orientationWarning: "" });
+
   const portraitInputRef = useRef(null);
   const landscapeInputRef = useRef(null);
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "0.0 MB";
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
 
   const handleFileSelect = (field, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 35 * 1024 * 1024) {
-      alert("File size exceeds 35MB limit. Please choose a smaller image.");
+    // Strict 5 MB check
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`File size exceeds the 5 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please select an image under 5 MB.`);
+      e.target.value = "";
       return;
     }
+
+    // Inspect image orientation
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      let warning = "";
+      if (field === "imageUrl" && img.naturalWidth > img.naturalHeight) {
+        warning = "Uploaded image appears horizontal. A 3:4 portrait crop is recommended for optimal card presentation.";
+      } else if (field === "landscapeImageUrl" && img.naturalHeight > img.naturalWidth) {
+        warning = "Uploaded image appears vertical. A 16:9 landscape crop is recommended for optimal panoramic banner presentation.";
+      }
+
+      if (field === "imageUrl") {
+        setPortraitMeta({ fileName: file.name, sizeBytes: file.size, orientationWarning: warning });
+      } else {
+        setLandscapeMeta({ fileName: file.name, sizeBytes: file.size, orientationWarning: warning });
+      }
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
 
     const ratio = field === "imageUrl" ? "3:4" : "16:9";
     const title =
       field === "imageUrl"
-        ? "Crop Portrait Poster (3:4 - 900×1200)"
-        : "Crop Landscape Banner (16:9 - 1600×900)";
+        ? "Crop Portrait Poster (3:4 - 900×1200 px)"
+        : "Crop Landscape Banner (16:9 - 1600×900 px)";
 
     setCropperModal({
       isOpen: true,
@@ -54,8 +84,8 @@ export default function Step2Photos({
     const ratio = field === "imageUrl" ? "3:4" : "16:9";
     const title =
       field === "imageUrl"
-        ? "Crop Portrait Poster (3:4 - 900×1200)"
-        : "Crop Landscape Banner (16:9 - 1600×900)";
+        ? "Crop Portrait Poster (3:4 - 900×1200 px)"
+        : "Crop Landscape Banner (16:9 - 1600×900 px)";
 
     setCropperModal({
       isOpen: true,
@@ -66,7 +96,7 @@ export default function Step2Photos({
     });
   };
 
-  const handleCropComplete = (blob, dataUrl, meta) => {
+  const handleCropComplete = (blob, dataUrl) => {
     if (cropperModal.targetField === "imageUrl") {
       setPortraitBlob(blob);
       onChange("imageUrl", dataUrl);
@@ -79,9 +109,11 @@ export default function Step2Photos({
   const handleRemovePhoto = (field) => {
     if (field === "imageUrl") {
       setPortraitBlob(null);
+      setPortraitMeta({ fileName: "", sizeBytes: 0, orientationWarning: "" });
       onChange("imageUrl", "");
     } else {
       setLandscapeBlob(null);
+      setLandscapeMeta({ fileName: "", sizeBytes: 0, orientationWarning: "" });
       onChange("landscapeImageUrl", "");
     }
   };
@@ -91,19 +123,19 @@ export default function Step2Photos({
       <div className="wizard-section-header">
         <h2 className="wizard-section-title">Workshop Photos & Media</h2>
         <p className="wizard-section-desc">
-          Upload crisp, high-resolution imagery. Use the built-in cropper for precise 3:4 portrait cards and 16:9 banner dimensions.
+          Upload crisp, high-resolution imagery. Both images have a strict maximum size limit of 5 MB.
         </p>
       </div>
 
       <div className="wizard-photos-layout">
-        {/* 1. Primary Portrait Cover (3:4) */}
+        {/* 1. Primary Portrait Image (3:4) */}
         <div className="photo-card-wrap">
           <div className="photo-card-header">
             <div>
               <h3 className="photo-card-title">
-                Portrait Cover Poster (3:4) <span className="req">*</span>
+                Portrait Image (3:4) <span className="req">*</span>
               </h3>
-              <span className="photo-card-badge">Required • 900 × 1200 px</span>
+              <span className="photo-card-badge">Required • 900 × 1200 px • Max 5 MB</span>
             </div>
             {form.imageUrl && (
               <span className="photo-status-badge success">
@@ -112,8 +144,15 @@ export default function Step2Photos({
             )}
           </div>
           <p className="photo-card-hint">
-            This primary visual is shown on the workshop listing cards, homepage highlights, and mobile booking sheets.
+            <strong>Used for:</strong> Workshop cards, mobile presentation, and homepage/catalogue highlights.
           </p>
+
+          {portraitMeta.orientationWarning && (
+            <div style={{ margin: "8px 0", padding: "8px 12px", borderRadius: "8px", background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", color: "#fbbf24", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <AlertCircle size={14} />
+              <span>{portraitMeta.orientationWarning}</span>
+            </div>
+          )}
 
           {form.imageUrl ? (
             <div className="photo-preview-box portrait-box">
@@ -122,11 +161,20 @@ export default function Step2Photos({
                 <button
                   type="button"
                   className="photo-action-btn"
-                  onClick={() => openCropperForExisting("imageUrl")}
-                  title="Crop / Recenter"
+                  onClick={() => portraitInputRef.current?.click()}
+                  title="Replace Image"
                 >
-                  <Crop size={15} />
-                  <span>Adjust Crop</span>
+                  <RefreshCw size={14} />
+                  <span>Replace</span>
+                </button>
+                <button
+                  type="button"
+                  className="photo-action-btn"
+                  onClick={() => openCropperForExisting("imageUrl")}
+                  title="Adjust Crop"
+                >
+                  <Crop size={14} />
+                  <span>Adjust</span>
                 </button>
                 <button
                   type="button"
@@ -134,7 +182,7 @@ export default function Step2Photos({
                   onClick={() => handleRemovePhoto("imageUrl")}
                   title="Remove Image"
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={14} />
                   <span>Remove</span>
                 </button>
               </div>
@@ -145,11 +193,18 @@ export default function Step2Photos({
               onClick={() => portraitInputRef.current?.click()}
             >
               <Upload size={32} className="dropzone-icon" />
-              <span className="dropzone-primary-text">Upload Portrait Cover</span>
-              <span className="dropzone-sub-text">Recommended: 900 × 1200 px • Max 5MB</span>
+              <span className="dropzone-primary-text">Upload Portrait</span>
+              <span className="dropzone-sub-text">Recommended: 900 × 1200 px (3:4) • Max 5 MB</span>
               <button type="button" className="dropzone-browse-btn">
                 Browse Files
               </button>
+            </div>
+          )}
+
+          {portraitMeta.fileName && (
+            <div style={{ marginTop: "8px", fontSize: "12px", color: "#94a3b8", display: "flex", justifyContent: "space-between" }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "200px" }}>{portraitMeta.fileName}</span>
+              <span>{formatFileSize(portraitMeta.sizeBytes)}</span>
             </div>
           )}
 
@@ -167,8 +222,8 @@ export default function Step2Photos({
         <div className="photo-card-wrap">
           <div className="photo-card-header">
             <div>
-              <h3 className="photo-card-title">Landscape Header Banner (16:9)</h3>
-              <span className="photo-card-badge secondary">Optional • 1600 × 900 px</span>
+              <h3 className="photo-card-title">Landscape Image (16:9)</h3>
+              <span className="photo-card-badge secondary">Recommended • 1600 × 900 px • Max 5 MB</span>
             </div>
             {form.landscapeImageUrl && (
               <span className="photo-status-badge success">
@@ -177,8 +232,15 @@ export default function Step2Photos({
             )}
           </div>
           <p className="photo-card-hint">
-            Shown as the panoramic hero banner on the full-page workshop details page and desktop event headers.
+            <strong>Used for:</strong> Workshop details page and large panoramic banner presentation.
           </p>
+
+          {landscapeMeta.orientationWarning && (
+            <div style={{ margin: "8px 0", padding: "8px 12px", borderRadius: "8px", background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", color: "#fbbf24", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <AlertCircle size={14} />
+              <span>{landscapeMeta.orientationWarning}</span>
+            </div>
+          )}
 
           {form.landscapeImageUrl ? (
             <div className="photo-preview-box landscape-box">
@@ -191,11 +253,20 @@ export default function Step2Photos({
                 <button
                   type="button"
                   className="photo-action-btn"
-                  onClick={() => openCropperForExisting("landscapeImageUrl")}
-                  title="Crop / Recenter"
+                  onClick={() => landscapeInputRef.current?.click()}
+                  title="Replace Image"
                 >
-                  <Crop size={15} />
-                  <span>Adjust Crop</span>
+                  <RefreshCw size={14} />
+                  <span>Replace</span>
+                </button>
+                <button
+                  type="button"
+                  className="photo-action-btn"
+                  onClick={() => openCropperForExisting("landscapeImageUrl")}
+                  title="Adjust Crop"
+                >
+                  <Crop size={14} />
+                  <span>Adjust</span>
                 </button>
                 <button
                   type="button"
@@ -203,7 +274,7 @@ export default function Step2Photos({
                   onClick={() => handleRemovePhoto("landscapeImageUrl")}
                   title="Remove Image"
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={14} />
                   <span>Remove</span>
                 </button>
               </div>
@@ -214,11 +285,18 @@ export default function Step2Photos({
               onClick={() => landscapeInputRef.current?.click()}
             >
               <ImageIcon size={32} className="dropzone-icon" />
-              <span className="dropzone-primary-text">Upload Landscape Banner</span>
-              <span className="dropzone-sub-text">Recommended: 1600 × 900 px • Max 5MB</span>
+              <span className="dropzone-primary-text">Upload Landscape</span>
+              <span className="dropzone-sub-text">Recommended: 1600 × 900 px (16:9) • Max 5 MB</span>
               <button type="button" className="dropzone-browse-btn">
                 Browse Files
               </button>
+            </div>
+          )}
+
+          {landscapeMeta.fileName && (
+            <div style={{ marginTop: "8px", fontSize: "12px", color: "#94a3b8", display: "flex", justifyContent: "space-between" }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "200px" }}>{landscapeMeta.fileName}</span>
+              <span>{formatFileSize(landscapeMeta.sizeBytes)}</span>
             </div>
           )}
 

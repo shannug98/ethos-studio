@@ -39,8 +39,12 @@ public class WorkshopTicket
 
     public DateTime? AttendeeDetailsLockedAt { get; set; }
 
+    public Guid? WorkshopSessionId { get; set; }
+
     public WorkshopBooking WorkshopBooking { get; set; } = null!;
     public Workshop Workshop { get; set; } = null!;
+    public WorkshopSession? WorkshopSession { get; set; }
+    public WorkshopBookingSession? WorkshopBookingSession { get; set; }
     public User User { get; set; } = null!;
     public PaymentTransaction PaymentTransaction { get; set; } = null!;
     public WorkshopAttendance? Attendance { get; set; }

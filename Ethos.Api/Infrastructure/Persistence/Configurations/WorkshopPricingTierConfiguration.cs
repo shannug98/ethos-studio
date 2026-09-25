@@ -36,15 +36,31 @@ public class WorkshopPricingTierConfiguration : IEntityTypeConfiguration<Worksho
             .HasColumnType("timestamptz")
             .IsRequired();
 
+        builder.Property(x => x.WorkshopPassTypeId)
+            .HasColumnType("uuid");
+
         builder.Property(x => x.UpdatedAt)
             .HasColumnType("timestamptz")
             .IsRequired();
 
-        builder.HasIndex(x => new { x.WorkshopId, x.TierNumber }).IsUnique();
+        builder.HasIndex(x => new { x.WorkshopId, x.TierNumber })
+            .HasDatabaseName("IX_workshop_pricing_tiers_workshop_legacy")
+            .HasFilter("\"WorkshopPassTypeId\" IS NULL")
+            .IsUnique();
+
+        builder.HasIndex(x => new { x.WorkshopPassTypeId, x.TierNumber })
+            .HasDatabaseName("IX_workshop_pricing_tiers_pass_type")
+            .HasFilter("\"WorkshopPassTypeId\" IS NOT NULL")
+            .IsUnique();
 
         builder.HasOne(x => x.Workshop)
             .WithMany(x => x.PricingTiers)
             .HasForeignKey(x => x.WorkshopId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.WorkshopPassType)
+            .WithMany(x => x.PricingTiers)
+            .HasForeignKey(x => x.WorkshopPassTypeId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,0 +1,352 @@
+[
+  {
+    "viewport": "320px",
+    "overflow": {
+      "docScrollWidth": 320,
+      "winInnerWidth": 320,
+      "bodyScrollWidth": 320,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 269,
+          "height": 466
+        },
+        {
+          "width": 269,
+          "height": 466
+        },
+        {
+          "width": 269,
+          "height": 466
+        },
+        {
+          "width": 269,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_320px.png"
+  },
+  {
+    "viewport": "360px",
+    "overflow": {
+      "docScrollWidth": 360,
+      "winInnerWidth": 360,
+      "bodyScrollWidth": 360,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_360px.png"
+  },
+  {
+    "viewport": "375px",
+    "overflow": {
+      "docScrollWidth": 375,
+      "winInnerWidth": 375,
+      "bodyScrollWidth": 375,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_375px.png"
+  },
+  {
+    "viewport": "390px",
+    "overflow": {
+      "docScrollWidth": 390,
+      "winInnerWidth": 390,
+      "bodyScrollWidth": 390,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_390px.png"
+  },
+  {
+    "viewport": "414px",
+    "overflow": {
+      "docScrollWidth": 414,
+      "winInnerWidth": 414,
+      "bodyScrollWidth": 414,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_414px.png"
+  },
+  {
+    "viewport": "430px",
+    "overflow": {
+      "docScrollWidth": 430,
+      "winInnerWidth": 430,
+      "bodyScrollWidth": 430,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": false,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        },
+        {
+          "width": 290,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_430px.png"
+  },
+  {
+    "viewport": "1280px",
+    "overflow": {
+      "docScrollWidth": 1280,
+      "winInnerWidth": 1280,
+      "bodyScrollWidth": 1280,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": true,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 333,
+          "height": 466
+        },
+        {
+          "width": 333,
+          "height": 466
+        },
+        {
+          "width": 333,
+          "height": 466
+        },
+        {
+          "width": 333,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": {
+      "currentUrl": "http://localhost:4173/workshops/hip-hop-intensive",
+      "scrollY": 0
+    },
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_1280px.png"
+  },
+  {
+    "viewport": "1440px",
+    "overflow": {
+      "docScrollWidth": 1440,
+      "winInnerWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "hasPageOverflow": false
+    },
+    "carousel": {
+      "heading": "More Workshops",
+      "sub": "Discover other upcoming dance experiences and masterclasses",
+      "controlsVisible": true,
+      "cardCount": 4,
+      "titles": [
+        "Hip Hop Intensive",
+        "Jazz Funk Workshop",
+        "Salsa Social Foundation",
+        "Heels Technique & Flow"
+      ],
+      "hasCurrentWorkshop": false,
+      "cardRects": [
+        {
+          "width": 340,
+          "height": 466
+        },
+        {
+          "width": 340,
+          "height": 466
+        },
+        {
+          "width": 340,
+          "height": 466
+        },
+        {
+          "width": 340,
+          "height": 466
+        }
+      ],
+      "scrolledAmount": 0
+    },
+    "clickTest": {
+      "currentUrl": "http://localhost:4173/workshops/hip-hop-intensive",
+      "scrollY": 0
+    },
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_view_1440px.png"
+  }
+]

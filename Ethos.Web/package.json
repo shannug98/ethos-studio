@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
+    "test": "node --test tests/verify_*.mjs tests/verified_fixes.test.mjs",
+    "test:e2e": "node tests/capture_admin_media.mjs && node tests/capture_public_home.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -26,6 +26,7 @@ public class WorkshopService : IWorkshopService
     private readonly IPaymentFulfillmentService _fulfillmentService;
     private readonly RazorpaySettings _razorpaySettings;
     private readonly HttpClient _httpClient;
+    private readonly IWebHostEnvironment _environment;
 
     public WorkshopService(
         AppDbContext dbContext,
@@ -34,7 +35,8 @@ public class WorkshopService : IWorkshopService
         INotificationService notificationService,
         IWorkshopTicketService ticketService,
         IPaymentFulfillmentService fulfillmentService,
-        IOptions<RazorpaySettings> razorpaySettings)
+        IOptions<RazorpaySettings> razorpaySettings,
+        IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _currentUser = currentUser;
@@ -43,10 +45,321 @@ public class WorkshopService : IWorkshopService
         _ticketService = ticketService;
         _fulfillmentService = fulfillmentService;
         _razorpaySettings = razorpaySettings.Value;
+        _environment = environment;
 
         _httpClient = new HttpClient
         {
             BaseAddress = new Uri("https://api.razorpay.com/v1/")
+        };
+    }
+
+    private WorkshopResponse MapWorkshopResponse(
+        Workshop w,
+        int bookedSeats,
+        IReadOnlyList<WorkshopPricingTier>? workshopTiers,
+        IReadOnlyDictionary<Guid, int> sessionBookedCounts,
+        IReadOnlyDictionary<Guid, int> passBookedCounts,
+        bool isStudentEligible,
+        DateTime nowUtc)
+    {
+        var pricing = _pricingService.CalculatePricing(w, workshopTiers, bookedSeats, isStudentEligible);
+
+        var trainers = w.WorkshopTrainers?.OrderBy(wt => wt.DisplayOrder).Select(wt => new WorkshopTrainerDto
+        {
+            TrainerProfileId = wt.TrainerProfileId,
+            Name = wt.TrainerProfile?.FullName ?? "Ethos Trainer",
+            PhotoUrl = wt.TrainerProfile?.ProfilePhotoUrl,
+            DanceStyles = wt.TrainerProfile?.PrimaryDanceStyle,
+            DisplayOrder = wt.DisplayOrder
+        }).ToList() ?? new();
+
+        var sessions = new List<WorkshopSessionDto>();
+        if (w.Sessions != null && w.Sessions.Count > 0)
+        {
+            sessions = w.Sessions.OrderBy(s => s.SessionDate).ThenBy(s => s.StartTime).Select(s =>
+            {
+                var sBooked = sessionBookedCounts.GetValueOrDefault(s.Id, 0);
+                var sRemaining = Math.Max(0, s.Capacity - sBooked);
+                var cutoffUtc = s.GetBookingCutoffUtc(w.Timezone ?? "Asia/Kolkata");
+                var isClosed = nowUtc >= cutoffUtc;
+                var isPast = s.IsCompleted(nowUtc, w.Timezone ?? "Asia/Kolkata");
+
+                string availLabel = isPast
+                    ? "Past"
+                    : (isClosed
+                        ? "Closed"
+                        : (sRemaining <= 0
+                            ? "Sold Out"
+                            : (sRemaining <= 5
+                                ? "Selling Fast"
+                                : "Available")));
+
+                var sessionTrainers = s.SessionTrainers != null && s.SessionTrainers.Count > 0
+                    ? s.SessionTrainers.OrderBy(st => st.DisplayOrder).Select(st => new WorkshopTrainerDto
+                    {
+                        TrainerProfileId = st.TrainerProfileId,
+                        Name = st.TrainerProfile?.FullName ?? "Ethos Faculty",
+                        PhotoUrl = st.TrainerProfile?.ProfilePhotoUrl,
+                        DanceStyles = st.TrainerProfile?.PrimaryDanceStyle,
+                        DisplayOrder = st.DisplayOrder
+                    }).ToList()
+                    : (s.TrainerProfile != null
+                        ? new List<WorkshopTrainerDto>
+                        {
+                            new WorkshopTrainerDto
+                            {
+                                TrainerProfileId = s.TrainerProfileId,
+                                Name = s.TrainerProfile.FullName,
+                                PhotoUrl = s.TrainerProfile.ProfilePhotoUrl,
+                                DanceStyles = s.TrainerProfile.PrimaryDanceStyle,
+                                DisplayOrder = 0
+                            }
+                        }
+                        : new List<WorkshopTrainerDto>());
+
+                return new WorkshopSessionDto
+                {
+                    Id = s.Id,
+                    WorkshopId = s.WorkshopId,
+                    SessionDate = s.SessionDate,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    TrainerProfileId = s.TrainerProfileId,
+                    TrainerName = s.TrainerProfile?.FullName ?? (sessionTrainers.Count > 0 ? sessionTrainers[0].Name : "Ethos Faculty"),
+                    TrainerPhotoUrl = s.TrainerProfile?.ProfilePhotoUrl ?? (sessionTrainers.Count > 0 ? sessionTrainers[0].PhotoUrl : null),
+                    Title = s.Title,
+                    Description = s.Description,
+                    Capacity = s.Capacity,
+                    BookedSeats = sBooked,
+                    RemainingSeats = sRemaining,
+                    IsFull = sRemaining <= 0,
+                    BookingCutoffTime = s.BookingCutoffTime,
+                    BookingCutoffUtc = cutoffUtc,
+                    IsBookingClosed = isClosed,
+                    DisplayOrder = s.DisplayOrder,
+                    IsActive = s.IsActive,
+                    PosterImageUrl = s.PosterImageUrl ?? w.ImageUrl,
+                    Trainers = sessionTrainers,
+                    AvailabilityLabel = availLabel
+                };
+            }).ToList();
+        }
+        else
+        {
+            var isSinglePast = w.EndUtc.HasValue
+                ? nowUtc >= w.EndUtc.Value
+                : (w.WorkshopDate.Date + w.EndTime <= nowUtc);
+            var isSingleClosed = w.IsBookingClosed(nowUtc);
+            string singleAvailLabel = isSinglePast
+                ? "Past"
+                : (isSingleClosed
+                    ? "Closed"
+                    : (pricing.RemainingSeats <= 0
+                        ? "Sold Out"
+                        : (pricing.RemainingSeats <= 5
+                            ? "Selling Fast"
+                            : "Available")));
+
+            sessions.Add(new WorkshopSessionDto
+            {
+                Id = w.Id,
+                WorkshopId = w.Id,
+                SessionDate = w.WorkshopDate,
+                StartTime = w.StartTime,
+                EndTime = w.EndTime,
+                TrainerProfileId = w.TrainerProfileId ?? Guid.Empty,
+                TrainerName = w.TrainerProfile?.FullName ?? (trainers.Count > 0 ? trainers[0].Name : "Ethos Faculty"),
+                TrainerPhotoUrl = w.TrainerProfile?.ProfilePhotoUrl ?? (trainers.Count > 0 ? trainers[0].PhotoUrl : null),
+                Title = w.Title,
+                Description = w.Description,
+                Capacity = w.Capacity,
+                BookedSeats = pricing.BookedSeats,
+                RemainingSeats = pricing.RemainingSeats,
+                IsFull = pricing.IsFull,
+                BookingCutoffTime = w.BookingCutoffTime,
+                BookingCutoffUtc = w.GetBookingCutoffUtc(),
+                IsBookingClosed = isSingleClosed,
+                DisplayOrder = 0,
+                IsActive = true,
+                PosterImageUrl = w.ImageUrl,
+                Trainers = trainers,
+                AvailabilityLabel = singleAvailLabel
+            });
+        }
+
+        var passTypes = w.PassTypes?.OrderBy(p => p.DisplayOrder).Select(p =>
+        {
+            var pTotal = p.TotalQuantity > 0 ? p.TotalQuantity : 1000;
+            var pBooked = passBookedCounts.GetValueOrDefault(p.Id, 0);
+            var pRemainingQuota = Math.Max(0, pTotal - pBooked);
+
+            WorkshopSessionDto? linkedSessionDto = null;
+            if (p.WorkshopSessionId.HasValue)
+            {
+                linkedSessionDto = sessions.FirstOrDefault(s => s.Id == p.WorkshopSessionId.Value);
+            }
+
+            int pRemaining;
+            bool isPassClosed = (p.SalesEndUtc.HasValue && nowUtc >= p.SalesEndUtc.Value) ||
+                           (p.SalesStartUtc.HasValue && nowUtc < p.SalesStartUtc.Value);
+
+            if (p.WorkshopSessionId.HasValue)
+            {
+                int sRemaining = linkedSessionDto?.RemainingSeats ?? 0;
+                bool isLinkedClosed = linkedSessionDto == null || linkedSessionDto.IsBookingClosed;
+                pRemaining = isLinkedClosed ? 0 : Math.Min(pRemainingQuota, sRemaining);
+                if (isLinkedClosed) isPassClosed = true;
+            }
+            else if (!p.SessionsIncluded.HasValue)
+            {
+                var activeSessions = sessions.Where(s => !s.IsBookingClosed).ToList();
+                int minRemaining = activeSessions.Count > 0 ? activeSessions.Min(s => s.RemainingSeats) : 0;
+                pRemaining = Math.Min(pRemainingQuota, minRemaining);
+                if (activeSessions.Count == 0 || minRemaining <= 0) isPassClosed = true;
+            }
+            else
+            {
+                int n = p.SessionsIncluded.Value;
+                int availableActiveSessionsCount = sessions.Count(s => !s.IsBookingClosed && s.RemainingSeats >= 1);
+                if (availableActiveSessionsCount < n)
+                {
+                    pRemaining = 0;
+                    isPassClosed = true;
+                }
+                else
+                {
+                    pRemaining = pRemainingQuota;
+                }
+            }
+
+            if (pRemaining <= 0) isPassClosed = true;
+
+            string passAvailLabel = (linkedSessionDto != null && linkedSessionDto.AvailabilityLabel == "Past")
+                ? "Past"
+                : (isPassClosed && pRemaining > 0
+                    ? "Closed"
+                    : (pRemaining <= 0
+                        ? "Sold Out"
+                        : (pRemaining <= 5
+                            ? "Selling Fast"
+                            : "Available")));
+
+            var tiers = p.PricingTiers?.OrderBy(t => t.TierNumber).ToList() ?? new List<WorkshopPricingTier>();
+            decimal currentPrice = p.Price;
+            decimal? nextTierPrice = null;
+            int currentTierNum = 1;
+            string? currentTierName = null;
+            int remainingInTier = pRemaining;
+
+            var tierDtos = tiers.Select(t =>
+            {
+                return new WorkshopPricingTierDto
+                {
+                    TierNumber = t.TierNumber,
+                    TierName = t.TierName,
+                    MinTickets = t.MinTickets,
+                    MaxTickets = t.MaxTickets,
+                    Price = t.Price,
+                    Status = "UPCOMING"
+                };
+            }).ToList();
+
+            if (tiers.Count > 0)
+            {
+                int nextSlot = pBooked + 1;
+                var activeTier = tiers.FirstOrDefault(t => nextSlot >= t.MinTickets && (t.MaxTickets == null || nextSlot <= t.MaxTickets))
+                    ?? tiers.Last();
+
+                currentTierNum = activeTier.TierNumber;
+                currentTierName = activeTier.TierName;
+                currentPrice = activeTier.Price;
+
+                var nextTier = tiers.FirstOrDefault(t => t.TierNumber > currentTierNum);
+                if (nextTier != null) nextTierPrice = nextTier.Price;
+
+                int minSeats = activeTier.MinTickets > 0 ? activeTier.MinTickets : 1;
+                int? maxSeats = activeTier.MaxTickets;
+                int tierCap = maxSeats.HasValue ? Math.Max(1, maxSeats.Value - minSeats + 1) : Math.Max(1, pTotal - minSeats + 1);
+                int filledInTier = Math.Clamp(pBooked - (minSeats - 1), 0, tierCap);
+                remainingInTier = Math.Max(0, tierCap - filledInTier);
+
+                foreach (var td in tierDtos)
+                {
+                    if (td.TierNumber < currentTierNum) td.Status = "COMPLETED";
+                    else if (td.TierNumber == currentTierNum) td.Status = "ACTIVE";
+                    else td.Status = "UPCOMING";
+                }
+            }
+
+            return new WorkshopPassTypeDto
+            {
+                Id = p.Id,
+                WorkshopId = p.WorkshopId,
+                WorkshopSessionId = p.WorkshopSessionId,
+                SessionTitle = linkedSessionDto?.Title,
+                SessionDate = linkedSessionDto?.SessionDate,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                CurrentPrice = currentPrice,
+                NextTierPrice = nextTierPrice,
+                CurrentTierNumber = currentTierNum,
+                CurrentTierName = currentTierName,
+                TicketsRemainingInCurrentTier = remainingInTier,
+                PricingTiers = tierDtos,
+                SessionsIncluded = p.SessionsIncluded,
+                TotalQuantity = pTotal,
+                RemainingQuantity = pRemaining,
+                SalesStartUtc = p.SalesStartUtc,
+                SalesEndUtc = p.SalesEndUtc,
+                IsSalesClosed = isPassClosed,
+                DisplayOrder = p.DisplayOrder,
+                IsActive = p.IsActive,
+                AvailabilityLabel = passAvailLabel
+            };
+        }).ToList() ?? new();
+
+        return new WorkshopResponse
+        {
+            Id = w.Id,
+            Title = w.Title,
+            Description = w.Description,
+            DanceStyle = w.DanceStyle,
+            Level = w.Level,
+            WorkshopDate = w.WorkshopDate,
+            StartTime = w.StartTime,
+            EndTime = w.EndTime,
+            Venue = w.Venue,
+            TrainerName = w.TrainerProfile?.FullName ?? (trainers.Count > 0 ? trainers[0].Name : "Ethos Faculty"),
+            TrainerPhotoUrl = w.TrainerProfile?.ProfilePhotoUrl ?? (trainers.Count > 0 ? trainers[0].PhotoUrl : null),
+            TrainerDanceStyles = w.TrainerProfile?.PrimaryDanceStyle ?? (trainers.Count > 0 ? trainers[0].DanceStyles : null),
+            StartingPrice = passTypes.Count > 0 ? passTypes.Min(p => p.Price) : pricing.StartingPrice,
+            CurrentPrice = passTypes.Count > 0 ? passTypes.Min(p => p.Price) : pricing.CurrentPublicPrice,
+            StudentPrice = pricing.StudentPrice,
+            Price = pricing.FinalAmount,
+            Capacity = w.Capacity,
+            BookedSeats = pricing.BookedSeats,
+            RemainingSeats = pricing.RemainingSeats,
+            IsFull = pricing.IsFull,
+            IsStudentEligible = pricing.IsStudentEligible,
+            BookingsCount = pricing.BookedSeats,
+            Status = w.Status,
+            ImageUrl = w.ImageUrl,
+            LandscapeImageUrl = w.LandscapeImageUrl,
+            City = w.City,
+            Area = w.Area,
+            VenueAddress = w.VenueAddress,
+            LocationUrl = w.LocationUrl,
+            ShortDescription = w.ShortDescription,
+            PublicVisibility = w.PublicVisibility,
+            StartUtc = w.StartUtc,
+            EndUtc = w.EndUtc,
+            BookingCutoffTime = w.BookingCutoffTime,
+            BookingCutoffUtc = w.GetBookingCutoffUtc(),
+            IsBookingClosed = sessions.Count > 0 ? sessions.All(s => s.IsBookingClosed) : w.IsBookingClosed(nowUtc),
+            Trainers = trainers,
+            Sessions = sessions,
+            PassTypes = passTypes
         };
     }
 
@@ -65,54 +378,105 @@ public class WorkshopService : IWorkshopService
             // anonymous visitor
         }
 
+        // Query 1: Fetch approved / published workshops with their child collections (excluding unused Bookings)
         var workshops = await _dbContext.Workshops
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(w => w.TrainerProfile)
-            .Include(w => w.Bookings)
+            .Include(w => w.WorkshopTrainers)
+                .ThenInclude(wt => wt.TrainerProfile)
+            .Include(w => w.Sessions)
+                .ThenInclude(s => s.TrainerProfile)
+            .Include(w => w.Sessions)
+                .ThenInclude(s => s.SessionTrainers)
+                    .ThenInclude(st => st.TrainerProfile)
+            .Include(w => w.PassTypes)
+                .ThenInclude(p => p.PricingTiers)
             .Where(w => w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved))
             .OrderBy(w => w.WorkshopDate)
             .ToListAsync();
 
-        var result = new List<WorkshopResponse>();
+        if (workshops.Count == 0)
+        {
+            return Array.Empty<WorkshopResponse>();
+        }
+
+        var workshopIds = workshops.Select(w => w.Id).ToList();
+        var allSessionIds = workshops.SelectMany(w => w.Sessions).Select(s => s.Id).ToList();
+        var allPassTypeIds = workshops.SelectMany(w => w.PassTypes).Select(p => p.Id).ToList();
+        var nowUtc = DateTime.UtcNow;
+
+        // Query 2: Batch sum booked seats per workshop
+        var workshopBookedCounts = await _dbContext.WorkshopBookings
+            .AsNoTracking()
+            .Where(b => workshopIds.Contains(b.WorkshopId) &&
+                       (b.Status == WorkshopBookingStatus.Confirmed ||
+                        b.Status == WorkshopBookingStatus.Attended ||
+                        (b.Status == WorkshopBookingStatus.PendingPayment &&
+                         b.ReservationExpiresAt.HasValue &&
+                         b.ReservationExpiresAt.Value > nowUtc)))
+            .GroupBy(b => b.WorkshopId)
+            .Select(g => new { WorkshopId = g.Key, Count = g.Sum(b => (int?)b.Quantity) ?? 0 })
+            .ToDictionaryAsync(g => g.WorkshopId, g => g.Count);
+
+        // Query 3: Batch count booked seats per session
+        var sessionBookedCounts = allSessionIds.Count > 0
+            ? await _dbContext.WorkshopBookingSessions
+                .AsNoTracking()
+                .Where(bs => allSessionIds.Contains(bs.WorkshopSessionId) &&
+                             bs.Status == WorkshopBookingSessionStatus.Booked &&
+                             (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                              bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                              (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                               bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                .GroupBy(bs => bs.WorkshopSessionId)
+                .Select(g => new { SessionId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.SessionId, g => g.Count)
+            : new Dictionary<Guid, int>();
+
+        // Query 4: Batch sum booked quantity per pass type
+        var passBookedCounts = allPassTypeIds.Count > 0
+            ? await _dbContext.WorkshopBookings
+                .AsNoTracking()
+                .Where(b => b.WorkshopPassTypeId.HasValue &&
+                            allPassTypeIds.Contains(b.WorkshopPassTypeId.Value) &&
+                            (b.Status == WorkshopBookingStatus.Confirmed ||
+                             b.Status == WorkshopBookingStatus.Attended ||
+                             (b.Status == WorkshopBookingStatus.PendingPayment &&
+                              b.ReservationExpiresAt > nowUtc)))
+                .GroupBy(b => b.WorkshopPassTypeId!.Value)
+                .Select(g => new { PassId = g.Key, Count = g.Sum(b => (int?)b.Quantity) ?? 0 })
+                .ToDictionaryAsync(g => g.PassId, g => g.Count)
+            : new Dictionary<Guid, int>();
+
+        // Query 5: Batch query standard pricing tiers for all workshops
+        var standardTiers = await _dbContext.WorkshopPricingTiers
+            .AsNoTracking()
+            .Where(t => workshopIds.Contains(t.WorkshopId) && t.WorkshopPassTypeId == null)
+            .OrderBy(t => t.TierNumber)
+            .ToListAsync();
+        var tiersByWorkshop = standardTiers
+            .GroupBy(t => t.WorkshopId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<WorkshopPricingTier>)g.ToList());
+
+        // Check student eligibility once
+        var isStudentEligible = await _pricingService.IsStudentEligibleAsync(currentUserId);
+
+        // Map synchronously in-memory (0 database queries during loop)
+        var result = new List<WorkshopResponse>(workshops.Count);
         foreach (var w in workshops)
         {
-            var pricing = await _pricingService.CalculatePricingAsync(w, currentUserId);
+            var bookedSeats = workshopBookedCounts.GetValueOrDefault(w.Id, 0);
+            tiersByWorkshop.TryGetValue(w.Id, out var tiers);
 
-            result.Add(new WorkshopResponse
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                DanceStyle = w.DanceStyle,
-                Level = w.Level,
-                WorkshopDate = w.WorkshopDate,
-                StartTime = w.StartTime,
-                EndTime = w.EndTime,
-                Venue = w.Venue,
-                TrainerName = w.TrainerProfile?.FullName ?? "Ethos Faculty",
-                TrainerPhotoUrl = w.TrainerProfile?.ProfilePhotoUrl,
-                TrainerDanceStyles = w.TrainerProfile?.PrimaryDanceStyle,
-                StartingPrice = pricing.StartingPrice,
-                CurrentPrice = pricing.CurrentPublicPrice,
-                StudentPrice = pricing.StudentPrice,
-                Price = pricing.FinalAmount,
-                Capacity = w.Capacity,
-                BookedSeats = pricing.BookedSeats,
-                RemainingSeats = pricing.RemainingSeats,
-                IsFull = pricing.IsFull,
-                IsStudentEligible = pricing.IsStudentEligible,
-                BookingsCount = pricing.BookedSeats,
-                Status = w.Status,
-                ImageUrl = w.ImageUrl,
-                LandscapeImageUrl = w.LandscapeImageUrl,
-                City = w.City,
-                Area = w.Area,
-                VenueAddress = w.VenueAddress,
-                ShortDescription = w.ShortDescription,
-                PublicVisibility = w.PublicVisibility,
-                StartUtc = w.StartUtc,
-                EndUtc = w.EndUtc
-            });
+            result.Add(MapWorkshopResponse(
+                w,
+                bookedSeats,
+                tiers,
+                sessionBookedCounts,
+                passBookedCounts,
+                isStudentEligible,
+                nowUtc));
         }
 
         return result;
@@ -135,8 +499,17 @@ public class WorkshopService : IWorkshopService
 
         var workshop = await _dbContext.Workshops
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(w => w.TrainerProfile)
-            .Include(w => w.Bookings)
+            .Include(w => w.WorkshopTrainers)
+                .ThenInclude(wt => wt.TrainerProfile)
+            .Include(w => w.Sessions)
+                .ThenInclude(s => s.TrainerProfile)
+            .Include(w => w.Sessions)
+                .ThenInclude(s => s.SessionTrainers)
+                    .ThenInclude(st => st.TrainerProfile)
+            .Include(w => w.PassTypes)
+                .ThenInclude(p => p.PricingTiers)
             .FirstOrDefaultAsync(w => w.Id == id && w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved));
 
         if (workshop == null)
@@ -144,43 +517,64 @@ public class WorkshopService : IWorkshopService
             return null;
         }
 
-        var pricing = await _pricingService.CalculatePricingAsync(workshop, currentUserId);
+        var nowUtc = DateTime.UtcNow;
+        var sessionIds = workshop.Sessions.Select(s => s.Id).ToList();
+        var passIds = workshop.PassTypes.Select(p => p.Id).ToList();
 
-        return new WorkshopResponse
-        {
-            Id = workshop.Id,
-            Title = workshop.Title,
-            Description = workshop.Description,
-            DanceStyle = workshop.DanceStyle,
-            Level = workshop.Level,
-            WorkshopDate = workshop.WorkshopDate,
-            StartTime = workshop.StartTime,
-            EndTime = workshop.EndTime,
-            Venue = workshop.Venue,
-            TrainerName = workshop.TrainerProfile?.FullName ?? "Ethos Faculty",
-            TrainerPhotoUrl = workshop.TrainerProfile?.ProfilePhotoUrl,
-            TrainerDanceStyles = workshop.TrainerProfile?.PrimaryDanceStyle,
-            StartingPrice = pricing.StartingPrice,
-            CurrentPrice = pricing.CurrentPublicPrice,
-            StudentPrice = pricing.StudentPrice,
-            Price = pricing.FinalAmount,
-            Capacity = workshop.Capacity,
-            BookedSeats = pricing.BookedSeats,
-            RemainingSeats = pricing.RemainingSeats,
-            IsFull = pricing.IsFull,
-            IsStudentEligible = pricing.IsStudentEligible,
-            BookingsCount = pricing.BookedSeats,
-            Status = workshop.Status,
-            ImageUrl = workshop.ImageUrl,
-            LandscapeImageUrl = workshop.LandscapeImageUrl,
-            City = workshop.City,
-            Area = workshop.Area,
-            VenueAddress = workshop.VenueAddress,
-            ShortDescription = workshop.ShortDescription,
-            PublicVisibility = workshop.PublicVisibility,
-            StartUtc = workshop.StartUtc,
-            EndUtc = workshop.EndUtc
-        };
+        var workshopBookedCount = await _dbContext.WorkshopBookings
+            .AsNoTracking()
+            .Where(b => b.WorkshopId == id &&
+                       (b.Status == WorkshopBookingStatus.Confirmed ||
+                        b.Status == WorkshopBookingStatus.Attended ||
+                        (b.Status == WorkshopBookingStatus.PendingPayment &&
+                         b.ReservationExpiresAt.HasValue &&
+                         b.ReservationExpiresAt.Value > nowUtc)))
+            .SumAsync(b => (int?)b.Quantity) ?? 0;
+
+        var sessionBookedCounts = sessionIds.Count > 0
+            ? await _dbContext.WorkshopBookingSessions
+                .AsNoTracking()
+                .Where(bs => sessionIds.Contains(bs.WorkshopSessionId) &&
+                             bs.Status == WorkshopBookingSessionStatus.Booked &&
+                             (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                              bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                              (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                               bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                .GroupBy(bs => bs.WorkshopSessionId)
+                .Select(g => new { SessionId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.SessionId, g => g.Count)
+            : new Dictionary<Guid, int>();
+
+        var passBookedCounts = passIds.Count > 0
+            ? await _dbContext.WorkshopBookings
+                .AsNoTracking()
+                .Where(b => b.WorkshopPassTypeId.HasValue &&
+                            passIds.Contains(b.WorkshopPassTypeId.Value) &&
+                            (b.Status == WorkshopBookingStatus.Confirmed ||
+                             b.Status == WorkshopBookingStatus.Attended ||
+                             (b.Status == WorkshopBookingStatus.PendingPayment &&
+                              b.ReservationExpiresAt > nowUtc)))
+                .GroupBy(b => b.WorkshopPassTypeId!.Value)
+                .Select(g => new { PassId = g.Key, Count = g.Sum(b => (int?)b.Quantity) ?? 0 })
+                .ToDictionaryAsync(g => g.PassId, g => g.Count)
+            : new Dictionary<Guid, int>();
+
+        var tiers = await _dbContext.WorkshopPricingTiers
+            .AsNoTracking()
+            .Where(t => t.WorkshopId == id && t.WorkshopPassTypeId == null)
+            .OrderBy(t => t.TierNumber)
+            .ToListAsync();
+
+        var isStudentEligible = await _pricingService.IsStudentEligibleAsync(currentUserId);
+
+        return MapWorkshopResponse(
+            workshop,
+            workshopBookedCount,
+            tiers,
+            sessionBookedCounts,
+            passBookedCounts,
+            isStudentEligible,
+            nowUtc);
     }
 
     public async Task<WorkshopPricingResponse?> GetWorkshopPricingAsync(Guid id)
@@ -214,6 +608,8 @@ public class WorkshopService : IWorkshopService
     public async Task<WorkshopPriceQuoteResponse> GetWorkshopQuoteAsync(
         Guid id,
         int quantity,
+        Guid? passTypeId = null,
+        List<Guid>? selectedSessionIds = null,
         CancellationToken cancellationToken = default)
     {
         Guid? currentUserId = null;
@@ -227,6 +623,171 @@ public class WorkshopService : IWorkshopService
         catch
         {
             // anonymous / guest
+        }
+
+        quantity = Math.Clamp(quantity, 1, 10);
+        var nowUtc = DateTime.UtcNow;
+
+        if (passTypeId.HasValue)
+        {
+            var pass = await _dbContext.WorkshopPassTypes
+                .Include(p => p.PricingTiers)
+                .Include(p => p.Workshop)
+                    .ThenInclude(w => w.Sessions)
+                .FirstOrDefaultAsync(p => p.Id == passTypeId.Value && p.WorkshopId == id && p.IsActive, cancellationToken);
+
+            if (pass == null)
+            {
+                throw new ArgumentException("Selected ticket type was not found or is inactive.");
+            }
+
+            var workshop = pass.Workshop;
+            var timezone = workshop?.Timezone ?? "Asia/Kolkata";
+            var activeSessions = workshop?.Sessions.Where(s => s.IsActive).ToList() ?? new List<WorkshopSession>();
+
+            // Category-specific session validation
+            if (pass.WorkshopSessionId.HasValue)
+            {
+                // Single-Session pass
+                var linkedSession = activeSessions.FirstOrDefault(s => s.Id == pass.WorkshopSessionId.Value);
+                if (linkedSession == null)
+                {
+                    throw new InvalidOperationException($"The session assigned to ticket '{pass.Name}' is not active or not found.");
+                }
+                if (linkedSession.IsBookingClosed(nowUtc, timezone))
+                {
+                    throw new InvalidOperationException($"Booking cutoff for session '{linkedSession.Title}' has passed.");
+                }
+
+                var sBookedSeats = await _dbContext.WorkshopBookingSessions
+                    .Where(bs => bs.WorkshopSessionId == linkedSession.Id &&
+                                 bs.Status == WorkshopBookingSessionStatus.Booked &&
+                                 (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                                  bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                                  (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                                   bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                    .CountAsync(cancellationToken);
+
+                if (sBookedSeats + quantity > linkedSession.Capacity)
+                {
+                    var rem = Math.Max(0, linkedSession.Capacity - sBookedSeats);
+                    throw new InvalidOperationException($"Session '{linkedSession.Title}' has only {rem} seats remaining.");
+                }
+            }
+            else if (pass.SessionsIncluded.HasValue)
+            {
+                // Multi-Session Bundle
+                if (selectedSessionIds != null && selectedSessionIds.Count > 0)
+                {
+                    if (selectedSessionIds.Count != pass.SessionsIncluded.Value)
+                    {
+                        throw new ArgumentException($"Please select exactly {pass.SessionsIncluded.Value} sessions for {pass.Name}.");
+                    }
+                    if (selectedSessionIds.Distinct().Count() != pass.SessionsIncluded.Value)
+                    {
+                        throw new ArgumentException("Duplicate sessions selected. Each session must be unique.");
+                    }
+
+                    var targetSessions = activeSessions.Where(s => selectedSessionIds.Contains(s.Id)).ToList();
+                    if (targetSessions.Count != pass.SessionsIncluded.Value)
+                    {
+                        throw new ArgumentException("One or more selected sessions are invalid or inactive.");
+                    }
+
+                    // Overlap validation among selected sessions ([start, end) half-open interval)
+                    for (int i = 0; i < targetSessions.Count; i++)
+                    {
+                        var s1 = targetSessions[i];
+                        for (int j = i + 1; j < targetSessions.Count; j++)
+                        {
+                            var s2 = targetSessions[j];
+                            if (s1.SessionDate.Date == s2.SessionDate.Date)
+                            {
+                                if (s1.StartTime < s2.EndTime && s2.StartTime < s1.EndTime)
+                                {
+                                    throw new InvalidOperationException($"Selected sessions '{s1.Title}' and '{s2.Title}' overlap in time on {s1.SessionDate:yyyy-MM-dd}.");
+                                }
+                            }
+                        }
+                    }
+
+                    foreach (var s in targetSessions)
+                    {
+                        if (s.IsBookingClosed(nowUtc, timezone))
+                        {
+                            throw new InvalidOperationException($"Booking cutoff for session '{s.Title}' has passed.");
+                        }
+
+                        var sBookedSeats = await _dbContext.WorkshopBookingSessions
+                            .Where(bs => bs.WorkshopSessionId == s.Id &&
+                                         bs.Status == WorkshopBookingSessionStatus.Booked &&
+                                         (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                                          bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                                          (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                                           bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                            .CountAsync(cancellationToken);
+
+                        if (sBookedSeats + quantity > s.Capacity)
+                        {
+                            var rem = Math.Max(0, s.Capacity - sBookedSeats);
+                            throw new InvalidOperationException($"Session '{s.Title}' has only {rem} seats remaining.");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // All-Access pass: check that all active sessions are open and have capacity >= quantity
+                if (activeSessions.Count == 0)
+                {
+                    throw new InvalidOperationException("Workshop has no active sessions configured.");
+                }
+
+                foreach (var s in activeSessions)
+                {
+                    if (s.IsBookingClosed(nowUtc, timezone))
+                    {
+                        throw new InvalidOperationException($"All-Access is unavailable because session '{s.Title}' has passed its booking cutoff.");
+                    }
+
+                    var sBookedSeats = await _dbContext.WorkshopBookingSessions
+                        .Where(bs => bs.WorkshopSessionId == s.Id &&
+                                     bs.Status == WorkshopBookingSessionStatus.Booked &&
+                                     (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                                      bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                                      (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                                       bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                        .CountAsync(cancellationToken);
+
+                    if (sBookedSeats + quantity > s.Capacity)
+                    {
+                        var rem = Math.Max(0, s.Capacity - sBookedSeats);
+                        throw new InvalidOperationException($"All-Access is unavailable because session '{s.Title}' has only {rem} seats remaining.");
+                    }
+                }
+            }
+
+            // Check pass quota
+            var passSold = await _dbContext.WorkshopBookings
+                .Where(b => b.WorkshopPassTypeId == pass.Id &&
+                            (b.Status == WorkshopBookingStatus.Confirmed ||
+                             b.Status == WorkshopBookingStatus.Attended ||
+                             (b.Status == WorkshopBookingStatus.PendingPayment &&
+                              b.ReservationExpiresAt > nowUtc)))
+                .SumAsync(b => (int?)b.Quantity, cancellationToken) ?? 0;
+
+            if (passSold + quantity > pass.TotalQuantity)
+            {
+                var remaining = Math.Max(0, pass.TotalQuantity - passSold);
+                throw new InvalidOperationException($"Ticket '{pass.Name}' has only {remaining} tickets remaining.");
+            }
+
+            return await _pricingService.CalculateTicketTypeQuoteAsync(
+                pass,
+                quantity,
+                passSold,
+                currentUserId,
+                cancellationToken);
         }
 
         return await _pricingService.CalculateQuoteAsync(id, quantity, currentUserId, cancellationToken);
@@ -250,36 +811,6 @@ public class WorkshopService : IWorkshopService
             idempotencyKey = idempotencyKey[..128];
         }
 
-        // 1. Pre-check idempotency: Return existing created order if key matches
-        var existingKeyBooking = await _dbContext.WorkshopBookings
-            .FirstOrDefaultAsync(b => b.IdempotencyKey == idempotencyKey, cancellationToken);
-
-        if (existingKeyBooking != null)
-        {
-            var existingTx = await _dbContext.PaymentTransactions
-                .FirstOrDefaultAsync(t => t.Id == existingKeyBooking.PaymentTransactionId, cancellationToken);
-            var ws = await _dbContext.Workshops.FirstOrDefaultAsync(w => w.Id == workshopId, cancellationToken);
-
-            var existingQuote = await _pricingService.CalculateQuoteAsync(workshopId, existingKeyBooking.Quantity, null, cancellationToken);
-
-            return new CreateWorkshopOrderResponse
-            {
-                BookingId = existingKeyBooking.Id,
-                TransactionId = existingTx?.Id ?? Guid.Empty,
-                WorkshopId = workshopId,
-                WorkshopTitle = ws?.Title ?? "Workshop",
-                Quantity = existingKeyBooking.Quantity,
-                Amount = existingKeyBooking.TotalPrice,
-                Currency = "INR",
-                RazorpayOrderId = existingTx?.RazorpayOrderId ?? "",
-                RazorpayKeyId = string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ? "rzp_test_placeholder" : _razorpaySettings.KeyId,
-                IsStudentDiscountApplied = false,
-                IsSplitTier = existingQuote.IsSplitTier,
-                SplitTierMessage = existingQuote.SplitTierMessage,
-                Breakdown = existingQuote.Breakdown
-            };
-        }
-
         Guid? userId = null;
         StudentProfile? studentProfile = null;
 
@@ -298,12 +829,126 @@ public class WorkshopService : IWorkshopService
             // anonymous / guest
         }
 
+        // 1. Authoritative idempotency check with customer & workshop tenant isolation + request fingerprinting
+        var existingKeyBooking = await _dbContext.WorkshopBookings
+            .FirstOrDefaultAsync(b => b.IdempotencyKey == idempotencyKey, cancellationToken);
+
+        if (existingKeyBooking != null)
+        {
+            bool matchesWorkshop = existingKeyBooking.WorkshopId == workshopId;
+            bool matchesCustomer = false;
+
+            if (studentProfile != null)
+            {
+                matchesCustomer = existingKeyBooking.StudentProfileId == studentProfile.Id;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                matchesCustomer = string.Equals(existingKeyBooking.GuestEmail, request.Email.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                matchesCustomer = string.Equals(existingKeyBooking.GuestPhone, request.Phone.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                matchesCustomer = true;
+            }
+
+            // Fingerprint check: passTypeId, quantity, and selected sessions must match exactly
+            bool matchesPass = existingKeyBooking.WorkshopPassTypeId == request.PassTypeId;
+            bool matchesQuantity = existingKeyBooking.Quantity == quantity;
+
+            var existingSessionIds = string.IsNullOrWhiteSpace(existingKeyBooking.SelectedSessionIdsJson)
+                ? new List<Guid>()
+                : System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(existingKeyBooking.SelectedSessionIdsJson) ?? new List<Guid>();
+
+            var reqSessionIds = (request.SelectedSessionIds ?? new List<Guid>()).OrderBy(x => x).ToList();
+            var storedSortedIds = existingSessionIds.OrderBy(x => x).ToList();
+            bool matchesSessions = reqSessionIds.SequenceEqual(storedSortedIds);
+
+            if (!matchesWorkshop || !matchesCustomer)
+            {
+                throw new InvalidOperationException("Idempotency key already belongs to another request.");
+            }
+
+            if (!matchesPass || !matchesQuantity || !matchesSessions)
+            {
+                throw new InvalidOperationException("Idempotency key was previously used with different order parameters.");
+            }
+
+            var existingTx = await _dbContext.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.Id == existingKeyBooking.PaymentTransactionId, cancellationToken);
+            var ws = await _dbContext.Workshops.FirstOrDefaultAsync(w => w.Id == workshopId, cancellationToken);
+
+            bool existingIsSplitTier = false;
+            string? existingSplitTierMessage = null;
+            List<WorkshopPriceQuoteItem> existingBreakdown = new();
+
+            if (!string.IsNullOrWhiteSpace(existingKeyBooking.PriceBreakdownJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(existingKeyBooking.PriceBreakdownJson);
+                    if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        if (doc.RootElement.TryGetProperty("IsSplitTier", out var stProp))
+                            existingIsSplitTier = stProp.GetBoolean();
+                        if (doc.RootElement.TryGetProperty("SplitTierMessage", out var msgProp))
+                            existingSplitTierMessage = msgProp.GetString();
+                        if (doc.RootElement.TryGetProperty("Breakdown", out var bdProp) && bdProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            existingBreakdown = System.Text.Json.JsonSerializer.Deserialize<List<WorkshopPriceQuoteItem>>(bdProp.GetRawText()) ?? new();
+                        }
+                    }
+                    else if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        existingBreakdown = System.Text.Json.JsonSerializer.Deserialize<List<WorkshopPriceQuoteItem>>(existingKeyBooking.PriceBreakdownJson) ?? new();
+                    }
+                }
+                catch
+                {
+                    // ignore fallback
+                }
+            }
+
+            if (existingBreakdown.Count == 0 && !existingKeyBooking.WorkshopPassTypeId.HasValue)
+            {
+                var existingQuote = await _pricingService.CalculateQuoteAsync(workshopId, existingKeyBooking.Quantity, null, cancellationToken);
+                existingIsSplitTier = existingQuote.IsSplitTier;
+                existingSplitTierMessage = existingQuote.SplitTierMessage;
+                existingBreakdown = existingQuote.Breakdown;
+            }
+
+            return new CreateWorkshopOrderResponse
+            {
+                BookingId = existingKeyBooking.Id,
+                TransactionId = existingTx?.Id ?? Guid.Empty,
+                WorkshopId = workshopId,
+                WorkshopTitle = ws?.Title ?? "Workshop",
+                Quantity = existingKeyBooking.Quantity,
+                Amount = existingKeyBooking.TotalPrice,
+                Currency = "INR",
+                RazorpayOrderId = existingTx?.RazorpayOrderId ?? "",
+                RazorpayKeyId = string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ? "rzp_test_placeholder" : _razorpaySettings.KeyId,
+                IsStudentDiscountApplied = false,
+                IsSplitTier = existingIsSplitTier,
+                SplitTierMessage = existingSplitTierMessage,
+                Breakdown = existingBreakdown
+            };
+        }
+
         var workshop = await _dbContext.Workshops
             .FirstOrDefaultAsync(w => w.Id == workshopId && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved), cancellationToken);
 
         if (workshop == null)
         {
             throw new ArgumentException("Workshop was not found or is not approved.");
+        }
+
+        if (workshop.IsBookingClosed())
+        {
+            throw new InvalidOperationException("Bookings for this workshop are closed as the booking cutoff time has passed.");
         }
 
         // If guest, ensure guest student profile exists or create one dynamically for guest bookings
@@ -403,59 +1048,279 @@ public class WorkshopService : IWorkshopService
         if (_dbContext.Database.IsNpgsql())
         {
             await _dbContext.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT \"Id\" FROM \"Workshops\" WHERE \"Id\" = {workshopId} FOR UPDATE",
+                $"SELECT \"Id\" FROM workshops WHERE \"Id\" = {workshopId} FOR UPDATE",
                 cancellationToken);
         }
 
         var nowUtc = DateTime.UtcNow;
 
-        var activePendingSeats = await _dbContext.WorkshopBookings
-            .Where(b => b.WorkshopId == workshopId &&
-                        b.Status == WorkshopBookingStatus.PendingPayment &&
-                        b.ReservationExpiresAt.HasValue &&
-                        b.ReservationExpiresAt.Value > nowUtc)
-            .SumAsync(b => b.Quantity, cancellationToken);
+        WorkshopBooking newBooking;
+        decimal finalAmount;
+        var transactionId = Guid.NewGuid();
+        bool isSplitTier = false;
+        string? splitTierMessage = null;
+        List<WorkshopPriceQuoteItem> breakdown = new();
 
-        var confirmedSeats = await _dbContext.WorkshopBookings
-            .Where(b => b.WorkshopId == workshopId &&
-                       (b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended))
-            .SumAsync(b => b.Quantity, cancellationToken);
-
-        var effectiveBookedSeats = confirmedSeats + activePendingSeats;
-
-        if (effectiveBookedSeats + quantity > workshop.Capacity)
+        if (request.PassTypeId.HasValue)
         {
-            throw new InvalidOperationException("Workshop is sold out or does not have enough remaining seats available.");
+            var pass = await _dbContext.WorkshopPassTypes
+                .Include(p => p.PricingTiers)
+                .FirstOrDefaultAsync(p => p.Id == request.PassTypeId.Value && p.WorkshopId == workshopId && p.IsActive, cancellationToken);
+
+            if (pass == null)
+            {
+                throw new ArgumentException("Selected ticket type was not found or is inactive.");
+            }
+
+            if (_dbContext.Database.IsNpgsql())
+            {
+                await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT \"Id\" FROM workshop_pass_types WHERE \"Id\" = {pass.Id} FOR UPDATE",
+                    cancellationToken);
+            }
+
+            if (!pass.IsSalesOpen(nowUtc))
+            {
+                throw new InvalidOperationException($"Sales for ticket '{pass.Name}' are currently closed.");
+            }
+
+            var allActiveSessions = await _dbContext.WorkshopSessions
+                .Include(s => s.TrainerProfile)
+                .Where(s => s.WorkshopId == workshopId && s.IsActive)
+                .ToListAsync(cancellationToken);
+
+            List<WorkshopSession> targetSessions;
+            if (pass.WorkshopSessionId.HasValue)
+            {
+                var linkedSession = allActiveSessions.FirstOrDefault(s => s.Id == pass.WorkshopSessionId.Value);
+                if (linkedSession == null)
+                {
+                    throw new InvalidOperationException($"The session assigned to ticket '{pass.Name}' is not active or not found.");
+                }
+                if (request.SelectedSessionIds != null && request.SelectedSessionIds.Count > 0)
+                {
+                    if (request.SelectedSessionIds.Count != 1 || request.SelectedSessionIds[0] != pass.WorkshopSessionId.Value)
+                    {
+                        throw new ArgumentException($"Invalid session selection for single-session ticket '{pass.Name}'.");
+                    }
+                }
+                targetSessions = new List<WorkshopSession> { linkedSession };
+            }
+            else if (pass.SessionsIncluded.HasValue)
+            {
+                if (request.SelectedSessionIds == null || request.SelectedSessionIds.Count != pass.SessionsIncluded.Value)
+                {
+                    throw new ArgumentException($"Please select exactly {pass.SessionsIncluded.Value} sessions for {pass.Name}.");
+                }
+                if (request.SelectedSessionIds.Distinct().Count() != pass.SessionsIncluded.Value)
+                {
+                    throw new ArgumentException("Duplicate sessions selected. Each session must be unique.");
+                }
+
+                targetSessions = allActiveSessions.Where(s => request.SelectedSessionIds.Contains(s.Id)).ToList();
+                if (targetSessions.Count != pass.SessionsIncluded.Value)
+                {
+                    throw new ArgumentException("One or more selected sessions are invalid or inactive.");
+                }
+            }
+            else
+            {
+                if (allActiveSessions.Count == 0)
+                {
+                    throw new InvalidOperationException("Workshop has no active sessions configured.");
+                }
+                targetSessions = allActiveSessions;
+            }
+
+            // Overlap validation among selected sessions (for multi-session bundles)
+            if (!pass.WorkshopSessionId.HasValue && pass.SessionsIncluded.HasValue && pass.SessionsIncluded.Value > 1)
+            {
+                for (int i = 0; i < targetSessions.Count; i++)
+                {
+                    var s1 = targetSessions[i];
+                    for (int j = i + 1; j < targetSessions.Count; j++)
+                    {
+                        var s2 = targetSessions[j];
+                        if (s1.SessionDate.Date == s2.SessionDate.Date)
+                        {
+                            if (s1.StartTime < s2.EndTime && s2.StartTime < s1.EndTime)
+                            {
+                                throw new InvalidOperationException($"Selected sessions '{s1.Title}' and '{s2.Title}' overlap in time on {s1.SessionDate:yyyy-MM-dd}.");
+                            }
+                        }
+                    }
+                }
+            }
+
+            var sortedSessionIds = targetSessions.Select(s => s.Id).OrderBy(id => id).ToList();
+
+            if (_dbContext.Database.IsNpgsql())
+            {
+                var idListStr = string.Join(",", sortedSessionIds.Select(id => $"'{id}'::uuid"));
+                await _dbContext.Database.ExecuteSqlRawAsync(
+                    $"SELECT \"Id\" FROM workshop_sessions WHERE \"Id\" = ANY(ARRAY[{idListStr}]) ORDER BY \"Id\" FOR UPDATE",
+                    cancellationToken);
+            }
+
+            bool isAllAccess = !pass.WorkshopSessionId.HasValue && !pass.SessionsIncluded.HasValue;
+            foreach (var s in targetSessions)
+            {
+                if (s.IsBookingClosed(nowUtc, workshop.Timezone ?? "Asia/Kolkata"))
+                {
+                    if (isAllAccess)
+                    {
+                        throw new InvalidOperationException($"All-Access is unavailable because session '{s.Title}' has passed its booking cutoff.");
+                    }
+                    throw new InvalidOperationException($"Booking cutoff for session '{s.Title}' has passed.");
+                }
+
+                var sBookedSeats = await _dbContext.WorkshopBookingSessions
+                    .Where(bs => bs.WorkshopSessionId == s.Id &&
+                                 bs.Status == WorkshopBookingSessionStatus.Booked &&
+                                 (bs.WorkshopBooking.Status == WorkshopBookingStatus.Confirmed ||
+                                  bs.WorkshopBooking.Status == WorkshopBookingStatus.Attended ||
+                                  (bs.WorkshopBooking.Status == WorkshopBookingStatus.PendingPayment &&
+                                   bs.WorkshopBooking.ReservationExpiresAt > nowUtc)))
+                    .CountAsync(cancellationToken);
+
+                if (sBookedSeats + quantity > s.Capacity)
+                {
+                    var rem = Math.Max(0, s.Capacity - sBookedSeats);
+                    if (isAllAccess)
+                    {
+                        throw new InvalidOperationException($"All-Access is unavailable because session '{s.Title}' has only {rem} seats remaining.");
+                    }
+                    throw new InvalidOperationException($"Session '{s.Title}' has only {rem} seats remaining.");
+                }
+            }
+
+            var passSold = await _dbContext.WorkshopBookings
+                .Where(b => b.WorkshopPassTypeId == pass.Id &&
+                            (b.Status == WorkshopBookingStatus.Confirmed ||
+                             b.Status == WorkshopBookingStatus.Attended ||
+                             (b.Status == WorkshopBookingStatus.PendingPayment &&
+                              b.ReservationExpiresAt > nowUtc)))
+                .SumAsync(b => (int?)b.Quantity, cancellationToken) ?? 0;
+
+            if (passSold + quantity > pass.TotalQuantity)
+            {
+                var remaining = Math.Max(0, pass.TotalQuantity - passSold);
+                throw new InvalidOperationException($"Ticket '{pass.Name}' has only {remaining} tickets remaining.");
+            }
+
+            var quote = await _pricingService.CalculateTicketTypeQuoteAsync(
+                pass,
+                quantity,
+                passSold,
+                userId,
+                cancellationToken);
+
+            finalAmount = quote.TotalAmount;
+            isSplitTier = quote.IsSplitTier;
+            splitTierMessage = quote.SplitTierMessage;
+            breakdown = quote.Breakdown;
+
+            var passBreakdownJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                TicketTypeName = pass.Name,
+                Quantity = quantity,
+                TotalAmount = finalAmount,
+                IsSplitTier = isSplitTier,
+                SplitTierMessage = splitTierMessage,
+                Breakdown = breakdown,
+                Sessions = targetSessions.Select(t => new { t.Id, t.Title, t.SessionDate, t.StartTime, t.EndTime }).ToList()
+            });
+
+            newBooking = new WorkshopBooking
+            {
+                Id = Guid.NewGuid(),
+                WorkshopId = workshop.Id,
+                StudentProfileId = studentProfile.Id,
+                WorkshopPassTypeId = pass.Id,
+                PassName = pass.Name,
+                PassPrice = quantity > 0 ? Math.Round(finalAmount / quantity, 2) : pass.Price,
+                SessionsIncludedCount = pass.SessionsIncluded ?? targetSessions.Count,
+                SelectedSessionIdsJson = System.Text.Json.JsonSerializer.Serialize(sortedSessionIds),
+                IdempotencyKey = idempotencyKey,
+                Quantity = quantity,
+                TotalPrice = finalAmount,
+                PriceBreakdownJson = passBreakdownJson,
+                GuestName = request.FullName,
+                GuestPhone = request.Phone,
+                GuestEmail = request.Email,
+                Status = WorkshopBookingStatus.PendingPayment,
+                ReservationExpiresAt = nowUtc.AddMinutes(15),
+                BookedAt = nowUtc
+            };
+
+            for (int q = 0; q < quantity; q++)
+            {
+                foreach (var s in targetSessions)
+                {
+                    newBooking.BookingSessions.Add(new WorkshopBookingSession
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkshopBookingId = newBooking.Id,
+                        WorkshopSessionId = s.Id,
+                        Status = WorkshopBookingSessionStatus.Booked,
+                        CreatedAt = nowUtc,
+                        UpdatedAt = nowUtc
+                    });
+                }
+            }
+        }
+        else
+        {
+            var activePendingSeats = await _dbContext.WorkshopBookings
+                .Where(b => b.WorkshopId == workshopId &&
+                            b.Status == WorkshopBookingStatus.PendingPayment &&
+                            b.ReservationExpiresAt.HasValue &&
+                            b.ReservationExpiresAt.Value > nowUtc)
+                .SumAsync(b => b.Quantity, cancellationToken);
+
+            var confirmedSeats = await _dbContext.WorkshopBookings
+                .Where(b => b.WorkshopId == workshopId &&
+                           (b.Status == WorkshopBookingStatus.Confirmed || b.Status == WorkshopBookingStatus.Attended))
+                .SumAsync(b => b.Quantity, cancellationToken);
+
+            var effectiveBookedSeats = confirmedSeats + activePendingSeats;
+
+            if (effectiveBookedSeats + quantity > workshop.Capacity)
+            {
+                throw new InvalidOperationException("Workshop is sold out or does not have enough remaining seats available.");
+            }
+
+            // Server-Authoritative quote calculation
+            var quote = await _pricingService.CalculateQuoteAsync(
+                workshopId,
+                quantity,
+                userId,
+                cancellationToken);
+
+            finalAmount = quote.TotalAmount;
+            isSplitTier = quote.IsSplitTier;
+            splitTierMessage = quote.SplitTierMessage;
+            breakdown = quote.Breakdown;
+            var breakdownJson = System.Text.Json.JsonSerializer.Serialize(quote.Breakdown);
+
+            newBooking = new WorkshopBooking
+            {
+                Id = Guid.NewGuid(),
+                WorkshopId = workshop.Id,
+                StudentProfileId = studentProfile.Id,
+                IdempotencyKey = idempotencyKey,
+                Quantity = quantity,
+                TotalPrice = finalAmount,
+                PriceBreakdownJson = breakdownJson,
+                GuestName = request.FullName,
+                GuestPhone = request.Phone,
+                GuestEmail = request.Email,
+                Status = WorkshopBookingStatus.PendingPayment,
+                ReservationExpiresAt = nowUtc.AddMinutes(15),
+                BookedAt = nowUtc
+            };
         }
 
-        // Server-Authoritative quote calculation
-        var quote = await _pricingService.CalculateQuoteAsync(
-            workshopId,
-            quantity,
-            userId,
-            cancellationToken);
-
-        var finalAmount = quote.TotalAmount;
-        var breakdownJson = System.Text.Json.JsonSerializer.Serialize(quote.Breakdown);
-
-        var newBooking = new WorkshopBooking
-        {
-            Id = Guid.NewGuid(),
-            WorkshopId = workshop.Id,
-            StudentProfileId = studentProfile.Id,
-            IdempotencyKey = idempotencyKey,
-            Quantity = quantity,
-            TotalPrice = finalAmount,
-            PriceBreakdownJson = breakdownJson,
-            GuestName = request.FullName,
-            GuestPhone = request.Phone,
-            GuestEmail = request.Email,
-            Status = WorkshopBookingStatus.PendingPayment,
-            ReservationExpiresAt = nowUtc.AddMinutes(15),
-            BookedAt = nowUtc
-        };
-
-        var transactionId = Guid.NewGuid();
         var transaction = new PaymentTransaction
         {
             Id = transactionId,
@@ -506,9 +1371,9 @@ public class WorkshopService : IWorkshopService
                     RazorpayOrderId = existingTx?.RazorpayOrderId ?? "",
                     RazorpayKeyId = string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ? "rzp_test_placeholder" : _razorpaySettings.KeyId,
                     IsStudentDiscountApplied = studentProfile?.User?.CustomerCode != null && !studentProfile.User.CustomerCode.StartsWith("GST"),
-                    IsSplitTier = quote.IsSplitTier,
-                    SplitTierMessage = quote.SplitTierMessage,
-                    Breakdown = quote.Breakdown
+                    IsSplitTier = isSplitTier,
+                    SplitTierMessage = splitTierMessage,
+                    Breakdown = breakdown
                 };
             }
             throw;
@@ -546,9 +1411,9 @@ public class WorkshopService : IWorkshopService
             RazorpayOrderId = razorpayOrderId,
             RazorpayKeyId = string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ? "rzp_test_placeholder" : _razorpaySettings.KeyId,
             IsStudentDiscountApplied = studentProfile?.User?.CustomerCode != null && !studentProfile.User.CustomerCode.StartsWith("GST"),
-            IsSplitTier = quote.IsSplitTier,
-            SplitTierMessage = quote.SplitTierMessage,
-            Breakdown = quote.Breakdown
+            IsSplitTier = isSplitTier,
+            SplitTierMessage = splitTierMessage,
+            Breakdown = breakdown
         };
     }
 
@@ -591,6 +1456,10 @@ public class WorkshopService : IWorkshopService
 
         var booking = await _dbContext.WorkshopBookings
             .Include(b => b.Workshop)
+            .Include(b => b.WorkshopPassType)
+            .Include(b => b.BookingSessions)
+                .ThenInclude(bs => bs.WorkshopSession)
+                    .ThenInclude(ws => ws.TrainerProfile)
             .FirstOrDefaultAsync(b => b.Id == transaction.ReferenceId &&
                                       b.WorkshopId == workshopId &&
                                       b.StudentProfileId == studentProfile.Id, cancellationToken);
@@ -629,6 +1498,21 @@ public class WorkshopService : IWorkshopService
                 CustomerEmail = booking.GuestEmail ?? studentProfile?.User?.Email ?? "",
                 Status = booking.Status,
                 BookedAt = booking.BookedAt,
+                WorkshopPassTypeId = booking.WorkshopPassTypeId,
+                PassName = booking.WorkshopPassType?.Name,
+                BookingSessions = booking.BookingSessions?.Select(bs => new WorkshopBookingSessionDto
+                {
+                    Id = bs.Id,
+                    WorkshopSessionId = bs.WorkshopSessionId,
+                    SessionTitle = bs.WorkshopSession?.Title ?? string.Empty,
+                    SessionDate = bs.WorkshopSession?.SessionDate ?? DateTime.UtcNow,
+                    StartTime = bs.WorkshopSession?.StartTime ?? TimeSpan.Zero,
+                    EndTime = bs.WorkshopSession?.EndTime ?? TimeSpan.Zero,
+                    TrainerName = bs.WorkshopSession?.TrainerProfile?.FullName ?? string.Empty,
+                    Status = bs.Status,
+                    OriginalSessionId = bs.OriginalSessionId,
+                    ReplacedAt = bs.ReplacedAt
+                }).ToList() ?? new List<WorkshopBookingSessionDto>(),
                 Tickets = existingTickets.ToList()
             };
         }
@@ -644,8 +1528,19 @@ public class WorkshopService : IWorkshopService
         }
 
         RazorpayPaymentDetails razorpayPayment;
-        if (request.RazorpaySignature == "mock_sig" || request.RazorpaySignature == "mock_signature" || request.RazorpayPaymentId.Contains("mock"))
+        bool isMockPayload = request.RazorpaySignature == "mock_sig" ||
+                             request.RazorpaySignature == "mock_signature" ||
+                             request.RazorpayPaymentId.Contains("mock", StringComparison.OrdinalIgnoreCase) ||
+                             request.RazorpayOrderId.StartsWith("order_test_", StringComparison.OrdinalIgnoreCase);
+
+        if (isMockPayload)
         {
+            if (!_environment.IsDevelopment())
+            {
+                throw new InvalidOperationException("Mock payment verification is prohibited outside development environment.");
+            }
+
+            // In development only, allow test payment simulation
             razorpayPayment = new RazorpayPaymentDetails
             {
                 Id = request.RazorpayPaymentId,
@@ -708,6 +1603,13 @@ public class WorkshopService : IWorkshopService
 
         var bookings = await _dbContext.WorkshopBookings
             .Include(b => b.Workshop)
+            .Include(b => b.WorkshopPassType)
+            .Include(b => b.Tickets)
+                .ThenInclude(t => t.WorkshopSession)
+                    .ThenInclude(ws => ws!.TrainerProfile)
+            .Include(b => b.BookingSessions)
+                .ThenInclude(bs => bs.WorkshopSession)
+                    .ThenInclude(ws => ws.TrainerProfile)
             .Where(b => b.StudentProfileId == studentProfile.Id)
             .OrderByDescending(b => b.BookedAt)
             .ToListAsync();
@@ -732,15 +1634,78 @@ public class WorkshopService : IWorkshopService
                 ? paidAmount
                 : b.Workshop.Price;
 
+            var passName = b.PassName ?? b.WorkshopPassType?.Name;
+            var bookingRef = $"BK-{b.Id.ToString()[..8].ToUpperInvariant()}";
+
+            var activeTickets = b.Tickets?
+                .Where(t => t.Status != TicketStatus.Replaced &&
+                            t.Status != TicketStatus.Cancelled &&
+                            t.Status != TicketStatus.Refunded &&
+                            t.Status != TicketStatus.Expired)
+                .OrderBy(t => t.TicketNumber)
+                .Select(t => new WorkshopTicketResponse
+                {
+                    Id = t.Id,
+                    TicketNumber = t.TicketNumber,
+                    WorkshopBookingId = t.WorkshopBookingId,
+                    WorkshopId = t.WorkshopId,
+                    WorkshopTitle = b.Workshop?.Title ?? "Workshop Pass",
+                    WorkshopDate = b.Workshop?.WorkshopDate ?? DateTime.UtcNow,
+                    StartTime = b.Workshop?.StartTime ?? TimeSpan.Zero,
+                    EndTime = b.Workshop?.EndTime ?? TimeSpan.Zero,
+                    WorkshopSessionId = t.WorkshopSessionId,
+                    SessionTitle = t.WorkshopSession?.Title,
+                    SessionDate = t.WorkshopSession?.SessionDate,
+                    SessionStartTime = t.WorkshopSession?.StartTime,
+                    SessionEndTime = t.WorkshopSession?.EndTime,
+                    SessionTrainerName = t.WorkshopSession?.TrainerProfile?.FullName,
+                    PassName = passName,
+                    PassCategory = b.WorkshopPassType?.GetPassCategory(),
+                    Venue = b.Workshop?.Venue ?? "Ethos Dance Studio",
+                    AttendeeName = t.AttendeeName,
+                    AttendeePhone = t.AttendeePhone,
+                    AttendeeEmail = t.AttendeeEmail,
+                    IsPrimaryAttendee = t.IsPrimaryAttendee,
+                    Status = t.Status,
+                    IssuedAt = t.IssuedAt,
+                    CheckedInAt = t.CheckedInAt,
+                    AttendeeDetailsLockedAt = t.AttendeeDetailsLockedAt
+                }).ToList() ?? new List<WorkshopTicketResponse>();
+
             result.Add(new WorkshopBookingResponse
             {
                 Id = b.Id,
                 WorkshopId = b.WorkshopId,
                 WorkshopTitle = b.Workshop.Title,
                 WorkshopDate = b.Workshop.WorkshopDate,
+                StartTime = b.Workshop.StartTime,
+                EndTime = b.Workshop.EndTime,
+                Venue = b.Workshop.Venue,
+                Quantity = b.Quantity,
                 Price = price,
+                TotalPrice = b.TotalPrice,
+                BookingReference = bookingRef,
+                CustomerName = b.GuestName,
+                CustomerPhone = b.GuestPhone,
+                CustomerEmail = b.GuestEmail,
                 Status = b.Status,
-                BookedAt = b.BookedAt
+                BookedAt = b.BookedAt,
+                WorkshopPassTypeId = b.WorkshopPassTypeId,
+                PassName = passName,
+                Tickets = activeTickets,
+                BookingSessions = b.BookingSessions?.Select(bs => new WorkshopBookingSessionDto
+                {
+                    Id = bs.Id,
+                    WorkshopSessionId = bs.WorkshopSessionId,
+                    SessionTitle = bs.WorkshopSession?.Title ?? string.Empty,
+                    SessionDate = bs.WorkshopSession?.SessionDate ?? DateTime.UtcNow,
+                    StartTime = bs.WorkshopSession?.StartTime ?? TimeSpan.Zero,
+                    EndTime = bs.WorkshopSession?.EndTime ?? TimeSpan.Zero,
+                    TrainerName = bs.WorkshopSession?.TrainerProfile?.FullName ?? string.Empty,
+                    Status = bs.Status,
+                    OriginalSessionId = bs.OriginalSessionId,
+                    ReplacedAt = bs.ReplacedAt
+                }).ToList() ?? new List<WorkshopBookingSessionDto>()
             });
         }
 
@@ -956,11 +1921,18 @@ public class WorkshopService : IWorkshopService
         decimal amount,
         PaymentPurpose purpose)
     {
-        if (string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ||
+        // GATED: Only allow mock test orders in development environment when placeholder credentials are used
+        if (_environment.IsDevelopment() && (
+            string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) ||
             _razorpaySettings.KeyId.Contains("placeholder", StringComparison.OrdinalIgnoreCase) ||
-            _razorpaySettings.KeyId.Contains("dummy", StringComparison.OrdinalIgnoreCase))
+            _razorpaySettings.KeyId.Contains("dummy", StringComparison.OrdinalIgnoreCase)))
         {
             return $"order_test_{Guid.NewGuid():N}"[..20];
+        }
+
+        if (string.IsNullOrWhiteSpace(_razorpaySettings.KeyId) || string.IsNullOrWhiteSpace(_razorpaySettings.KeySecret))
+        {
+            throw new InvalidOperationException("Razorpay payment gateway credentials are not configured.");
         }
 
         var amountInPaise = ConvertToPaise(amount);
@@ -992,10 +1964,11 @@ public class WorkshopService : IWorkshopService
 
             if (!response.IsSuccessStatusCode)
             {
-                // Fallback to test order ID if Razorpay credentials are not yet authorized / live
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                // Fallback to test order ID ONLY in development mode if test credentials are not yet authorized
+                if (_environment.IsDevelopment() && (
+                    response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                     response.StatusCode == System.Net.HttpStatusCode.Forbidden ||
-                    responseBody.Contains("BAD_REQUEST_ERROR", StringComparison.OrdinalIgnoreCase))
+                    responseBody.Contains("BAD_REQUEST_ERROR", StringComparison.OrdinalIgnoreCase)))
                 {
                     return $"order_test_{Guid.NewGuid():N}"[..20];
                 }
@@ -1017,9 +1990,17 @@ public class WorkshopService : IWorkshopService
 
             return orderId;
         }
-        catch (Exception ex) when (ex is not InvalidOperationException)
+        catch (Exception ex)
         {
-            return $"order_test_{Guid.NewGuid():N}"[..20];
+            if (ex is InvalidOperationException) throw;
+
+            // In development only, if network error occurs, fallback
+            if (_environment.IsDevelopment())
+            {
+                return $"order_test_{Guid.NewGuid():N}"[..20];
+            }
+
+            throw new InvalidOperationException($"Razorpay gateway communication error: {ex.Message}", ex);
         }
     }
 

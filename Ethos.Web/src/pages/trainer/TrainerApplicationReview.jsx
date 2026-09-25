@@ -4,7 +4,8 @@ import { trainerApi } from "../../services/trainerApi";
 import { paymentApi } from "../../services/paymentApi";
 import "./TrainerApplicationReview.css";
 
-import tierArtwork from "../../assets/trainer/ethos-tier-emblems.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const tierArtwork = MEDIA_ASSETS.trainers.tierEmblems;
 
 const tierPositions = {
   SILVER: "silver",

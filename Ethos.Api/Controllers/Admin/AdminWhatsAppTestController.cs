@@ -12,6 +12,7 @@ public record TestBookingConfirmedRequest(
     string? WorkshopTitle,
     string? WorkshopDate,
     string? WorkshopTime,
+    string? Location,
     string? BookingId,
     bool ExecuteLiveSend = false
 );
@@ -22,6 +23,7 @@ public record TestTicketPdfRequest(
     string? WorkshopTitle,
     string? WorkshopDate,
     string? WorkshopTime,
+    string? Location,
     string? BookingId,
     string? PdfHttpsUrl,
     string? FileName,
@@ -82,6 +84,7 @@ public class AdminWhatsAppTestController : ControllerBase
             WorkshopTitle: !string.IsNullOrWhiteSpace(request.WorkshopTitle) ? request.WorkshopTitle : "Bollywood Workshop",
             WorkshopDate: !string.IsNullOrWhiteSpace(request.WorkshopDate) ? request.WorkshopDate : "25 October 2026",
             WorkshopTime: !string.IsNullOrWhiteSpace(request.WorkshopTime) ? request.WorkshopTime : "6:00 PM – 8:00 PM",
+            Location: !string.IsNullOrWhiteSpace(request.Location) ? request.Location : "Ethos Dance Studio, Hyderabad",
             BookingId: !string.IsNullOrWhiteSpace(request.BookingId) ? request.BookingId : "ETHOS-WKS-8F31A2C4"
         );
 
@@ -129,6 +132,7 @@ public class AdminWhatsAppTestController : ControllerBase
             WorkshopTitle: !string.IsNullOrWhiteSpace(request.WorkshopTitle) ? request.WorkshopTitle : "Bollywood Workshop",
             WorkshopDate: !string.IsNullOrWhiteSpace(request.WorkshopDate) ? request.WorkshopDate : "25 October 2026",
             WorkshopTime: !string.IsNullOrWhiteSpace(request.WorkshopTime) ? request.WorkshopTime : "6:00 PM – 8:00 PM",
+            Location: !string.IsNullOrWhiteSpace(request.Location) ? request.Location : "Ethos Dance Studio, Hyderabad",
             BookingId: !string.IsNullOrWhiteSpace(request.BookingId) ? request.BookingId : "ETHOS-WKS-8F31A2C4",
             PdfHttpsUrl: testPdfUrl,
             FileName: !string.IsNullOrWhiteSpace(request.FileName) ? request.FileName : "ETHOS-TKT-001.pdf"

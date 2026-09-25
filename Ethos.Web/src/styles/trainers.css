@@ -845,3 +845,73 @@
     line-height: 1.65;
   }
 }
+
+/* ============================================================
+   TRAINER PLACEHOLDER (INITIALS / EMBLEM)
+   ============================================================ */
+
+.trainer-card__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: radial-gradient(circle at center, #2a2523 0%, #151211 100%);
+}
+
+.trainer-card__placeholder-emblem {
+  width: 48px;
+  height: 48px;
+  opacity: 0.25;
+  object-fit: contain;
+}
+
+.trainer-card__placeholder-initials {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.2rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: #d48676;
+}
+
+/* ============================================================
+   TRAINERS EMPTY STATE
+   ============================================================ */
+
+.trainers-empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(17, 17, 17, 0.2);
+  border-radius: 4px;
+}
+
+.trainers-empty-state__emblem {
+  width: 54px;
+  height: 54px;
+  opacity: 0.35;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+
+.trainers-empty-state__title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  color: #111;
+  margin: 0 0 10px 0;
+}
+
+.trainers-empty-state__text {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  color: rgba(17, 17, 17, 0.6);
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.6;
+}

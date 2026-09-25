@@ -134,8 +134,13 @@ export default function StudentMyWorkshops() {
                         <div className="booking-pass-top">
                           <span className="pass-type-tag">
                             <Ticket size={12} />
-                            WORKSHOP PASS
+                            {b.passName ? b.passName.toUpperCase() : "WORKSHOP PASS"}
                           </span>
+                          {b.bookingSessions && b.bookingSessions.length > 0 ? (
+                            <span className="pass-sessions-pill" style={{ fontSize: "11px", padding: "2px 8px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", borderRadius: "12px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
+                              {b.bookingSessions.length} {b.bookingSessions.length === 1 ? "Session" : "Sessions"}
+                            </span>
+                          ) : null}
                           <span className="booking-status-tag">
                             <span className="status-dot-green" />
                             CONFIRMED

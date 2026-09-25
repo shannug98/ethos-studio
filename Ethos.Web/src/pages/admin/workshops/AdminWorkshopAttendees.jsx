@@ -16,8 +16,26 @@ export default function AdminWorkshopAttendees() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [sessionFilter, setSessionFilter] = useState("all");
+  const [sessions, setSessions] = useState(workshop.sessions || []);
   const [page, setPage] = useState(1);
   const [actionSuccess, setActionSuccess] = useState(null);
+
+  useEffect(() => {
+    async function loadSessions() {
+      if (workshop.sessions && workshop.sessions.length > 0) {
+        setSessions(workshop.sessions);
+        return;
+      }
+      try {
+        const ws = await adminApi.getWorkshopById(workshopId);
+        if (ws?.sessions) setSessions(ws.sessions);
+      } catch (err) {
+        console.warn("Could not load workshop sessions:", err);
+      }
+    }
+    if (workshopId) loadSessions();
+  }, [workshopId, workshop.sessions]);
 
   const loadAttendees = useCallback(async () => {
     setLoading(true);
@@ -88,13 +106,19 @@ export default function AdminWorkshopAttendees() {
       const q = search.trim().toLowerCase();
       const matchSearch =
         !q ||
-        a.attendeeName.toLowerCase().includes(q) ||
-        a.ticketNumber.toLowerCase().includes(q) ||
-        a.bookingReference.toLowerCase().includes(q);
+        (a.attendeeName && a.attendeeName.toLowerCase().includes(q)) ||
+        (a.ticketNumber && a.ticketNumber.toLowerCase().includes(q)) ||
+        (a.bookingReference && a.bookingReference.toLowerCase().includes(q)) ||
+        (a.sessionTitle && a.sessionTitle.toLowerCase().includes(q)) ||
+        (a.passName && a.passName.toLowerCase().includes(q));
 
-      return matchFilter && matchSearch;
+      const matchSession =
+        sessionFilter === "all" ||
+        a.workshopSessionId === sessionFilter;
+
+      return matchFilter && matchSearch && matchSession;
     });
-  }, [attendees, filter, search]);
+  }, [attendees, filter, search, sessionFilter]);
 
   const checkedInCount = attendees.filter((a) => a.isCheckedIn).length;
   const notCheckedInCount = attendees.length - checkedInCount;
@@ -144,6 +168,19 @@ export default function AdminWorkshopAttendees() {
             <div className="attendee-primary-name">{row.attendeeName}</div>
             <div className="text-xs text-slate-500">{row.attendeePhoneMasked || row.attendeePhone || "No Phone"}</div>
             <div className="attendee-type-badge">{row.attendeeType}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Session / Pass",
+      key: "sessionTitle",
+      render: (row) => (
+        <div>
+          <div className="font-semibold text-slate-200 text-xs">{row.sessionTitle || "Workshop Session"}</div>
+          <div className="text-xs text-slate-400">
+            {row.passName ? <span className="text-sky-400 font-medium mr-1">{row.passName}</span> : null}
+            {row.sessionDate ? `• ${new Date(row.sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
           </div>
         </div>
       ),
@@ -282,7 +319,23 @@ export default function AdminWorkshopAttendees() {
           </button>
         </div>
 
-        <div className="filter-search-group">
+        <div className="filter-search-group" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {sessions.length > 0 ? (
+            <select
+              value={sessionFilter}
+              onChange={(e) => setSessionFilter(e.target.value)}
+              className="subpage-search-input"
+              style={{ minWidth: "160px", padding: "6px 10px" }}
+            >
+              <option value="all">All Sessions ({sessions.length})</option>
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({s.sessionDate ? new Date(s.sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""})
+                </option>
+              ))}
+            </select>
+          ) : null}
+
           <input
             type="text"
             placeholder="Search attendee, ticket, or booking ref..."

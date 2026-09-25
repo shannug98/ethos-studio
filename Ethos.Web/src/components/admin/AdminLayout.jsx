@@ -156,6 +156,7 @@ export default function AdminLayout() {
           attentionItems={attentionItems}
           healthData={healthData}
           sessionsData={sessionsData}
+          onToggleSidebar={() => setCollapsed(!collapsed)}
         />
         <main className="admin-app-content">
           <AdminErrorBoundary>

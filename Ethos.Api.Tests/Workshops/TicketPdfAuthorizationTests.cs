@@ -111,6 +111,38 @@ public class TicketPdfAuthorizationTests
         return (workshop, owner, profile, booking, ticket);
     }
 
+    private class FakeR2Storage : Ethos.Api.Application.Storage.ICloudflareR2StorageService
+    {
+        public Task<Ethos.Api.Application.Storage.R2UploadResult> UploadAsync(Stream stream, string originalFileName, string contentType, string section, CancellationToken cancellationToken = default)
+        {
+            var key = $"{section}/{originalFileName}";
+            return Task.FromResult(new Ethos.Api.Application.Storage.R2UploadResult
+            {
+                ObjectKey = key,
+                PublicUrl = $"https://media.ethosdancestudio.com/{key}",
+                ContentType = contentType,
+                FileSizeBytes = stream.Length
+            });
+        }
+        public string GeneratePreSignedGetUrl(string objectKey, TimeSpan duration) => $"https://media.ethosdancestudio.com/{objectKey}?token=fake";
+        public string GeneratePreSignedPutUrl(string objectKey, string contentType, TimeSpan duration) => $"https://media.ethosdancestudio.com/{objectKey}?token=fake_put";
+        public string GetPublicUrl(string objectKey) => $"https://media.ethosdancestudio.com/{objectKey}";
+        public Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<Ethos.Api.Application.Storage.R2ObjectMetadata?> GetObjectMetadataAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Ethos.Api.Application.Storage.R2ObjectMetadata?>(null);
+        public Task<(Stream Stream, string ContentType)?> GetObjectStreamAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<(Stream Stream, string ContentType)?>(null);
+        public Task<Ethos.Api.Application.Storage.R2RangeResult?> GetObjectRangeStreamAsync(string objectKey, long? fromByte, long? toByte, CancellationToken cancellationToken = default) => Task.FromResult<Ethos.Api.Application.Storage.R2RangeResult?>(null);
+    }
+
+    private ITicketPdfService CreateTicketPdfService(AppDbContext db, IWorkshopTicketService ticketService)
+    {
+        return new TicketPdfService(
+            db,
+            new FakeR2Storage(),
+            ticketService,
+            Microsoft.Extensions.Options.Options.Create(new Msg91Options()),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TicketPdfService>.Instance);
+    }
+
     private WorkshopsController CreateControllerWithUser(ClaimsPrincipal? user)
     {
         var controller = new WorkshopsController(null!);
@@ -131,6 +163,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, owner, _, _, ticket) = await SeedDataAsync(db);
 
         var ownerClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -146,6 +179,7 @@ public class TicketPdfAuthorizationTests
             token: null,
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var fileResult = Assert.IsType<FileContentResult>(result);
@@ -159,6 +193,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, _, _, _, ticket) = await SeedDataAsync(db);
 
         var adminClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -174,6 +209,7 @@ public class TicketPdfAuthorizationTests
             token: null,
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var fileResult = Assert.IsType<FileContentResult>(result);
@@ -185,6 +221,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, _, _, _, ticket) = await SeedDataAsync(db);
 
         var otherStudentClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -200,6 +237,7 @@ public class TicketPdfAuthorizationTests
             token: null,
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
@@ -211,6 +249,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, _, _, _, ticket) = await SeedDataAsync(db);
 
         var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity()); // Not authenticated
@@ -221,6 +260,7 @@ public class TicketPdfAuthorizationTests
             token: null,
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
@@ -232,6 +272,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, _, _, _, ticket) = await SeedDataAsync(db);
 
         var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
@@ -242,6 +283,7 @@ public class TicketPdfAuthorizationTests
             token: "invalid_tampered_hmac_token",
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
@@ -253,6 +295,7 @@ public class TicketPdfAuthorizationTests
     {
         using var db = new AppDbContext(_dbOptions);
         var ticketService = CreateTicketService(db);
+        var pdfService = CreateTicketPdfService(db, ticketService);
         var (_, _, _, _, ticket) = await SeedDataAsync(db);
 
         // Generate authentic HMAC token scoped to this ticket
@@ -266,6 +309,7 @@ public class TicketPdfAuthorizationTests
             token: validToken,
             db,
             ticketService,
+            pdfService,
             CancellationToken.None);
 
         var fileResult = Assert.IsType<FileContentResult>(result);

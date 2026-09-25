@@ -1,0 +1,98 @@
+[
+  {
+    "viewport": "320px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 320,
+      "innerWidth": 320
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_320px.png"
+  },
+  {
+    "viewport": "360px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 360,
+      "innerWidth": 360
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_360px.png"
+  },
+  {
+    "viewport": "375px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 375,
+      "innerWidth": 375
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_375px.png"
+  },
+  {
+    "viewport": "390px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_390px.png"
+  },
+  {
+    "viewport": "414px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 414,
+      "innerWidth": 414
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_414px.png"
+  },
+  {
+    "viewport": "430px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 430,
+      "innerWidth": 430
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_430px.png"
+  },
+  {
+    "viewport": "1280px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 1280,
+      "innerWidth": 1280
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_1280px.png"
+  },
+  {
+    "viewport": "1440px",
+    "url": "http://localhost:4173/workshops",
+    "isDetailPage": false,
+    "overflow": {
+      "hasPageOverflow": false,
+      "scrollWidth": 1440,
+      "innerWidth": 1440
+    },
+    "section": null,
+    "screenshot": "D:\\ETHOS DANCE studio\\Ethos.Web\\tests\\more_workshops_1440px.png"
+  }
+]

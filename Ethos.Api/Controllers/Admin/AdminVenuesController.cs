@@ -1,12 +1,19 @@
 using System.Net.Http.Json;
+using System.Security;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
+using Ethos.Api.Application.Admin;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ethos.Api.Controllers.Admin;
+
+public class ResolveVenueUrlRequest
+{
+    public string Url { get; set; } = string.Empty;
+}
 
 public class VenueSuggestionDto
 {
@@ -19,6 +26,7 @@ public class VenueSuggestionDto
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string Source { get; set; } = "ethos"; // "ethos" | "google"
+    public string? CanonicalLocationUrl { get; set; }
 }
 
 public class VenueSearchResponse
@@ -108,23 +116,29 @@ public class AdminVenuesController : ControllerBase
     private readonly IConfiguration _config;
     private readonly AppDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IVenueUrlResolverService _urlResolver;
     private readonly ILogger<AdminVenuesController> _logger;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Count, DateTime WindowStart)> RateLimits = new();
 
     public AdminVenuesController(
         IConfiguration config,
         AppDbContext db,
         IHttpClientFactory httpClientFactory,
+        IVenueUrlResolverService urlResolver,
         ILogger<AdminVenuesController> logger)
     {
         _config = config;
         _db = db;
         _httpClientFactory = httpClientFactory;
+        _urlResolver = urlResolver;
         _logger = logger;
     }
 
     [HttpGet("autocomplete")]
     public async Task<ActionResult<VenueSearchResponse>> Autocomplete(
         [FromQuery] string query,
+        [FromQuery] string? sessionToken,
         CancellationToken cancellationToken)
     {
         var response = new VenueSearchResponse();
@@ -183,6 +197,10 @@ public class AdminVenuesController : ControllerBase
             {
                 var client = _httpClientFactory.CreateClient();
                 var url = $"https://maps.googleapis.com/maps/api/place/autocomplete/json?input={Uri.EscapeDataString(query)}&key={apiKey}&components=country:in";
+                if (!string.IsNullOrWhiteSpace(sessionToken))
+                {
+                    url += $"&sessiontoken={Uri.EscapeDataString(sessionToken)}";
+                }
                 var googleRes = await client.GetFromJsonAsync<GooglePlacesAutocompleteResponse>(url, cancellationToken);
 
                 if (googleRes?.Predictions != null && googleRes.Predictions.Count > 0)
@@ -227,6 +245,7 @@ public class AdminVenuesController : ControllerBase
     [HttpGet("details")]
     public async Task<ActionResult<VenueSuggestionDto>> GetPlaceDetails(
         [FromQuery] string placeId,
+        [FromQuery] string? sessionToken,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(placeId))
@@ -249,7 +268,8 @@ public class AdminVenuesController : ControllerBase
                     Area = ws.Area,
                     Latitude = ws.Latitude,
                     Longitude = ws.Longitude,
-                    Source = "ethos"
+                    Source = "ethos",
+                    CanonicalLocationUrl = ws.LocationUrl
                 });
             }
         }
@@ -261,6 +281,10 @@ public class AdminVenuesController : ControllerBase
             {
                 var client = _httpClientFactory.CreateClient();
                 var url = $"https://maps.googleapis.com/maps/api/place/details/json?place_id={Uri.EscapeDataString(placeId)}&fields=name,formatted_address,geometry,address_components&key={apiKey}";
+                if (!string.IsNullOrWhiteSpace(sessionToken))
+                {
+                    url += $"&sessiontoken={Uri.EscapeDataString(sessionToken)}";
+                }
                 var details = await client.GetFromJsonAsync<GooglePlaceDetailsResponse>(url, cancellationToken);
 
                 if (details?.Result != null)
@@ -275,6 +299,8 @@ public class AdminVenuesController : ControllerBase
                         area = details.Result.AddressComponents.FirstOrDefault(c => c.Types.Contains("sublocality") || c.Types.Contains("neighborhood"))?.LongName;
                     }
 
+                    var canonicalUrl = $"https://www.google.com/maps/dir/?api=1&destination={Uri.EscapeDataString(details.Result.Name)}&destination_place_id={placeId}";
+
                     return Ok(new VenueSuggestionDto
                     {
                         PlaceId = placeId,
@@ -285,7 +311,8 @@ public class AdminVenuesController : ControllerBase
                         Area = area,
                         Latitude = details.Result.Geometry?.Location?.Lat,
                         Longitude = details.Result.Geometry?.Location?.Lng,
-                        Source = "google"
+                        Source = "google",
+                        CanonicalLocationUrl = canonicalUrl
                     });
                 }
             }
@@ -296,5 +323,48 @@ public class AdminVenuesController : ControllerBase
         }
 
         return NotFound(new { message = "Place details could not be retrieved. Please enter venue manually." });
+    }
+
+    [HttpPost("resolve-url")]
+    public async Task<ActionResult<ResolvedVenueDto>> ResolveUrl(
+        [FromBody] ResolveVenueUrlRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Url))
+            return BadRequest(new { message = "URL is required." });
+
+        if (request.Url.Trim().Length > 2048)
+            return BadRequest(new { message = "URL exceeds maximum length of 2048 characters." });
+
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous_admin";
+        var now = DateTime.UtcNow;
+        var entry = RateLimits.AddOrUpdate(adminId,
+            _ => (1, now),
+            (_, val) => (now - val.WindowStart) > TimeSpan.FromMinutes(1) ? (1, now) : (val.Count + 1, val.WindowStart));
+
+        if (entry.Count > 20)
+        {
+            return StatusCode(429, new { message = "Rate limit exceeded for venue URL resolution. Please try again in a minute." });
+        }
+
+        try
+        {
+            var result = await _urlResolver.ResolveGoogleMapsUrlAsync(request.Url, cancellationToken);
+            return Ok(result);
+        }
+        catch (SecurityException secEx)
+        {
+            _logger.LogWarning("SSRF security policy blocked URL resolution: {Message}", secEx.Message);
+            return BadRequest(new { message = secEx.Message });
+        }
+        catch (ArgumentException argEx)
+        {
+            return BadRequest(new { message = argEx.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error resolving venue URL");
+            return StatusCode(500, new { message = "Failed to resolve venue URL. Please check the link or enter venue details manually." });
+        }
     }
 }

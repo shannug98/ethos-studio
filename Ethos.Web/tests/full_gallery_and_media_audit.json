@@ -1,0 +1,57 @@
+{
+  "report": {
+    "galleryScrollTests": [
+      {
+        "test": "Desktop Homepage bottom -> Gallery link",
+        "scrollBefore": 3500,
+        "scrollAfter": 0,
+        "passed": true
+      },
+      {
+        "test": "Mobile Footer -> Gallery link",
+        "scrollAfter": 0,
+        "passed": true
+      },
+      {
+        "test": "Direct load and reload of /gallery",
+        "scrollYDirect": 0,
+        "scrollYReload": 0,
+        "passed": true
+      },
+      {
+        "test": "Normal scrolling inside Gallery preserved",
+        "scrolledY": 600,
+        "passed": true
+      }
+    ],
+    "mediaPipelineTests": [
+      {
+        "placement": "Homepage Hero Video",
+        "url": "https://api.ethosdancestudio.com/api/media/content/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "rendered": true,
+        "passed": true
+      },
+      {
+        "placement": "Workshop Poster",
+        "url": "https://api.ethosdancestudio.com/api/media/content/1ab85f64-5717-4562-b3fc-2c963f66af11",
+        "passed": true
+      },
+      {
+        "placement": "Trainer Profile Image",
+        "url": "https://api.ethosdancestudio.com/api/media/content/3cb85f64-5717-4562-b3fc-2c963f66af33",
+        "passed": true
+      },
+      {
+        "placement": "Gallery Image",
+        "rendered": true,
+        "passed": true
+      },
+      {
+        "placement": "Gallery Video",
+        "rendered": true,
+        "passed": true
+      }
+    ]
+  },
+  "cspViolations": []
+}

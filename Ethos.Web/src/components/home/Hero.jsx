@@ -1,58 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { publicApi } from "../../services/publicApi";
-import { getMediaUrl } from "../../utils/mediaUrl";
+import { getMediaUrl, handleMediaImgError } from "../../utils/mediaUrl";
 import "../../styles/hero.css";
 
-import hero01 from "../../assets/hero/hero-01.jpg";
-import hero02 from "../../assets/hero/hero-02.jpg";
-import hero03 from "../../assets/hero/hero-03.jpg";
-import hero04 from "../../assets/hero/hero-04.jpg";
-import hero05 from "../../assets/hero/hero-05.jpg";
-import heroVideo from "../../assets/hero/hero-video.mp4";
-
-const DEFAULT_HERO_SLIDES = [
-  {
-    id: "default-hero-01",
-    type: "image",
-    src: hero01,
-    alt: "Dancer performing at Ethos Dance Studio",
-  },
-  {
-    id: "default-hero-02",
-    type: "image",
-    src: hero02,
-    alt: "Dancers training together at Ethos",
-  },
-  {
-    id: "default-hero-video",
-    type: "video",
-    src: heroVideo,
-    alt: "Dance performance at Ethos Dance Studio",
-  },
-  {
-    id: "default-hero-03",
-    type: "image",
-    src: hero03,
-    alt: "Dance class at Ethos Dance Studio",
-  },
-  {
-    id: "default-hero-04",
-    type: "image",
-    src: hero04,
-    alt: "Dance performance at Ethos Dance Studio",
-  },
-  {
-    id: "default-hero-05",
-    type: "image",
-    src: hero05,
-    alt: "Ethos Dance Studio performance",
-  },
-];
-
 function Hero() {
-  const [slides, setSlides] = useState(DEFAULT_HERO_SLIDES);
-  const [loading, setLoading] = useState(false);
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const navigate = useNavigate();
@@ -64,22 +19,28 @@ function Hero() {
   // Fetch dynamic cloud media for HomepageScrolling (Images and short muted videos)
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
+    setFetchError(null);
     publicApi
       .getPublicMedia({ section: "HomepageScrolling" })
       .then((data) => {
-        if (isMounted && Array.isArray(data) && data.length > 0) {
+        if (!isMounted) return;
+        if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map((item) => ({
             id: item.id,
             type: (item.mediaType || "Image").toLowerCase() === "video" ? "video" : "image",
             src: getMediaUrl(item.publicUrl, item.id),
+            poster: item.thumbnailUrl ? getMediaUrl(item.thumbnailUrl) : undefined,
             alt: item.altText || item.title || "Ethos Dance Studio",
           }));
-          // Prepend cloud media to default slides so newly uploaded assets appear first
-          setSlides([...mapped, ...DEFAULT_HERO_SLIDES]);
+          setSlides(mapped);
+        } else {
+          setSlides([]);
         }
       })
       .catch((err) => {
         console.warn("[Hero] Public media fetch failed:", err);
+        if (isMounted) setFetchError(err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -187,12 +148,14 @@ function Hero() {
                     src={slide.src}
                     alt={slide.alt}
                     className="ethos-hero__image"
+                    onError={(e) => handleMediaImgError(e)}
                   />
                 ) : (
                   <video
                     ref={isActive ? videoRef : null}
                     className="ethos-hero__video"
                     src={slide.src}
+                    poster={slide.poster}
                     muted
                     loop
                     playsInline

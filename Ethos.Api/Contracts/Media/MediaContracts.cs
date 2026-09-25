@@ -129,3 +129,63 @@ public class TogglePublishRequest
 {
     public bool IsPublished { get; set; }
 }
+
+// ── Large Gallery Video Presigned Upload DTOs ─────────────────────────────────
+
+public class PresignGalleryUploadRequest
+{
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "video/mp4";
+    public long FileSizeBytes { get; set; }
+}
+
+public class PresignGalleryUploadResponse
+{
+    public string UploadUrl { get; set; } = string.Empty;
+    public string ObjectKey { get; set; } = string.Empty;
+    public string UploadToken { get; set; } = string.Empty;
+    public DateTime ExpiresAtUtc { get; set; }
+}
+
+public class ConfirmGalleryUploadRequest
+{
+    public string UploadToken { get; set; } = string.Empty;
+    public string ObjectKey { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Caption { get; set; }
+    public string? AltText { get; set; }
+    public string? Category { get; set; }
+    public int? DisplayOrder { get; set; }
+    public bool? IsPublished { get; set; }
+    public bool? IsFeatured { get; set; }
+}
+
+// ── React Assets Migration DTOs ───────────────────────────────────────────────
+
+public class MigrateReactAssetsRequest
+{
+    public string? WebRootPath { get; set; }
+}
+
+public class ReactAssetMigrationItemResult
+{
+    public string OriginalReactAsset { get; set; } = string.Empty;
+    public string CurrentUsage { get; set; } = string.Empty;
+    public string R2Key { get; set; } = string.Empty;
+    public string MediaSection { get; set; } = string.Empty;
+    public string DbRecord { get; set; } = string.Empty;
+    public bool FrontendUpdated { get; set; }
+    public bool SafeToRemoveLocalCopy { get; set; }
+    public string Status { get; set; } = string.Empty; // "Migrated", "AlreadyExists", "UpdatedWithPlacements", "Error"
+    public string? Error { get; set; }
+}
+
+public class ReactAssetMigrationResponse
+{
+    public int TotalFound { get; set; }
+    public int MigratedCount { get; set; }
+    public int AlreadyExistedCount { get; set; }
+    public int ErrorCount { get; set; }
+    public List<ReactAssetMigrationItemResult> Items { get; set; } = new();
+}
+

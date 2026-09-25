@@ -160,8 +160,12 @@ builder.Services.AddRateLimiter(options =>
                     });
             }
 
-            // Public payment endpoints (unauthenticated): 10 req/min/IP
-            if (path.StartsWithSegments("/api/payments/public"))
+            // Public payment endpoints (unauthenticated, including workshop checkout): 10 req/min/IP
+            var normalizedPath = path.Value?.TrimEnd('/') ?? "";
+            if (path.StartsWithSegments("/api/payments/public") ||
+                (path.StartsWithSegments("/api/workshops") &&
+                 (normalizedPath.EndsWith("/order", StringComparison.OrdinalIgnoreCase) ||
+                  normalizedPath.EndsWith("/verify-payment", StringComparison.OrdinalIgnoreCase))))
             {
                 var ip =
                     context.Connection.RemoteIpAddress?.ToString()
@@ -178,6 +182,36 @@ builder.Services.AddRateLimiter(options =>
                     });
             }
 
+            // Administrative auth endpoints: 10 req/min/IP (60 req/min/IP for heartbeat)
+            if (path.StartsWithSegments("/api/admin/auth"))
+            {
+                var ip =
+                    context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown";
+
+                if (path.Value != null && path.Value.Contains("/heartbeat", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: $"admin-heartbeat-ip:{ip}",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 60,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        });
+                }
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: $"admin-auth-ip:{ip}",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    });
+            }
 
             // Workshop ticket validation & check-in endpoints: 60 req/min/IP to prevent brute force / DoS
             if (path.Value != null && path.Value.Contains("/tickets/validate", StringComparison.OrdinalIgnoreCase))
@@ -270,6 +304,7 @@ builder.Services.Configure<CloudflareR2Settings>(
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IMediaCacheService, MediaCacheService>();
 builder.Services.AddScoped<ICloudflareR2StorageService, CloudflareR2StorageService>();
+builder.Services.AddSingleton<IMediaFastStartService, MediaFastStartService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IVideoService, VideoService>();
 
@@ -277,7 +312,7 @@ builder.Services.AddScoped<IVideoService, VideoService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<
     ITrainerApplicationVideoStorageService,
-    LocalTrainerApplicationVideoStorageService>();
+    R2TrainerApplicationVideoStorageService>();
 builder.Services.AddScoped<
     ITrainerVideoMetadataService,
     TrainerVideoMetadataService>();
@@ -293,7 +328,7 @@ builder.Services.AddScoped<
     R2TrainerProfilePhotoStorageService>();
 builder.Services.AddScoped<
     ITrainerGalleryStorageService,
-    LocalTrainerGalleryStorageService>();
+    R2TrainerGalleryStorageService>();
 builder.Services.AddScoped<ITrainerGalleryService, TrainerGalleryService>();
 builder.Services.AddScoped<ITrainerPerformanceService, TrainerPerformanceService>();
 builder.Services.AddScoped<ITrainerWorkshopService, TrainerWorkshopService>();
@@ -318,11 +353,15 @@ builder.Services.AddScoped<IAdminWorkshopService, AdminWorkshopService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminDeviceService, AdminDeviceService>();
 builder.Services.AddScoped<IAdminAuthorizationService, AdminAuthorizationService>();
+builder.Services.AddScoped<IVenueUrlResolverService, VenueUrlResolverService>();
 
 // Batch 3 Admin Services
 builder.Services.AddScoped<IAdminBookingService, AdminBookingService>();
 builder.Services.AddScoped<IAdminAttendanceService, AdminAttendanceService>();
 builder.Services.AddScoped<IPaymentRefundService, PaymentRefundService>();
+builder.Services.AddScoped<IRefundService, RefundService>();
+builder.Services.AddScoped<IRefundOutboxDispatcher, RefundOutboxDispatcher>();
+builder.Services.AddHostedService<RefundOutboxBackgroundWorker>();
 builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
 builder.Services.AddScoped<IPaymentReceiptService, PaymentReceiptService>();
 builder.Services.AddScoped<ITrainerPayoutService, TrainerPayoutService>();
@@ -399,14 +438,20 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+if (app.Environment.IsProduction())
+{
+    ProductionSecurityValidator.ValidateProductionSecrets(app.Configuration);
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
     var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-    // Automatically apply any pending EF Core migrations to Neon
-    if (db.Database.IsRelational())
+    // Automatically apply any pending EF Core migrations in development only
+    // In production, migrations are executed via controlled deployment pipeline
+    if (app.Environment.IsDevelopment() && db.Database.IsRelational())
     {
         db.Database.Migrate();
     }
@@ -509,6 +554,42 @@ app.UseStaticFiles(
             "/uploads/trainer-profile-photos"
     });
 
+var trainersUploadPath = Path.Combine(
+    app.Environment.ContentRootPath,
+    "App_Data",
+    "uploads",
+    "trainers");
+
+Directory.CreateDirectory(trainersUploadPath);
+
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        FileProvider =
+            new PhysicalFileProvider(trainersUploadPath),
+
+        RequestPath =
+            "/uploads/trainers"
+    });
+
+var profilePhotosUploadPath = Path.Combine(
+    app.Environment.ContentRootPath,
+    "App_Data",
+    "uploads",
+    "profile-photos");
+
+Directory.CreateDirectory(profilePhotosUploadPath);
+
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        FileProvider =
+            new PhysicalFileProvider(profilePhotosUploadPath),
+
+        RequestPath =
+            "/uploads/profile-photos"
+    });
+
 var studentPhotoPath = Path.Combine(
     app.Environment.ContentRootPath,
     "App_Data",
@@ -525,18 +606,6 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-try
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.ExecuteSqlRaw("ALTER TABLE workshops ALTER COLUMN \"ImageUrl\" TYPE text;");
-    db.Database.ExecuteSqlRaw("ALTER TABLE workshops ALTER COLUMN \"LandscapeImageUrl\" TYPE text;");
-}
-catch
-{
-    // Silently continue if table/column does not exist yet or already altered
-}
 
 app.MapControllers();
 

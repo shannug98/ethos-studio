@@ -1267,6 +1267,100 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("payment_events", (string)null);
                 });
 
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.PaymentRefund", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long>("AmountPaise")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_paise");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("INR")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<Guid>("InitiatedByAdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("initiated_by_admin_id");
+
+                    b.Property<DateTime?>("LastAttemptAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("last_attempt_at_utc");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("processed_at_utc");
+
+                    b.Property<DateTime?>("ProcessingStartedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("processing_started_at_utc");
+
+                    b.Property<string>("RazorpayPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("razorpay_payment_id");
+
+                    b.Property<string>("RazorpayRefundId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("razorpay_refund_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .HasDatabaseName("ix_payment_refunds_booking_id");
+
+                    b.HasIndex("PaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_refunds_payment_id_active_unique")
+                        .HasFilter("\"status\" != 4");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_payment_refunds_status");
+
+                    b.ToTable("payment_refunds", (string)null);
+                });
+
             modelBuilder.Entity("Ethos.Api.Domain.Entities.PaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1355,6 +1449,88 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("permissions", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.RefundJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long>("AmountPaise")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_paise");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("booking_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("InitiatedByAdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("initiated_by_admin_id");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextRetryUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("next_retry_utc");
+
+                    b.Property<Guid?>("PaymentRefundId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_refund_id");
+
+                    b.Property<Guid>("PaymentTransactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_transaction_id");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("processed_at_utc");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("retry_count");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workshop_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .HasDatabaseName("ix_refund_jobs_booking_id");
+
+                    b.HasIndex("PaymentRefundId");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_refund_jobs_status");
+
+                    b.HasIndex("WorkshopId", "Status")
+                        .HasDatabaseName("ix_refund_jobs_workshop_id_status");
+
+                    b.ToTable("refund_jobs", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.Role", b =>
@@ -2351,6 +2527,9 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<TimeSpan?>("BookingCutoffTime")
+                        .HasColumnType("interval");
+
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
@@ -2401,6 +2580,10 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LocationUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("double precision");
@@ -2608,6 +2791,14 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("PassName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("PassPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid?>("PaymentTransactionId")
                         .HasColumnType("uuid");
 
@@ -2622,6 +2813,12 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ReservationExpiresAt")
                         .HasColumnType("timestamptz");
 
+                    b.Property<string>("SelectedSessionIdsJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SessionsIncludedCount")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -2635,6 +2832,9 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("WorkshopPassTypeId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IdempotencyKey")
@@ -2642,9 +2842,106 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("StudentProfileId");
 
+                    b.HasIndex("WorkshopPassTypeId");
+
                     b.HasIndex("WorkshopId", "StudentProfileId");
 
                     b.ToTable("workshop_bookings", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopBookingSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<bool>("CutoffOverrideUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("OriginalSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ReplacedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid?>("ReplacedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("WorkshopBookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkshopSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkshopTicketId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkshopBookingId");
+
+                    b.HasIndex("WorkshopTicketId")
+                        .IsUnique();
+
+                    b.HasIndex("WorkshopSessionId", "Status");
+
+                    b.ToTable("workshop_booking_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("DraftJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId")
+                        .IsUnique()
+                        .HasFilter("\"WorkshopId\" IS NULL");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.HasIndex("AdminUserId", "WorkshopId")
+                        .IsUnique()
+                        .HasFilter("\"WorkshopId\" IS NOT NULL");
+
+                    b.ToTable("workshop_drafts", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopFeedback", b =>
@@ -2775,6 +3072,67 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("workshop_feedback_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopPassType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("SalesEndUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<DateTime?>("SalesStartUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int?>("SessionsIncluded")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1000);
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkshopSessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.HasIndex("WorkshopSessionId");
+
+                    b.ToTable("workshop_pass_types", (string)null);
+                });
+
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopPricingTier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2808,12 +3166,118 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("WorkshopPassTypeId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("WorkshopId", "TierNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_workshop_pricing_tiers_workshop_legacy")
+                        .HasFilter("\"WorkshopPassTypeId\" IS NULL");
+
+                    b.HasIndex("WorkshopPassTypeId", "TierNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_workshop_pricing_tiers_pass_type")
+                        .HasFilter("\"WorkshopPassTypeId\" IS NOT NULL");
 
                     b.ToTable("workshop_pricing_tiers", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeSpan?>("BookingCutoffTime")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("Capacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("PosterImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SessionDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("TrainerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainerProfileId");
+
+                    b.HasIndex("WorkshopId", "SessionDate");
+
+                    b.ToTable("workshop_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopSessionTrainer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("TrainerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkshopSessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainerProfileId");
+
+                    b.HasIndex("WorkshopSessionId", "TrainerProfileId")
+                        .IsUnique();
+
+                    b.ToTable("workshop_session_trainers", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopTicket", b =>
@@ -2892,6 +3356,9 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("WorkshopId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("WorkshopSessionId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PaymentTransactionId");
@@ -2906,9 +3373,41 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WorkshopBookingId");
 
+                    b.HasIndex("WorkshopSessionId");
+
                     b.HasIndex("WorkshopId", "Status");
 
                     b.ToTable("workshop_tickets", (string)null);
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopTrainer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("TrainerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrainerProfileId");
+
+                    b.HasIndex("WorkshopId", "TrainerProfileId")
+                        .IsUnique();
+
+                    b.ToTable("workshop_trainers", (string)null);
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.AdminAction", b =>
@@ -3176,6 +3675,25 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("PaymentTransaction");
                 });
 
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.PaymentRefund", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopBooking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.PaymentTransaction", "PaymentTransaction")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("PaymentTransaction");
+                });
+
             modelBuilder.Entity("Ethos.Api.Domain.Entities.PaymentTransaction", b =>
                 {
                     b.HasOne("Ethos.Api.Domain.Entities.User", "User")
@@ -3185,6 +3703,40 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.RefundJob", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopBooking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.PaymentRefund", "PaymentRefund")
+                        .WithMany()
+                        .HasForeignKey("PaymentRefundId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Ethos.Api.Domain.Entities.PaymentTransaction", "PaymentTransaction")
+                        .WithMany()
+                        .HasForeignKey("PaymentTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("PaymentRefund");
+
+                    b.Navigation("PaymentTransaction");
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.SecurityEvent", b =>
@@ -3548,7 +4100,58 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopPassType", "WorkshopPassType")
+                        .WithMany()
+                        .HasForeignKey("WorkshopPassTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("StudentProfile");
+
+                    b.Navigation("Workshop");
+
+                    b.Navigation("WorkshopPassType");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopBookingSession", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopBooking", "WorkshopBooking")
+                        .WithMany("BookingSessions")
+                        .HasForeignKey("WorkshopBookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopSession", "WorkshopSession")
+                        .WithMany("BookingSessions")
+                        .HasForeignKey("WorkshopSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopTicket", "WorkshopTicket")
+                        .WithOne("WorkshopBookingSession")
+                        .HasForeignKey("Ethos.Api.Domain.Entities.WorkshopBookingSession", "WorkshopTicketId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("WorkshopBooking");
+
+                    b.Navigation("WorkshopSession");
+
+                    b.Navigation("WorkshopTicket");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopDraft", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.User", "AdminUser")
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("AdminUser");
 
                     b.Navigation("Workshop");
                 });
@@ -3589,6 +4192,24 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("WorkshopBooking");
                 });
 
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopPassType", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany("PassTypes")
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopSession", "WorkshopSession")
+                        .WithMany()
+                        .HasForeignKey("WorkshopSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Workshop");
+
+                    b.Navigation("WorkshopSession");
+                });
+
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopPricingTier", b =>
                 {
                     b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
@@ -3597,7 +4218,52 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopPassType", "WorkshopPassType")
+                        .WithMany("PricingTiers")
+                        .HasForeignKey("WorkshopPassTypeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Workshop");
+
+                    b.Navigation("WorkshopPassType");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopSession", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.TrainerProfile", "TrainerProfile")
+                        .WithMany()
+                        .HasForeignKey("TrainerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany("Sessions")
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TrainerProfile");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopSessionTrainer", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.TrainerProfile", "TrainerProfile")
+                        .WithMany()
+                        .HasForeignKey("TrainerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopSession", "WorkshopSession")
+                        .WithMany("SessionTrainers")
+                        .HasForeignKey("WorkshopSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TrainerProfile");
+
+                    b.Navigation("WorkshopSession");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopTicket", b =>
@@ -3626,6 +4292,11 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Ethos.Api.Domain.Entities.WorkshopSession", "WorkshopSession")
+                        .WithMany("Tickets")
+                        .HasForeignKey("WorkshopSessionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("PaymentTransaction");
 
                     b.Navigation("User");
@@ -3633,6 +4304,27 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("Workshop");
 
                     b.Navigation("WorkshopBooking");
+
+                    b.Navigation("WorkshopSession");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopTrainer", b =>
+                {
+                    b.HasOne("Ethos.Api.Domain.Entities.TrainerProfile", "TrainerProfile")
+                        .WithMany()
+                        .HasForeignKey("TrainerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ethos.Api.Domain.Entities.Workshop", "Workshop")
+                        .WithMany("WorkshopTrainers")
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TrainerProfile");
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.AdminDevice", b =>
@@ -3748,19 +4440,43 @@ namespace Ethos.Api.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Feedbacks");
 
+                    b.Navigation("PassTypes");
+
                     b.Navigation("PricingTiers");
 
+                    b.Navigation("Sessions");
+
                     b.Navigation("Tickets");
+
+                    b.Navigation("WorkshopTrainers");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopBooking", b =>
                 {
+                    b.Navigation("BookingSessions");
+
+                    b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopPassType", b =>
+                {
+                    b.Navigation("PricingTiers");
+                });
+
+            modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopSession", b =>
+                {
+                    b.Navigation("BookingSessions");
+
+                    b.Navigation("SessionTrainers");
+
                     b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("Ethos.Api.Domain.Entities.WorkshopTicket", b =>
                 {
                     b.Navigation("Attendance");
+
+                    b.Navigation("WorkshopBookingSession");
                 });
 #pragma warning restore 612, 618
         }

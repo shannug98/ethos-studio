@@ -97,6 +97,8 @@ public class WorkshopTicketService : IWorkshopTicketService
         // 1. Idempotency check: if tickets already exist for this booking, return them
         var existingTickets = await _dbContext.WorkshopTickets
             .Include(t => t.Workshop)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
             .Where(t => t.WorkshopBookingId == booking.Id)
             .OrderBy(t => t.TicketNumber)
             .ToListAsync(cancellationToken);
@@ -113,6 +115,67 @@ public class WorkshopTicketService : IWorkshopTicketService
 
         var ticketsToCreate = new List<WorkshopTicket>();
         var responses = new List<WorkshopTicketResponse>();
+
+        var bookingSessions = await _dbContext.WorkshopBookingSessions
+            .Include(bs => bs.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
+            .Where(bs => bs.WorkshopBookingId == booking.Id && bs.Status == WorkshopBookingSessionStatus.Booked)
+            .OrderBy(bs => bs.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (bookingSessions.Count > 0)
+        {
+            int sIdx = 1;
+            foreach (var bs in bookingSessions)
+            {
+                var ticketId = Guid.NewGuid();
+                var ticketNumber = $"ETHOS-WKS-{booking.Id.ToString()[..8].ToUpperInvariant()}-{sIdx:D2}";
+                var attendeeName = !string.IsNullOrWhiteSpace(booking.GuestName)
+                    ? booking.GuestName
+                    : (user?.FullName ?? "Ethos Guest");
+                var issuedAt = DateTime.UtcNow;
+
+                var ticket = new WorkshopTicket
+                {
+                    Id = ticketId,
+                    TicketNumber = ticketNumber,
+                    WorkshopBookingId = booking.Id,
+                    WorkshopId = booking.WorkshopId,
+                    WorkshopSessionId = bs.WorkshopSessionId,
+                    UserId = transaction.UserId,
+                    PaymentTransactionId = transaction.Id,
+                    AttendeeName = attendeeName,
+                    AttendeePhone = !string.IsNullOrWhiteSpace(booking.GuestPhone) ? booking.GuestPhone : user?.Phone,
+                    AttendeeEmail = !string.IsNullOrWhiteSpace(booking.GuestEmail) ? booking.GuestEmail : user?.Email,
+                    IsPrimaryAttendee = sIdx == 1,
+                    Status = TicketStatus.Issued,
+                    IssuedAt = issuedAt,
+                    CheckedInAt = null,
+                    CheckedInByUserId = null,
+                    CheckInMethod = null,
+                    EmailSent = false,
+                    WhatsAppSent = false,
+                    ResendCount = 0,
+                    Workshop = booking.Workshop,
+                    WorkshopSession = bs.WorkshopSession
+                };
+
+                var rawToken = DeriveQrToken(ticket);
+                ticket.QrTokenHash = ComputeTokenHash(rawToken);
+
+                _dbContext.WorkshopTickets.Add(ticket);
+                bs.WorkshopTicketId = ticket.Id;
+                ticketsToCreate.Add(ticket);
+
+                var resp = MapToResponse(ticket, includeQrToken: true);
+                resp.QrToken = rawToken;
+                responses.Add(resp);
+
+                sIdx++;
+            }
+
+            return responses;
+        }
 
         var qty = Math.Max(1, booking.Quantity);
         for (int i = 0; i < qty; i++)
@@ -195,7 +258,15 @@ public class WorkshopTicketService : IWorkshopTicketService
 
         var tickets = await _dbContext.WorkshopTickets
             .Include(t => t.Workshop)
-            .Where(t => t.WorkshopBookingId == bookingId)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
+            .Include(t => t.WorkshopBooking)
+                .ThenInclude(b => b.WorkshopPassType)
+            .Where(t => t.WorkshopBookingId == bookingId &&
+                        t.Status != TicketStatus.Replaced &&
+                        t.Status != TicketStatus.Cancelled &&
+                        t.Status != TicketStatus.Refunded &&
+                        t.Status != TicketStatus.Expired)
             .OrderBy(t => t.TicketNumber)
             .ToListAsync(cancellationToken);
 
@@ -215,6 +286,8 @@ public class WorkshopTicketService : IWorkshopTicketService
     {
         var ticket = await _dbContext.WorkshopTickets
             .Include(t => t.Workshop)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b.StudentProfile)
             .FirstOrDefaultAsync(t => t.Id == ticketId, cancellationToken);
@@ -231,7 +304,8 @@ public class WorkshopTicketService : IWorkshopTicketService
 
         if (ticket.Status == Ethos.Api.Domain.Enums.TicketStatus.Cancelled ||
             ticket.Status == Ethos.Api.Domain.Enums.TicketStatus.Refunded ||
-            ticket.Status == Ethos.Api.Domain.Enums.TicketStatus.Expired)
+            ticket.Status == Ethos.Api.Domain.Enums.TicketStatus.Expired ||
+            ticket.Status == Ethos.Api.Domain.Enums.TicketStatus.Replaced)
         {
             throw new InvalidOperationException($"Ticket pass is unavailable because it has been {ticket.Status.ToString().ToLowerInvariant()}.");
         }
@@ -250,6 +324,8 @@ public class WorkshopTicketService : IWorkshopTicketService
     {
         var ticket = await _dbContext.WorkshopTickets
             .Include(t => t.Workshop)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b.StudentProfile)
             .FirstOrDefaultAsync(t => t.Id == ticketId && t.WorkshopBookingId == bookingId, cancellationToken);
@@ -264,6 +340,11 @@ public class WorkshopTicketService : IWorkshopTicketService
             throw new UnauthorizedAccessException("You are not authorized to update attendee details.");
         }
 
+        if (ticket.Status != TicketStatus.Issued)
+        {
+            throw new InvalidOperationException($"Attendee details cannot be modified because ticket status is {ticket.Status}.");
+        }
+
         if (ticket.CheckedInAt.HasValue)
         {
             throw new InvalidOperationException("Attendee details cannot be modified after the ticket has been checked in.");
@@ -274,11 +355,14 @@ public class WorkshopTicketService : IWorkshopTicketService
             throw new InvalidOperationException("Attendee details have been locked by the studio.");
         }
 
-        // Workshop cutoff check: Cannot update within 2 hours of workshop start time unless admin
-        var workshopStart = ticket.Workshop.WorkshopDate.Date + ticket.Workshop.StartTime;
-        if (DateTime.UtcNow >= workshopStart.AddHours(-2))
+        // Cutoff check: Cannot update within 2 hours of session/workshop start time unless admin
+        var eventStart = ticket.WorkshopSession != null
+            ? ticket.WorkshopSession.SessionDate.Date + ticket.WorkshopSession.StartTime
+            : ticket.Workshop.WorkshopDate.Date + ticket.Workshop.StartTime;
+
+        if (DateTime.UtcNow >= eventStart.AddHours(-2))
         {
-            throw new InvalidOperationException("Guest details cannot be changed within 2 hours of workshop commencement.");
+            throw new InvalidOperationException("Guest details cannot be changed within 2 hours of session commencement.");
         }
 
         ticket.AttendeeName = request.AttendeeName.Trim();
@@ -300,6 +384,8 @@ public class WorkshopTicketService : IWorkshopTicketService
     {
         var ticket = await _dbContext.WorkshopTickets
             .Include(t => t.Workshop)
+            .Include(t => t.WorkshopSession)
+                .ThenInclude(s => s!.TrainerProfile)
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b.StudentProfile)
             .FirstOrDefaultAsync(t => t.Id == ticketId && t.WorkshopBookingId == bookingId, cancellationToken);
@@ -339,6 +425,14 @@ public class WorkshopTicketService : IWorkshopTicketService
             WorkshopDate = ticket.Workshop?.WorkshopDate ?? DateTime.UtcNow,
             StartTime = ticket.Workshop?.StartTime ?? TimeSpan.Zero,
             EndTime = ticket.Workshop?.EndTime ?? TimeSpan.Zero,
+            WorkshopSessionId = ticket.WorkshopSessionId,
+            SessionTitle = ticket.WorkshopSession?.Title,
+            SessionDate = ticket.WorkshopSession?.SessionDate,
+            SessionStartTime = ticket.WorkshopSession?.StartTime,
+            SessionEndTime = ticket.WorkshopSession?.EndTime,
+            SessionTrainerName = ticket.WorkshopSession?.TrainerProfile?.FullName,
+            PassName = ticket.WorkshopBooking?.PassName ?? ticket.WorkshopBooking?.WorkshopPassType?.Name,
+            PassCategory = ticket.WorkshopBooking?.WorkshopPassType?.GetPassCategory(),
             Venue = ticket.Workshop?.Venue ?? "Ethos Dance Studio",
             AttendeeName = ticket.AttendeeName,
             AttendeePhone = ticket.AttendeePhone,

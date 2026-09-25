@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import adultImage from "../assets/about/about-main.jpg";
-import kidsImage from "../assets/trainers/trainer-04.jpg";
-import workshopImage from "../assets/workshops/workshop-02.jpg";
+import { handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
+
+const adultImage = ETHOS_MEDIA_FALLBACK_SVG;
+const kidsImage = ETHOS_MEDIA_FALLBACK_SVG;
+const workshopImage = ETHOS_MEDIA_FALLBACK_SVG;
 
 import { packagesApi } from "../services/packagesApi";
 import { paymentApi } from "../services/paymentApi";
@@ -336,7 +338,7 @@ function Classes() {
           {passesList.map((pass) => (
             <article key={pass.id} className="classes-details">
               <div className="classes-details__image">
-                <img src={pass.image} alt={pass.title} />
+                <img src={pass.image} alt={pass.title} onError={(e) => handleMediaImgError(e)} />
               </div>
 
               <div className="classes-details__content">

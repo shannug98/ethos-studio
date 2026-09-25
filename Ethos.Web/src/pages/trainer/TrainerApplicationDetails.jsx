@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trainerApi } from "../../services/trainerApi";
-import tierArtwork from "../../assets/trainer/ethos-tier-emblems.png";
+import { MEDIA_ASSETS } from "../../config/mediaAssets";
+const tierArtwork = MEDIA_ASSETS.trainers.tierEmblems;
 import "../../styles/trainer/trainer-application.css";
 
 const INITIAL_FORM = {

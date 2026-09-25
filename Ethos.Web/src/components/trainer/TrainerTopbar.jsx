@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { trainerApi } from "../../services/trainerApi";
 import { trainerStateSync } from "../../services/trainerStateSync";
 import { getMediaUrl } from "../../utils/mediaUrl";
+import TrainerAvatar from "../common/TrainerAvatar";
 
 const titles = [
   {
@@ -126,21 +127,13 @@ export default function TrainerTopbar() {
           Welcome back, <strong>{firstName}</strong>
         </div>
 
-        <div
-          className="trainer-topbar-avatar"
-          aria-label={`${firstName} profile`}
-          style={{ overflow: "hidden" }}
-        >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={firstName}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            firstName.charAt(0).toUpperCase()
-          )}
-        </div>
+        <TrainerAvatar
+          trainer={photoUrl}
+          name={firstName}
+          size={36}
+          bordered
+          borderColor="#FF5500"
+        />
       </div>
     </header>
   );
