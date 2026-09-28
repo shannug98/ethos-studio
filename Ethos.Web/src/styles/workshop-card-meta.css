@@ -1,0 +1,306 @@
+/* ==========================================================================
+   ETHOS DANCE STUDIO — UNIFIED WORKSHOP CARD METADATA STYLES
+   Provides identical metadata formatting across Featured, Homepage,
+   Workshops Listing, and More Workshops Carousel cards.
+   ========================================================================== */
+
+/* OUTER CARD WRAPPERS — STRICTLY TRANSPARENT WRAPPERS, NOT BOXES */
+.workshop-card,
+.event-card-modern,
+.more-workshop-card {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+/* MEDIA CARD CONTAINER (THE ACTUAL CARD — PRECISELY FITS IMAGE) */
+.workshop-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  user-select: none;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease;
+}
+
+.workshop-card-media--portrait {
+  aspect-ratio: 3 / 4;
+}
+
+.workshop-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workshop-card:hover .workshop-card-media,
+.event-card-modern:hover .workshop-card-media,
+.more-workshop-card:hover .workshop-card-media,
+.workshops__featured:hover .workshop-card-media {
+  transform: translateY(-6px);
+  border-color: rgba(223, 128, 108, 0.45);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+}
+
+.workshop-card:hover .workshop-card-img,
+.event-card-modern:hover .workshop-card-img,
+.more-workshop-card:hover .workshop-card-img,
+.workshops__featured:hover .workshop-card-img {
+  transform: scale(1.04);
+}
+
+/* GRADIENT SCRIM OVERLAY (Soft subtle vignette at bottom for badges) */
+.workshop-card-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 55%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* TOP BADGES */
+.workshop-card-top-badges {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workshop-card-og-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(18, 16, 16, 0.88);
+  border: 1px solid rgba(223, 128, 108, 0.4);
+  color: #df806c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.workshop-card-completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(24, 24, 27, 0.9);
+  border: 1px solid rgba(113, 113, 122, 0.4);
+  color: #a1a1aa;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+
+/* HOVER ARROW ICON (TOP RIGHT) */
+.workshop-card-arrow-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+.workshop-card:hover .workshop-card-arrow-icon,
+.event-card-modern:hover .workshop-card-arrow-icon,
+.more-workshop-card:hover .workshop-card-arrow-icon {
+  transform: rotate(45deg);
+  background: #df806c;
+  color: #171414;
+}
+
+/* UNIFIED BOTTOM METADATA OVERLAY (INSIDE CARD/IMAGE) */
+.workshop-card-meta-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  background: transparent !important;
+}
+
+.workshop-card-meta-row-primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workshop-card-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 14, 16, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 4px 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.workshop-card-date-text {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.workshop-card-level-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #df9b8d;
+  background: rgba(14, 14, 16, 0.78);
+  border: 1px solid rgba(223, 155, 141, 0.35);
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.workshop-card-meta-row-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workshop-card-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.workshop-card-meta-icon {
+  color: #df806c;
+  flex-shrink: 0;
+}
+
+.workshop-card-meta-text {
+  color: inherit;
+}
+
+.workshop-card-meta-dot {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+}
+
+.workshop-card-venue-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+/* ==========================================================================
+   CONTENT SECTION BELOW THE CARD/IMAGE
+   Strictly Dance Style + Workshop/Session Name (+ optional price/CTA footer)
+   Consistent across Homepage Grid, Workshops Listing, and More Workshops.
+   ========================================================================== */
+.workshop-card-content-below {
+  padding: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.workshop-card-style-eyebrow {
+  display: block;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #df806c;
+  margin-bottom: 5px;
+}
+
+.workshop-card-heading {
+  margin: 0;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  color: #f7eee9;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* RESPONSIVE ADJUSTMENTS */
+@media (max-width: 768px) {
+  .workshop-card-meta-overlay {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px;
+    gap: 4px;
+  }
+  .workshop-card-date-text {
+    font-size: 11px;
+  }
+  .workshop-card-level-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .workshop-card-meta-row-secondary {
+    font-size: 10.5px;
+  }
+  .workshop-card-venue-truncate {
+    max-width: 130px;
+  }
+}

@@ -94,7 +94,7 @@ public class WorkshopSession
         return now >= GetBookingCutoffUtc(timezone);
     }
 
-    public bool IsCompleted(DateTime? nowUtc = null, string timezone = "Asia/Kolkata")
+    public DateTime GetSessionEndUtc(string timezone = "Asia/Kolkata")
     {
         var tzId = string.IsNullOrWhiteSpace(timezone) ? "Asia/Kolkata" : timezone;
         TimeZoneInfo tz;
@@ -103,7 +103,12 @@ public class WorkshopSession
 
         var dateUnspecified = DateTime.SpecifyKind(SessionDate.Date, DateTimeKind.Unspecified);
         var endLocal = dateUnspecified + EndTime;
-        var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
+        return TimeZoneInfo.ConvertTimeToUtc(endLocal, tz);
+    }
+
+    public bool IsCompleted(DateTime? nowUtc = null, string timezone = "Asia/Kolkata")
+    {
+        var endUtc = GetSessionEndUtc(timezone);
         var now = nowUtc ?? DateTime.UtcNow;
         return now >= endUtc;
     }

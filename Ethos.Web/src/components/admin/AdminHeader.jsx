@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Menu } from "lucide-react";
+import {
+  Menu,
+  Search,
+  Laptop,
+  Monitor,
+  Activity,
+  Bell,
+  User,
+  Shield,
+  History,
+  KeyRound,
+  LogOut,
+  ChevronDown,
+  CheckCircle2,
+} from "lucide-react";
 import { getAdminUser, clearAdminAuth, adminApi } from "../../services/adminApi";
 import { getAdminBreadcrumbs } from "../../constants/adminRouteRegistry";
 import AdminCommandPalette from "./common/AdminCommandPalette";
@@ -256,7 +270,7 @@ export default function AdminHeader({
         aria-label="Search"
         title="Search (Ctrl+K)"
       >
-        <span>🔍</span>
+        <Search size={18} />
       </button>
 
       {/* LEFT: VISUAL SEARCH PILL INPUT (Desktop) */}
@@ -268,7 +282,7 @@ export default function AdminHeader({
         }}
         title="Search workshops, bookings, payments, users... (Ctrl+K)"
       >
-        <span className="ethos-header-search-icon">🔍</span>
+        <Search size={16} className="ethos-header-search-icon" />
         <input
           type="text"
           readOnly
@@ -292,7 +306,7 @@ export default function AdminHeader({
             onClick={() => togglePopover("devices")}
             title="Active login sessions and authorized hardware slots"
           >
-            <span className="btn-icon">💻</span>
+            <Laptop size={15} className="btn-icon" />
             <span className="btn-label">Devices · {slotsUsed} of {maxSlots} active</span>
           </button>
 
@@ -309,7 +323,9 @@ export default function AdminHeader({
               <div className="popover-body">
                 <div className="device-card current">
                   <div className="device-card-header">
-                    <span className="device-icon">🖥️</span>
+                    <div className="device-icon-wrap">
+                      <Monitor size={18} className="device-icon-svg" />
+                    </div>
                     <div>
                       <strong>Current Device</strong>
                       <div className="device-sub">
@@ -328,13 +344,15 @@ export default function AdminHeader({
 
                 {otherSessions.length === 0 ? (
                   <div className="device-empty-state">
-                    ✓ No other active devices connected
+                    <CheckCircle2 size={14} className="device-empty-icon" /> No other active devices connected
                   </div>
                 ) : (
                   otherSessions.map((s, idx) => (
                     <div key={idx} className="device-card">
                       <div className="device-card-header">
-                        <span className="device-icon">💻</span>
+                        <div className="device-icon-wrap">
+                          <Laptop size={18} className="device-icon-svg" />
+                        </div>
                         <div>
                           <strong>{s.deviceName || `${s.browser} on ${s.operatingSystem}`}</strong>
                           <div className="device-sub">{s.ipAddress || "Authorized IP"}</div>
@@ -371,6 +389,7 @@ export default function AdminHeader({
             onClick={() => togglePopover("health")}
             title="Live platform subsystem operational status"
           >
+            <Activity size={15} className="btn-icon" />
             <span className={`health-dot ${overallHealthStatus}`} />
             <span className="btn-label">{overallHealthLabel}</span>
           </button>
@@ -451,7 +470,7 @@ export default function AdminHeader({
             onClick={() => togglePopover("attention")}
             title="Actionable operational queues and approvals"
           >
-            <span className="btn-icon">🔔</span>
+            <Bell size={15} className="btn-icon" />
             <span className="btn-label">
               Attention · {attentionTotalCount}
             </span>
@@ -472,7 +491,7 @@ export default function AdminHeader({
               <div className="popover-body">
                 {actionableAttention.length === 0 ? (
                   <div className="attention-all-clear">
-                    <span className="check-icon">✓</span>
+                    <CheckCircle2 size={24} className="check-icon-svg" />
                     <div>
                       <strong>No action required</strong>
                       <p>Everything is currently up to date.</p>
@@ -517,114 +536,119 @@ export default function AdminHeader({
           )}
         </div>
 
-        {/* 5. ADMIN PROFILE MENU TRIGGER */}
-        <div className="popover-anchor">
-          <button
-            type="button"
-            className={`admin-header-profile-btn ${
-              activePopover === "profile" ? "active" : ""
-            }`}
-            onClick={() => togglePopover("profile")}
-            title="Administrator account and security settings"
-          >
-            <div className="profile-avatar">
-              {(adminUser?.fullName || "A").charAt(0).toUpperCase()}
-            </div>
-            <div className="profile-info-col">
-              <span className="profile-name">
-                {adminUser?.fullName || "Administrator"}
-              </span>
-              <span className="profile-role">
-                {adminUser?.customerCode ? `${adminUser.customerCode} · Admin` : "Administrator"}
-              </span>
-            </div>
-            <span className="profile-caret">▾</span>
-          </button>
-
-          {activePopover === "profile" && (
-            <div className="admin-popover-panel panel-profile">
-              <div className="profile-panel-header">
-                <strong>{adminUser?.fullName || "Ethos Administrator"}</strong>
-                <span>{adminUser?.email || adminUser?.phone || "Authenticated Admin"}</span>
+        {/* 5. DEVELOPER PROFILE MENU TRIGGER (Rendered exclusively for authenticated Developer identity) */}
+        {adminUser?.displayRole === "Developer" && (
+          <div className="popover-anchor">
+            <button
+              type="button"
+              className={`admin-header-profile-btn ${
+                activePopover === "profile" ? "active" : ""
+              }`}
+              onClick={() => togglePopover("profile")}
+              title="Administrator account and security settings"
+            >
+              <div className="profile-avatar">
+                {(adminUser?.fullName || "E").charAt(0).toUpperCase()}
               </div>
-
-              <div className="profile-menu-items">
-                <button
-                  type="button"
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setActivePopover(null);
-                    navigate("/admin_portal/users");
-                  }}
-                >
-                  <span className="menu-icon">👤</span>
-                  <span>My Profile & Users</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setActivePopover(null);
-                    navigate("/admin_portal/security");
-                  }}
-                >
-                  <span className="menu-icon">🛡️</span>
-                  <span>Security & Access</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setActivePopover(null);
-                    navigate("/admin_portal/devices");
-                  }}
-                >
-                  <span className="menu-icon">💻</span>
-                  <span>Login Devices</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setActivePopover(null);
-                    navigate("/admin_portal/audit-logs");
-                  }}
-                >
-                  <span className="menu-icon">📜</span>
-                  <span>Activity History</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-menu-item"
-                  onClick={() => {
-                    setActivePopover(null);
-                    setChangePasswordOpen(true);
-                  }}
-                >
-                  <span className="menu-icon">🔑</span>
-                  <span>Change Password</span>
-                </button>
+              <div className="profile-info-col">
+                <span className="profile-name">
+                  {adminUser?.fullName || "Administrator"}
+                </span>
+                <span className="profile-role">
+                  {adminUser?.customerCode
+                    ? `${adminUser.customerCode} · Developer`
+                    : "Developer"}
+                </span>
               </div>
+              <ChevronDown size={14} className="profile-caret" />
+            </button>
 
-              <div className="profile-panel-footer">
-                <button
-                  type="button"
-                  className="btn-profile-signout"
-                  onClick={() => {
-                    setActivePopover(null);
-                    handleSignOut();
-                  }}
-                >
-                  Sign Out
-                </button>
+            {activePopover === "profile" && (
+              <div className="admin-popover-panel panel-profile">
+                <div className="profile-panel-header">
+                  <strong>{adminUser?.fullName || "Ethos Administrator"}</strong>
+                  <span>{adminUser?.email || adminUser?.phone || "Authenticated Admin"}</span>
+                </div>
+
+                <div className="profile-menu-items">
+                  <button
+                    type="button"
+                    className="profile-menu-item"
+                    onClick={() => {
+                      setActivePopover(null);
+                      navigate("/admin_portal/users");
+                    }}
+                  >
+                    <User size={15} className="menu-icon" />
+                    <span>My Profile & Users</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-menu-item"
+                    onClick={() => {
+                      setActivePopover(null);
+                      navigate("/admin_portal/security");
+                    }}
+                  >
+                    <Shield size={15} className="menu-icon" />
+                    <span>Security & Access</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-menu-item"
+                    onClick={() => {
+                      setActivePopover(null);
+                      navigate("/admin_portal/devices");
+                    }}
+                  >
+                    <Laptop size={15} className="menu-icon" />
+                    <span>Login Devices</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-menu-item"
+                    onClick={() => {
+                      setActivePopover(null);
+                      navigate("/admin_portal/audit-logs");
+                    }}
+                  >
+                    <History size={15} className="menu-icon" />
+                    <span>Activity History</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-menu-item"
+                    onClick={() => {
+                      setActivePopover(null);
+                      setChangePasswordOpen(true);
+                    }}
+                  >
+                    <KeyRound size={15} className="menu-icon" />
+                    <span>Change Password</span>
+                  </button>
+                </div>
+
+                <div className="profile-panel-footer">
+                  <button
+                    type="button"
+                    className="btn-profile-signout"
+                    onClick={() => {
+                      setActivePopover(null);
+                      handleSignOut();
+                    }}
+                  >
+                    <LogOut size={14} style={{ display: "inline-block", verticalAlign: "middle", marginRight: "6px" }} />
+                    Sign Out
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* 6. LIVE DATE & TIME DISPLAY */}
         <div className="ethos-header-datetime-block">

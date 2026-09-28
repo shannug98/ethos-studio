@@ -265,11 +265,12 @@ describe("Step 4 Ticket Types Decoupling & Simplification Architecture Tests", (
       assert.equal(content.includes("Starting baseline price"), false);
     });
 
-    it("contains Pass Scope / Entitlement selector with All Sessions, Solo Pass, and Multi-Session", () => {
+    it("contains Pass Scope / Entitlement selector with Solo, Dual, Trio, and All Workshops", () => {
       assert.equal(content.includes("Pass Scope / Entitlement"), true);
-      assert.equal(content.includes("All Sessions Pass"), true);
-      assert.equal(content.includes("Solo Pass (1 Session)"), true);
-      assert.equal(content.includes("Multi-Session Pass"), true);
+      assert.equal(content.includes("Solo"), true);
+      assert.equal(content.includes("Dual"), true);
+      assert.equal(content.includes("Trio"), true);
+      assert.equal(content.includes("All Workshops"), true);
     });
 
     it("contains Ticket Name, Description, Quantity/Seats, and Active for Sale", () => {

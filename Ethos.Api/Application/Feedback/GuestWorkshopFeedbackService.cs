@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
 using Ethos.Api.Contracts.Feedback;
 using Ethos.Api.Domain.Entities;
 using Ethos.Api.Domain.Enums;
@@ -19,77 +18,6 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
         _db = db;
     }
 
-    private static string HashToken(string token)
-    {
-        var bytes = Encoding.UTF8.GetBytes(token.Trim());
-        var hashBytes = SHA256.HashData(bytes);
-        return Convert.ToHexString(hashBytes).ToLowerInvariant();
-    }
-
-    public async Task<GenerateFeedbackTokenResponse> GenerateTokenForBookingAsync(
-        Guid bookingId,
-        CancellationToken cancellationToken = default)
-    {
-        var booking = await _db.WorkshopBookings
-            .Include(b => b.Workshop)
-            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
-
-        if (booking == null)
-            throw new BusinessRuleException("BOOKING_NOT_ELIGIBLE", "Workshop booking not found.", StatusCodes.Status404NotFound);
-
-        if (booking.Status is WorkshopBookingStatus.Cancelled or WorkshopBookingStatus.PendingPayment)
-            throw new BusinessRuleException("BOOKING_NOT_ELIGIBLE", "Cannot generate feedback token for a cancelled or unpaid booking.");
-
-        if (booking.Status != WorkshopBookingStatus.Attended)
-            throw new BusinessRuleException("ATTENDANCE_REQUIRED", "Feedback token can only be generated after the attendee has attended the workshop.");
-
-        var now = DateTime.UtcNow;
-        var workshopEndUtc = DateTime.SpecifyKind(booking.Workshop.WorkshopDate.Date.Add(booking.Workshop.EndTime), DateTimeKind.Utc);
-        if (workshopEndUtc > now)
-        {
-            throw new BusinessRuleException("WORKSHOP_NOT_FINISHED", "Feedback token can only be generated after the workshop has finished.");
-        }
-
-        // Check if feedback already submitted
-        var existingFeedback = await _db.WorkshopFeedbacks
-            .AnyAsync(f => f.WorkshopBookingId == bookingId && f.IsValid, cancellationToken);
-
-        if (existingFeedback)
-            throw new BusinessRuleException("FEEDBACK_ALREADY_SUBMITTED", "Feedback has already been submitted for this booking.", StatusCodes.Status409Conflict);
-
-        // Check if an existing unused, unexpired token exists
-        var existingToken = await _db.WorkshopFeedbackTokens
-            .Where(t => t.WorkshopBookingId == bookingId && t.UsedAt == null && t.ExpiresAt > now)
-            .OrderByDescending(t => t.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        // Generate a new 64-character random token
-        var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        var tokenHash = HashToken(rawToken);
-        var expiresAt = now.AddDays(7);
-
-        var tokenEntity = new WorkshopFeedbackToken
-        {
-            Id = Guid.NewGuid(),
-            WorkshopBookingId = bookingId,
-            TokenHash = tokenHash,
-            ExpiresAt = expiresAt,
-            UsedAt = null,
-            CreatedAt = now
-        };
-
-        _db.WorkshopFeedbackTokens.Add(tokenEntity);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return new GenerateFeedbackTokenResponse
-        {
-            BookingId = bookingId,
-            Token = rawToken,
-            FeedbackUrl = $"/feedback/workshop/{rawToken}",
-            ExpiresAt = expiresAt
-        };
-    }
-
     public async Task<GuestWorkshopFeedbackDetailsResponse> GetFeedbackDetailsByTokenAsync(
         string token,
         CancellationToken cancellationToken = default)
@@ -103,11 +31,26 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
             };
         }
 
-        var tokenHash = HashToken(token);
+        string tokenHash;
+        try
+        {
+            tokenHash = FeedbackTokenHelper.HashToken(token);
+        }
+        catch
+        {
+            return new GuestWorkshopFeedbackDetailsResponse
+            {
+                IsEligible = false,
+                IneligibilityReason = "Feedback token format is invalid."
+            };
+        }
+
         var tokenEntity = await _db.WorkshopFeedbackTokens
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b.Workshop)
                     .ThenInclude(w => w.TrainerProfile)
+            .Include(t => t.FeedbackFormVersion)
+                .ThenInclude(v => v!.Questions.OrderBy(q => q.SortOrder))
             .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
 
         if (tokenEntity == null)
@@ -119,70 +62,55 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
             };
         }
 
-        var now = DateTime.UtcNow;
+        var booking = tokenEntity.WorkshopBooking;
+        var workshop = booking?.Workshop;
+
         if (tokenEntity.UsedAt != null)
         {
             return new GuestWorkshopFeedbackDetailsResponse
             {
                 BookingId = tokenEntity.WorkshopBookingId,
                 BookingReference = tokenEntity.WorkshopBookingId.ToString()[..8].ToUpperInvariant(),
-                WorkshopTitle = tokenEntity.WorkshopBooking?.Workshop?.Title ?? "Workshop",
-                TrainerName = tokenEntity.WorkshopBooking?.Workshop?.TrainerProfile?.FullName ?? "Instructor",
+                WorkshopTitle = workshop?.Title ?? "Workshop",
+                TrainerName = workshop?.TrainerProfile?.FullName ?? "Instructor",
+                AudienceType = tokenEntity.AudienceType,
                 AlreadySubmitted = true,
                 IsEligible = false,
                 IneligibilityReason = "Feedback has already been submitted for this session. Thank you!"
             };
         }
 
-        if (tokenEntity.ExpiresAt < now)
+        if (tokenEntity.ExpiresAt < DateTime.UtcNow)
         {
             return new GuestWorkshopFeedbackDetailsResponse
             {
+                BookingId = tokenEntity.WorkshopBookingId,
+                BookingReference = tokenEntity.WorkshopBookingId.ToString()[..8].ToUpperInvariant(),
+                WorkshopTitle = workshop?.Title ?? "Workshop",
+                TrainerName = workshop?.TrainerProfile?.FullName ?? "Instructor",
+                AudienceType = tokenEntity.AudienceType,
                 IsEligible = false,
                 IneligibilityReason = "This feedback link has expired."
             };
         }
 
-        var booking = tokenEntity.WorkshopBooking;
         if (booking == null || booking.Status is WorkshopBookingStatus.Cancelled or WorkshopBookingStatus.PendingPayment)
         {
             return new GuestWorkshopFeedbackDetailsResponse
             {
+                BookingId = tokenEntity.WorkshopBookingId,
+                BookingReference = tokenEntity.WorkshopBookingId.ToString()[..8].ToUpperInvariant(),
+                WorkshopTitle = workshop?.Title ?? "Workshop",
+                TrainerName = workshop?.TrainerProfile?.FullName ?? "Instructor",
+                AudienceType = tokenEntity.AudienceType,
                 IsEligible = false,
                 IneligibilityReason = "This booking was cancelled or unpaid and is not eligible for feedback."
             };
         }
 
-        if (booking.Status != WorkshopBookingStatus.Attended)
-        {
-            return new GuestWorkshopFeedbackDetailsResponse
-            {
-                BookingId = booking.Id,
-                BookingReference = booking.Id.ToString()[..8].ToUpperInvariant(),
-                WorkshopTitle = booking.Workshop?.Title ?? "Workshop",
-                TrainerName = booking.Workshop?.TrainerProfile?.FullName ?? "Instructor",
-                IsEligible = false,
-                IneligibilityReason = "Feedback is available only after the attendee has attended the workshop."
-            };
-        }
-
-        var workshopEndUtc = DateTime.SpecifyKind(booking.Workshop.WorkshopDate.Date.Add(booking.Workshop.EndTime), DateTimeKind.Utc);
-        if (workshopEndUtc > now)
-        {
-            return new GuestWorkshopFeedbackDetailsResponse
-            {
-                BookingId = booking.Id,
-                BookingReference = booking.Id.ToString()[..8].ToUpperInvariant(),
-                WorkshopTitle = booking.Workshop?.Title ?? "Workshop",
-                TrainerName = booking.Workshop?.TrainerProfile?.FullName ?? "Instructor",
-                IsEligible = false,
-                IneligibilityReason = "Feedback becomes available after the workshop has finished."
-            };
-        }
-
-        // Check if already submitted via another path
+        // Check if feedback already recorded for this booking
         var alreadySubmitted = await _db.WorkshopFeedbacks
-            .AnyAsync(f => f.WorkshopBookingId == booking.Id && f.IsValid, cancellationToken);
+            .AnyAsync(f => (f.WorkshopBookingId == booking.Id || f.WorkshopFeedbackTokenId == tokenEntity.Id) && f.IsValid, cancellationToken);
 
         if (alreadySubmitted)
         {
@@ -190,25 +118,84 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
             {
                 BookingId = booking.Id,
                 BookingReference = booking.Id.ToString()[..8].ToUpperInvariant(),
-                WorkshopTitle = booking.Workshop?.Title ?? "Workshop",
-                TrainerName = booking.Workshop?.TrainerProfile?.FullName ?? "Instructor",
+                WorkshopTitle = workshop?.Title ?? "Workshop",
+                TrainerName = workshop?.TrainerProfile?.FullName ?? "Instructor",
+                AudienceType = tokenEntity.AudienceType,
                 AlreadySubmitted = true,
                 IsEligible = false,
                 IneligibilityReason = "Feedback has already been recorded for this booking."
             };
         }
 
+        // Resolve active or snapshot form version
+        var formVersion = tokenEntity.FeedbackFormVersion;
+        if (formVersion == null && workshop != null)
+        {
+            var setting = await _db.WorkshopFeedbackSettings
+                .Include(s => s.ActiveVersion)
+                    .ThenInclude(v => v!.Questions.OrderBy(q => q.SortOrder))
+                .FirstOrDefaultAsync(s => s.WorkshopId == workshop.Id, cancellationToken);
+
+            formVersion = setting?.ActiveVersion;
+        }
+
+        var audience = tokenEntity.AudienceType;
+        var questionDtos = new List<FeedbackQuestionDto>();
+
+        if (formVersion?.Questions != null)
+        {
+            foreach (var q in formVersion.Questions.OrderBy(x => x.SortOrder))
+            {
+                if (q.TargetAudience != audience && q.TargetAudience != FeedbackAudienceType.Both)
+                {
+                    continue;
+                }
+
+                var choices = new List<string>();
+                if (q.QuestionType == FeedbackQuestionType.SingleChoice && !string.IsNullOrWhiteSpace(q.OptionsJson))
+                {
+                    try
+                    {
+                        var parsed = JsonSerializer.Deserialize<List<string>>(q.OptionsJson);
+                        if (parsed != null) choices.AddRange(parsed);
+                    }
+                    catch
+                    {
+                        // Fallback simple comma split if not strict JSON array
+                        choices.AddRange(q.OptionsJson.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+                    }
+                }
+
+                questionDtos.Add(new FeedbackQuestionDto
+                {
+                    Id = q.Id,
+                    QuestionKey = q.QuestionKey,
+                    PromptText = q.PromptText,
+                    QuestionType = q.QuestionType,
+                    TargetAudience = q.TargetAudience,
+                    OptionsJson = q.OptionsJson,
+                    Choices = choices,
+                    IsRequired = q.IsRequired,
+                    SortOrder = q.SortOrder
+                });
+            }
+        }
+
         return new GuestWorkshopFeedbackDetailsResponse
         {
             BookingId = booking.Id,
             BookingReference = booking.Id.ToString()[..8].ToUpperInvariant(),
-            WorkshopTitle = booking.Workshop.Title,
-            TrainerName = booking.Workshop.TrainerProfile?.FullName ?? "Staff Trainer",
-            WorkshopDate = booking.Workshop.WorkshopDate,
-            StartTime = booking.Workshop.StartTime,
-            EndTime = booking.Workshop.EndTime,
-            DanceStyle = booking.Workshop.DanceStyle,
-            Venue = booking.Workshop.Venue,
+            WorkshopTitle = workshop?.Title ?? "Masterclass",
+            TrainerName = workshop?.TrainerProfile?.FullName ?? "Staff Trainer",
+            WorkshopDate = workshop?.WorkshopDate ?? DateTime.UtcNow.Date,
+            StartTime = workshop?.StartTime,
+            EndTime = workshop?.EndTime,
+            DanceStyle = workshop?.DanceStyle,
+            Venue = workshop?.Venue,
+            AudienceType = audience,
+            VersionNumber = formVersion?.VersionNumber ?? 1,
+            FormVersionId = formVersion?.Id,
+            Questions = questionDtos,
             AlreadySubmitted = false,
             IsEligible = true
         };
@@ -219,47 +206,174 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Token))
+        {
             throw new BusinessRuleException("FEEDBACK_TOKEN_INVALID", "Feedback token is required.");
+        }
 
-        if (request.Rating < 1 || request.Rating > 5)
-            throw new BusinessRuleException("VALIDATION_FAILED", "Rating must be between 1 and 5 stars.");
+        string tokenHash;
+        try
+        {
+            tokenHash = FeedbackTokenHelper.HashToken(request.Token);
+        }
+        catch
+        {
+            throw new BusinessRuleException("FEEDBACK_TOKEN_INVALID", "Invalid feedback token format.", StatusCodes.Status400BadRequest);
+        }
 
-        if (request.Comment?.Length > 2000)
-            throw new BusinessRuleException("VALIDATION_FAILED", "Comment cannot exceed 2000 characters.");
+        var isRelational = _db.Database.IsRelational();
+        await using var tx = isRelational ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
 
-        var tokenHash = HashToken(request.Token);
         var tokenEntity = await _db.WorkshopFeedbackTokens
             .Include(t => t.WorkshopBooking)
                 .ThenInclude(b => b.Workshop)
+            .Include(t => t.FeedbackFormVersion)
+                .ThenInclude(v => v!.Questions)
             .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
 
         if (tokenEntity == null)
+        {
             throw new BusinessRuleException("FEEDBACK_TOKEN_INVALID", "Invalid feedback token.", StatusCodes.Status404NotFound);
+        }
 
         if (tokenEntity.UsedAt != null)
+        {
             throw new BusinessRuleException("FEEDBACK_ALREADY_USED", "Feedback has already been submitted using this link.", StatusCodes.Status409Conflict);
+        }
 
         if (tokenEntity.ExpiresAt < DateTime.UtcNow)
-            throw new BusinessRuleException("FEEDBACK_TOKEN_EXPIRED", "This feedback link has expired.");
+        {
+            throw new BusinessRuleException("FEEDBACK_TOKEN_EXPIRED", "This feedback link has expired.", StatusCodes.Status400BadRequest);
+        }
 
         var booking = tokenEntity.WorkshopBooking;
         if (booking == null || booking.Status is WorkshopBookingStatus.Cancelled or WorkshopBookingStatus.PendingPayment)
+        {
             throw new BusinessRuleException("BOOKING_NOT_ELIGIBLE", "Booking is cancelled, unpaid, or invalid.");
+        }
 
-        if (booking.Status != WorkshopBookingStatus.Attended)
-            throw new BusinessRuleException("ATTENDANCE_REQUIRED", "Feedback is available only after the attendee has attended the workshop.");
-
-        var nowUtc = DateTime.UtcNow;
-        var workshopEndUtc = DateTime.SpecifyKind(booking.Workshop.WorkshopDate.Date.Add(booking.Workshop.EndTime), DateTimeKind.Utc);
-        if (workshopEndUtc > nowUtc)
-            throw new BusinessRuleException("WORKSHOP_NOT_FINISHED", "Feedback becomes available after the workshop has finished.");
-
-        // Check duplicate
+        // Check duplicate submission
         var alreadyExists = await _db.WorkshopFeedbacks
-            .AnyAsync(f => f.WorkshopBookingId == booking.Id && f.IsValid, cancellationToken);
+            .AnyAsync(f => (f.WorkshopBookingId == booking.Id || f.WorkshopFeedbackTokenId == tokenEntity.Id) && f.IsValid, cancellationToken);
 
         if (alreadyExists)
+        {
             throw new BusinessRuleException("FEEDBACK_ALREADY_SUBMITTED", "Feedback has already been submitted for this booking.", StatusCodes.Status409Conflict);
+        }
+
+        // Validate rating rules
+        if (tokenEntity.AudienceType == FeedbackAudienceType.Attended)
+        {
+            if (request.Rating.HasValue && (request.Rating < 1 || request.Rating > 5))
+            {
+                throw new BusinessRuleException("VALIDATION_FAILED", "Overall rating must be between 1 and 5 stars.");
+            }
+        }
+        else
+        {
+            // For NoShow, rating is optional. If provided, must still be 1-5.
+            if (request.Rating.HasValue && (request.Rating < 1 || request.Rating > 5))
+            {
+                throw new BusinessRuleException("VALIDATION_FAILED", "Rating must be between 1 and 5 stars if provided.");
+            }
+        }
+
+        if (request.Comment?.Length > 2000)
+        {
+            throw new BusinessRuleException("VALIDATION_FAILED", "Comment cannot exceed 2000 characters.");
+        }
+
+        // Dynamic Questions Validation & Processing
+        var applicableQuestions = tokenEntity.FeedbackFormVersion?.Questions
+            .Where(q => q.TargetAudience == tokenEntity.AudienceType || q.TargetAudience == FeedbackAudienceType.Both)
+            .ToList() ?? new List<FeedbackQuestion>();
+
+        var submittedAnswers = request.Answers ?? Array.Empty<FeedbackAnswerSubmissionDto>();
+        var answerEntities = new List<WorkshopFeedbackAnswer>();
+
+        // Validate each submitted answer
+        foreach (var answerDto in submittedAnswers)
+        {
+            var question = applicableQuestions.FirstOrDefault(q => q.Id == answerDto.QuestionId);
+            if (question == null)
+            {
+                throw new BusinessRuleException(
+                    "INVALID_QUESTION",
+                    $"Submitted answer references an invalid or non-applicable question ID: {answerDto.QuestionId}");
+            }
+
+            if (question.QuestionType == FeedbackQuestionType.Rating1To5)
+            {
+                if (question.IsRequired && !answerDto.NumericValue.HasValue)
+                {
+                    throw new BusinessRuleException("VALIDATION_FAILED", $"Question '{question.PromptText}' requires a star rating.");
+                }
+
+                if (answerDto.NumericValue.HasValue && (answerDto.NumericValue < 1 || answerDto.NumericValue > 5))
+                {
+                    throw new BusinessRuleException("VALIDATION_FAILED", $"Rating for '{question.PromptText}' must be between 1 and 5.");
+                }
+            }
+            else if (question.QuestionType == FeedbackQuestionType.SingleChoice)
+            {
+                if (question.IsRequired && string.IsNullOrWhiteSpace(answerDto.TextValue))
+                {
+                    throw new BusinessRuleException("VALIDATION_FAILED", $"Please select an option for '{question.PromptText}'.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(answerDto.TextValue) && !string.IsNullOrWhiteSpace(question.OptionsJson))
+                {
+                    List<string>? allowedChoices = null;
+                    try
+                    {
+                        allowedChoices = JsonSerializer.Deserialize<List<string>>(question.OptionsJson);
+                    }
+                    catch { }
+
+                    if (allowedChoices != null && allowedChoices.Count > 0 &&
+                        !allowedChoices.Any(c => string.Equals(c, answerDto.TextValue.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw new BusinessRuleException(
+                            "INVALID_CHOICE",
+                            $"Selected choice '{answerDto.TextValue}' is not valid for question '{question.PromptText}'.");
+                    }
+                }
+            }
+            else if (question.QuestionType == FeedbackQuestionType.Text)
+            {
+                if (question.IsRequired && string.IsNullOrWhiteSpace(answerDto.TextValue))
+                {
+                    throw new BusinessRuleException("VALIDATION_FAILED", $"Please enter a response for '{question.PromptText}'.");
+                }
+
+                if (answerDto.TextValue?.Length > 2000)
+                {
+                    throw new BusinessRuleException("VALIDATION_FAILED", $"Response for '{question.PromptText}' cannot exceed 2000 characters.");
+                }
+            }
+
+            answerEntities.Add(new WorkshopFeedbackAnswer
+            {
+                Id = Guid.NewGuid(),
+                FeedbackQuestionId = question.Id,
+                NumericValue = answerDto.NumericValue,
+                TextValue = answerDto.TextValue?.Trim(),
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        // Check for any missing required questions not answered
+        foreach (var reqQ in applicableQuestions.Where(q => q.IsRequired))
+        {
+            var answered = submittedAnswers.Any(a =>
+                a.QuestionId == reqQ.Id &&
+                ((reqQ.QuestionType == FeedbackQuestionType.Rating1To5 && a.NumericValue.HasValue) ||
+                 (reqQ.QuestionType != FeedbackQuestionType.Rating1To5 && !string.IsNullOrWhiteSpace(a.TextValue))));
+
+            if (!answered)
+            {
+                throw new BusinessRuleException("REQUIRED_QUESTION_MISSING", $"Please answer required question: '{reqQ.PromptText}'");
+            }
+        }
 
         var feedback = new WorkshopFeedback
         {
@@ -267,34 +381,80 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
             WorkshopId = booking.WorkshopId,
             WorkshopBookingId = booking.Id,
             StudentProfileId = booking.StudentProfileId == Guid.Empty ? null : booking.StudentProfileId,
+            FeedbackFormVersionId = tokenEntity.FeedbackFormVersionId,
+            WorkshopFeedbackTokenId = tokenEntity.Id,
+            AudienceType = tokenEntity.AudienceType,
             Rating = request.Rating,
             Comment = request.Comment?.Trim(),
-            WouldRecommend = request.Rating >= 4,
-            WouldAttendTrainerAgain = request.Rating >= 4,
+            WouldRecommend = request.WouldRecommend ?? (request.Rating.HasValue && request.Rating.Value >= 4),
+            WouldAttendTrainerAgain = request.WouldAttendTrainerAgain ?? (request.Rating.HasValue && request.Rating.Value >= 4),
             SubmittedAt = DateTime.UtcNow,
             IsValid = true
         };
+
+        foreach (var answer in answerEntities)
+        {
+            answer.WorkshopFeedbackId = feedback.Id;
+            feedback.Answers.Add(answer);
+        }
 
         _db.WorkshopFeedbacks.Add(feedback);
         tokenEntity.UsedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (tx != null)
+        {
+            await tx.CommitAsync(cancellationToken);
+        }
+
         return true;
+    }
+
+    public async Task<GenerateFeedbackTokenResponse> GenerateTokenForBookingAsync(
+        Guid bookingId,
+        CancellationToken cancellationToken = default)
+    {
+        // Backward-compatibility wrapper delegating to authoritative token resolver
+        var booking = await _db.WorkshopBookings
+            .Include(b => b.Workshop)
+            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+
+        if (booking == null)
+            throw new BusinessRuleException("BOOKING_NOT_ELIGIBLE", "Workshop booking not found.", StatusCodes.Status404NotFound);
+
+        var existingToken = await _db.WorkshopFeedbackTokens
+            .Where(t => t.WorkshopBookingId == bookingId && t.UsedAt == null && t.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingToken != null)
+        {
+            return new GenerateFeedbackTokenResponse
+            {
+                BookingId = bookingId,
+                Token = existingToken.TokenHash,
+                FeedbackUrl = $"/feedback/workshop/{existingToken.TokenHash}",
+                ExpiresAt = existingToken.ExpiresAt
+            };
+        }
+
+        throw new BusinessRuleException(
+            "TOKEN_NOT_FOUND",
+            "Feedback token must be issued through the authoritative FeedbackEligibilityService pipeline.");
     }
 
     public async Task<TrainerAggregateFeedbackDto> GetTrainerAggregateFeedbackAsync(
         Guid trainerProfileId,
         CancellationToken cancellationToken = default)
     {
-        // Enforce trainer privacy: only aggregate ratings and distributions, NO attendee metadata!
-        // ONLY include valid feedbacks from confirmed ATTENDED bookings!
         var feedbacks = await _db.WorkshopFeedbacks
             .AsNoTracking()
             .Where(f => f.Workshop.TrainerProfileId == trainerProfileId &&
                         f.IsValid &&
-                        f.WorkshopBooking != null &&
-                        f.WorkshopBooking.Status == WorkshopBookingStatus.Attended)
-            .Select(f => f.Rating)
+                        f.Rating.HasValue &&
+                        f.AudienceType == FeedbackAudienceType.Attended)
+            .Select(f => f.Rating!.Value)
             .ToListAsync(cancellationToken);
 
         if (feedbacks.Count == 0)
@@ -335,14 +495,12 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
         Guid trainerProfileId,
         CancellationToken cancellationToken = default)
     {
-        // Full transparency for Admin: includes written feedback, workshop references, and booking codes
-        // ONLY include valid feedbacks from confirmed ATTENDED bookings!
         var items = await _db.WorkshopFeedbacks
             .AsNoTracking()
             .Where(f => f.Workshop.TrainerProfileId == trainerProfileId &&
                         f.IsValid &&
-                        f.WorkshopBooking != null &&
-                        f.WorkshopBooking.Status == WorkshopBookingStatus.Attended)
+                        f.Rating.HasValue &&
+                        f.AudienceType == FeedbackAudienceType.Attended)
             .Include(f => f.Workshop)
             .OrderByDescending(f => f.SubmittedAt)
             .Select(f => new AdminTrainerFeedbackDto
@@ -351,7 +509,7 @@ public class GuestWorkshopFeedbackService : IGuestWorkshopFeedbackService
                 WorkshopId = f.WorkshopId,
                 WorkshopTitle = f.Workshop.Title,
                 WorkshopDate = f.Workshop.WorkshopDate,
-                Rating = f.Rating,
+                Rating = f.Rating!.Value,
                 Comment = f.Comment,
                 BookingReference = f.WorkshopBookingId.HasValue ? f.WorkshopBookingId.Value.ToString().Substring(0, 8).ToUpper() : "DIRECT",
                 SubmittedAt = f.SubmittedAt

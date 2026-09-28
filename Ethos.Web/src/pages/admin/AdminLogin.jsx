@@ -8,6 +8,7 @@ import {
   clearAdminDeviceCredential,
 } from "../../services/adminApi";
 import { formatAdminLastActive } from "../../utils/adminFormatters";
+import { trackLoginStarted, trackLoginCompleted } from "../../services/analytics";
 import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./AdminLogin.css";
 
@@ -146,6 +147,7 @@ export default function AdminLogin() {
     }
 
     setLoading(true);
+    trackLoginStarted({ portal: "admin" });
     try {
       const deviceName = `${navigator.userAgent.includes("Mac") ? "Mac" : navigator.userAgent.includes("Win") ? "Windows" : "Device"} - ${navigator.userAgent.includes("Chrome") ? "Chrome" : navigator.userAgent.includes("Safari") ? "Safari" : "Browser"}`;
       const res = await adminApi.login(cleanPhone, password, deviceName);
@@ -156,6 +158,7 @@ export default function AdminLogin() {
         if (res.deviceCredential) {
           setAdminDeviceCredential(res.deviceCredential);
         }
+        trackLoginCompleted({ portal: "admin" });
         navigate("/admin_portal/dashboard", { replace: true });
       } else {
         setError({
@@ -185,6 +188,7 @@ export default function AdminLogin() {
             setRawBlockedSessions(err.data.activeSessions);
           }
         } else {
+          clearAdminDeviceCredential();
           setError({
             title: "Access Denied",
             message: err.message || "This device is not authorized.",

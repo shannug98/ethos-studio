@@ -33,6 +33,9 @@ public class OutboxRetryAndFailureTests
         public Task<Msg91DispatchResult> SendAdminPasswordResetAsync(string resetUrl, string recipientPhone, CancellationToken cancellationToken = default) =>
             Task.FromResult(Msg91DispatchResult.Transient(503, "MSG91 Gateway Unavailable"));
 
+        public Task<Msg91DispatchResult> SendFeedbackNotificationAsync(FeedbackNotificationData data, string recipientPhone, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Msg91DispatchResult.Transient(503, "MSG91 Gateway Unavailable"));
+
         public bool TryNormalizePhoneNumber(string? rawPhone, out string normalizedPhone, out string? failureReason, string defaultCountryCode = "91")
         {
             normalizedPhone = "919876543210";
@@ -42,6 +45,7 @@ public class OutboxRetryAndFailureTests
 
         public string BuildBookingConfirmedJson(BookingConfirmedData data, string recipientPhone) => "{}";
         public string BuildTicketPdfJson(TicketPdfData data, string recipientPhone) => "{}";
+        public string BuildFeedbackNotificationJson(FeedbackNotificationData data, string recipientPhone) => "{}";
     }
 
     private class DummyTicketPdfService : ITicketPdfService

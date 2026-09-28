@@ -19,6 +19,7 @@ import {
 import { getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName, DEFAULT_AVATAR_PLACEHOLDER } from "../../../../utils/mediaUrl";
 import TrainerAvatar from "../../../../components/common/TrainerAvatar";
 import { getChronologicalGroupedSessions, getWorkshopTimingDisplay } from "../../../../utils/workshopPresentation";
+import { getPassScopeLabel } from "./pricingUxHelpers";
 import "./Step6Review.css";
 
 export default function Step6Review({
@@ -69,7 +70,7 @@ export default function Step6Review({
     {
       id: "details",
       step: 1,
-      label: "Workshop details & lead trainer complete",
+      label: "Workshop details & faculty complete",
       isValid: Boolean(validationChecklist.details),
     },
     {
@@ -364,7 +365,7 @@ export default function Step6Review({
                   </span>
                 </div>
                 <div className="step6-summary-row">
-                  <span className="step6-summary-key">Lead Trainer</span>
+                  <span className="step6-summary-key">Faculty</span>
                   <span className="step6-summary-val" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                     <TrainerAvatar
                       trainer={selectedTrainer || trainerPhoto}
@@ -528,15 +529,9 @@ export default function Step6Review({
                         <td style={{ color: "#64748b", fontWeight: 600 }}>{pIdx + 1}</td>
                         <td style={{ fontWeight: 700, color: "#0f172a" }}>{pass.name}</td>
                         <td>
-                          {pass.isOverallPass ? (
-                            <span className="step6-ticket-badge-entitlement all-access">
-                              All-Access
-                            </span>
-                          ) : (
-                            <span className="step6-ticket-badge-entitlement bundle">
-                              {pass.sessionsIncluded || 1}-Session Bundle
-                            </span>
-                          )}
+                          <span className={`step6-ticket-badge-entitlement ${pass.isOverallPass || pass.sessionsIncluded == null ? 'all-access' : 'bundle'}`}>
+                            {getPassScopeLabel(pass.sessionsIncluded)}
+                          </span>
                         </td>
                         <td>
                           <div className="step6-price-tiers-chips">

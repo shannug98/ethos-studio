@@ -143,34 +143,5 @@ public class AdminPaymentsController : ControllerBase
         if (result == null) return NotFound(new { message = "Payment transaction not found." });
         return Ok(result);
     }
-
-    [HttpGet("finance/trainer-payouts")]
-    public async Task<ActionResult<AdminTrainerPayoutResponse>> GetTrainerPayouts(CancellationToken cancellationToken)
-    {
-        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.PaymentView, "TrainerProfile", null, HttpContext, cancellationToken);
-        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
-
-        var result = await _paymentService.GetTrainerPayoutsAsync(cancellationToken);
-        return Ok(result);
-    }
-
-    [HttpPost("finance/trainer-payouts/{trainerId:guid}/process")]
-    public async Task<IActionResult> ProcessTrainerPayout(
-        Guid trainerId,
-        [FromBody] AdminProcessTrainerPayoutRequest request,
-        CancellationToken cancellationToken)
-    {
-        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.PaymentReconcile, "TrainerProfile", trainerId, HttpContext, cancellationToken);
-        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
-
-        try
-        {
-            await _paymentService.ProcessTrainerPayoutAsync(trainerId, AdminUserId, request, cancellationToken);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
 }
+

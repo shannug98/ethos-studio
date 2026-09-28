@@ -187,7 +187,7 @@ function Footer({ onOpenPolicy }) {
           <ul>
             <li>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/ethos_dancestudio"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -196,7 +196,7 @@ function Footer({ onOpenPolicy }) {
             </li>
             <li>
               <a
-                href="https://youtube.com"
+                href="https://youtube.com/@ethosdancestudio"
                 target="_blank"
                 rel="noreferrer"
               >

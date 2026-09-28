@@ -1,10 +1,12 @@
 using Ethos.Api.Application.Common;
+using Ethos.Api.Application.Feedback;
 using Ethos.Api.Application.Notifications;
 using Ethos.Api.Application.Workshops;
 using Ethos.Api.Domain.Entities;
 using Ethos.Api.Domain.Enums;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -22,6 +24,17 @@ public class WhatsAppOutboxDispatcherTests
         return new AppDbContext(options);
     }
 
+    private IConfiguration CreateTestConfiguration()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            { "TicketSecurity:SecretKey", "test_ticket_security_secret_key_1234567890" }
+        };
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+    }
+
     private class MockMsg91Service : IMsg91WhatsAppService
     {
         public Func<BookingConfirmedData, string, Msg91DispatchResult> BookingHandler { get; set; } =
@@ -30,8 +43,12 @@ public class WhatsAppOutboxDispatcherTests
         public Func<TicketPdfData, string, Msg91DispatchResult> TicketHandler { get; set; } =
             (_, _) => Msg91DispatchResult.Accepted("msg_456", "req_456");
 
+        public Func<FeedbackNotificationData, string, Msg91DispatchResult> FeedbackHandler { get; set; } =
+            (_, _) => Msg91DispatchResult.Accepted("msg_fb_123", "req_fb_123");
+
         public List<BookingConfirmedData> DispatchedBookings { get; } = new();
         public List<TicketPdfData> DispatchedTickets { get; } = new();
+        public List<FeedbackNotificationData> DispatchedFeedbacks { get; } = new();
 
         public Task<Msg91DispatchResult> SendBookingConfirmedAsync(BookingConfirmedData data, string recipientPhone, CancellationToken cancellationToken = default)
         {
@@ -43,6 +60,12 @@ public class WhatsAppOutboxDispatcherTests
         {
             DispatchedTickets.Add(data);
             return Task.FromResult(TicketHandler(data, recipientPhone));
+        }
+
+        public Task<Msg91DispatchResult> SendFeedbackNotificationAsync(FeedbackNotificationData data, string recipientPhone, CancellationToken cancellationToken = default)
+        {
+            DispatchedFeedbacks.Add(data);
+            return Task.FromResult(FeedbackHandler(data, recipientPhone));
         }
 
         public Task<Msg91DispatchResult> SendAdminPasswordResetAsync(string resetUrl, string recipientPhone, CancellationToken cancellationToken = default) =>
@@ -57,6 +80,7 @@ public class WhatsAppOutboxDispatcherTests
 
         public string BuildBookingConfirmedJson(BookingConfirmedData data, string recipientPhone) => "{}";
         public string BuildTicketPdfJson(TicketPdfData data, string recipientPhone) => "{}";
+        public string BuildFeedbackNotificationJson(FeedbackNotificationData data, string recipientPhone) => "{}";
     }
 
     private class MockTicketPdfService : ITicketPdfService
@@ -643,5 +667,227 @@ public class WhatsAppOutboxDispatcherTests
 
         Assert.Single(msg91.DispatchedBookings);
         Assert.Equal("Guest Person", msg91.DispatchedBookings[0].AttendeeName);
+    }
+
+    [Fact]
+    public async Task ProcessPendingBatchAsync_FeedbackAttended_DispatchesFeedbackDataAndLogsCommunication()
+    {
+        var db = CreateInMemoryDbContext(Guid.NewGuid().ToString());
+        var msg91 = new MockMsg91Service();
+        var pdfService = new MockTicketPdfService();
+        var options = Options.Create(new Msg91Options());
+        var config = CreateTestConfiguration();
+
+        var dispatcher = new WhatsAppOutboxDispatcher(db, msg91, pdfService, options, NullLogger<WhatsAppOutboxDispatcher>.Instance, config);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Urban Intensive",
+            WorkshopDate = DateTime.Today.AddDays(-1),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0),
+            Venue = "Ethos Dance Studio"
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            GuestName = "Ananya Roy",
+            GuestPhone = "919876543210",
+            BookedAt = DateTime.UtcNow.AddDays(-2)
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var rawToken = FeedbackTokenHelper.DeriveRawToken(booking.Id, "test_ticket_security_secret_key_1234567890");
+        var tokenHash = FeedbackTokenHelper.HashToken(rawToken);
+        var tokenEntity = new WorkshopFeedbackToken
+        {
+            Id = Guid.NewGuid(),
+            WorkshopBookingId = booking.Id,
+            TokenHash = tokenHash,
+            AudienceType = FeedbackAudienceType.Attended,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+        db.WorkshopFeedbackTokens.Add(tokenEntity);
+
+        var notification = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            NotificationType = WhatsAppNotificationType.FeedbackAttended,
+            RecipientPhone = "919876543210",
+            IdempotencyKey = $"feedback:{workshop.Id}:{booking.Id}:attended:v1",
+            Status = WhatsAppNotificationStatus.Pending
+        };
+        db.WhatsAppNotifications.Add(notification);
+        await db.SaveChangesAsync();
+
+        var processed = await dispatcher.ProcessPendingBatchAsync("worker-1");
+
+        Assert.Equal(1, processed);
+        Assert.Single(msg91.DispatchedFeedbacks);
+
+        var dispatched = msg91.DispatchedFeedbacks[0];
+        Assert.Equal("Ananya Roy", dispatched.AttendeeName);
+        Assert.Equal("Urban Intensive", dispatched.WorkshopTitle);
+        Assert.Equal(WhatsAppNotificationType.FeedbackAttended, dispatched.NotificationType);
+        Assert.False(string.IsNullOrWhiteSpace(dispatched.RawToken));
+
+        var updatedNotification = await db.WhatsAppNotifications.FindAsync(notification.Id);
+        Assert.NotNull(updatedNotification);
+        Assert.Equal(WhatsAppNotificationStatus.Sent, updatedNotification.Status);
+        Assert.NotNull(updatedNotification.SentAt);
+
+        // Verify token entity was verified
+        var token = await db.WorkshopFeedbackTokens.FirstOrDefaultAsync(t => t.WorkshopBookingId == booking.Id);
+        Assert.NotNull(token);
+
+        // Verify communication log
+        var log = await db.CommunicationLogs.FirstOrDefaultAsync(c => c.TraceId == notification.Id.ToString());
+        Assert.NotNull(log);
+        Assert.Equal("ethos_feedback_attended", log.TemplateId);
+        Assert.Equal("SENT", log.Status);
+    }
+
+    [Fact]
+    public async Task ProcessPendingBatchAsync_FeedbackNoShow_DispatchesNoShowTemplate()
+    {
+        var db = CreateInMemoryDbContext(Guid.NewGuid().ToString());
+        var msg91 = new MockMsg91Service();
+        var pdfService = new MockTicketPdfService();
+        var options = Options.Create(new Msg91Options());
+        var config = CreateTestConfiguration();
+
+        var dispatcher = new WhatsAppOutboxDispatcher(db, msg91, pdfService, options, NullLogger<WhatsAppOutboxDispatcher>.Instance, config);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Contemporary Flow",
+            WorkshopDate = DateTime.Today.AddDays(-1),
+            StartTime = new TimeSpan(14, 0, 0),
+            EndTime = new TimeSpan(16, 0, 0),
+            Venue = "Ethos Studio B"
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            GuestName = "Kunal Verma",
+            GuestPhone = "919876543211",
+            BookedAt = DateTime.UtcNow.AddDays(-2)
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var rawToken = FeedbackTokenHelper.DeriveRawToken(booking.Id, "test_ticket_security_secret_key_1234567890");
+        var tokenHash = FeedbackTokenHelper.HashToken(rawToken);
+        var tokenEntity = new WorkshopFeedbackToken
+        {
+            Id = Guid.NewGuid(),
+            WorkshopBookingId = booking.Id,
+            TokenHash = tokenHash,
+            AudienceType = FeedbackAudienceType.NoShow,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+        db.WorkshopFeedbackTokens.Add(tokenEntity);
+
+        var notification = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            NotificationType = WhatsAppNotificationType.FeedbackNoShow,
+            RecipientPhone = "919876543211",
+            IdempotencyKey = $"feedback:{workshop.Id}:{booking.Id}:noshow:v1",
+            Status = WhatsAppNotificationStatus.Pending
+        };
+        db.WhatsAppNotifications.Add(notification);
+        await db.SaveChangesAsync();
+
+        var processed = await dispatcher.ProcessPendingBatchAsync("worker-1");
+
+        Assert.Equal(1, processed);
+        Assert.Single(msg91.DispatchedFeedbacks);
+
+        var dispatched = msg91.DispatchedFeedbacks[0];
+        Assert.Equal("Kunal Verma", dispatched.AttendeeName);
+        Assert.Equal("Contemporary Flow", dispatched.WorkshopTitle);
+        Assert.Equal(WhatsAppNotificationType.FeedbackNoShow, dispatched.NotificationType);
+
+        var log = await db.CommunicationLogs.FirstOrDefaultAsync(c => c.TraceId == notification.Id.ToString());
+        Assert.NotNull(log);
+        Assert.Equal("ethos_feedback_no_show", log.TemplateId);
+    }
+
+    [Fact]
+    public async Task ProcessPendingBatchAsync_FeedbackNotification_TransientFailure_SchedulesRetry()
+    {
+        var db = CreateInMemoryDbContext(Guid.NewGuid().ToString());
+        var msg91 = new MockMsg91Service
+        {
+            FeedbackHandler = (_, _) => Msg91DispatchResult.Transient(500, "Network timeout to provider")
+        };
+        var pdfService = new MockTicketPdfService();
+        var options = Options.Create(new Msg91Options());
+        var config = CreateTestConfiguration();
+
+        var dispatcher = new WhatsAppOutboxDispatcher(db, msg91, pdfService, options, NullLogger<WhatsAppOutboxDispatcher>.Instance, config);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Workshop",
+            WorkshopDate = DateTime.Today.AddDays(-1),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            GuestName = "Retry Guest",
+            GuestPhone = "919876543212"
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var rawToken = FeedbackTokenHelper.DeriveRawToken(booking.Id, "test_ticket_security_secret_key_1234567890");
+        var tokenHash = FeedbackTokenHelper.HashToken(rawToken);
+        var tokenEntity = new WorkshopFeedbackToken
+        {
+            Id = Guid.NewGuid(),
+            WorkshopBookingId = booking.Id,
+            TokenHash = tokenHash,
+            AudienceType = FeedbackAudienceType.Attended,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+        db.WorkshopFeedbackTokens.Add(tokenEntity);
+
+        var notification = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            NotificationType = WhatsAppNotificationType.FeedbackAttended,
+            RecipientPhone = "919876543212",
+            IdempotencyKey = $"feedback:{workshop.Id}:{booking.Id}:attended:v1",
+            Status = WhatsAppNotificationStatus.Pending
+        };
+        db.WhatsAppNotifications.Add(notification);
+        await db.SaveChangesAsync();
+
+        await dispatcher.ProcessPendingBatchAsync("worker-1");
+
+        var updated = await db.WhatsAppNotifications.FindAsync(notification.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(WhatsAppNotificationStatus.Failed, updated.Status);
+        Assert.NotNull(updated.NextAttemptAt); // Scheduled for retry
     }
 }

@@ -160,7 +160,7 @@
 
   gap: 18px;
 
-  align-items: start;
+  align-items: stretch;
 }
 
 
@@ -172,6 +172,12 @@
   position: relative;
 
   min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  height: 100%;
 
   background: transparent;
 
@@ -409,16 +415,22 @@
   position: relative;
 
   padding: 21px 4px 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  flex-grow: 1;
 }
 
 .trainer-card__role {
-  min-height: 28px;
+  min-height: 34px;
 
   font-family: Arial, sans-serif;
 
   font-size: 11px;
 
-  line-height: 1.5;
+  line-height: 1.45;
 
   font-weight: 600;
 
@@ -440,9 +452,11 @@
 
   font-weight: 400;
 
-  line-height: 1.05;
+  line-height: 1.1;
 
   letter-spacing: -0.04em;
+
+  min-height: 48px;
 }
 
 
@@ -453,7 +467,7 @@
 .trainer-card__read-more {
   width: 100%;
 
-  margin-top: 20px;
+  margin-top: auto;
 
   padding: 12px 0;
 

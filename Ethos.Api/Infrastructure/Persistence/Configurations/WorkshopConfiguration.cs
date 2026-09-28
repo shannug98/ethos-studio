@@ -119,6 +119,10 @@ public class WorkshopConfiguration : IEntityTypeConfiguration<Workshop>
             .HasColumnType("timestamptz")
             .IsRequired();
 
+        builder.Property(x => x.IsEthosOriginal)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.HasOne(x => x.TrainerProfile)
             .WithMany(x => x.Workshops)
             .HasForeignKey(x => x.TrainerProfileId)

@@ -105,4 +105,79 @@ public class Msg91PayloadSerializationTests
         Assert.Equal("Ethos Dance Studio, Jubilee Hills, Hyderabad", comps.GetProperty("body_5").GetProperty("value").GetString());
         Assert.Equal("ETHOS-WKS-8F31A2C4", comps.GetProperty("body_6").GetProperty("value").GetString());
     }
+
+    [Fact]
+    public void BuildFeedbackAttendedJson_ContainsExactTemplateAndDynamicButtonToken()
+    {
+        var rawToken = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
+        var data = new FeedbackNotificationData(
+            AttendeeName: "Priya Patel",
+            WorkshopTitle: "Urban Contemporary Intensive",
+            RawToken: rawToken,
+            BookingRef: "BK-12345678",
+            NotificationType: Ethos.Api.Domain.Enums.WhatsAppNotificationType.FeedbackAttended);
+
+        var json = _service.BuildFeedbackNotificationJson(data, "919876543210");
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.Equal("919999988888", root.GetProperty("integrated_number").GetString());
+        Assert.Equal("template", root.GetProperty("content_type").GetString());
+
+        var payload = root.GetProperty("payload");
+        Assert.Equal("whatsapp", payload.GetProperty("messaging_product").GetString());
+
+        var template = payload.GetProperty("template");
+        Assert.Equal("ethos_feedback_attended", template.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Null, template.GetProperty("namespace").ValueKind);
+
+        var toAndComponents = template.GetProperty("to_and_components")[0];
+        Assert.Equal("919876543210", toAndComponents.GetProperty("to")[0].GetString());
+
+        var comps = toAndComponents.GetProperty("components");
+        Assert.Equal("Priya Patel", comps.GetProperty("body_1").GetProperty("value").GetString());
+        Assert.Equal("Urban Contemporary Intensive", comps.GetProperty("body_2").GetProperty("value").GetString());
+
+        var button = comps.GetProperty("button_1");
+        Assert.Equal("button", button.GetProperty("type").GetString());
+        Assert.Equal(rawToken, button.GetProperty("value").GetString());
+
+        // Validate Feedback URL composition (zero predictable IDs)
+        var feedbackUrl = $"https://ethosdancestudio.com/feedback/workshop/{rawToken}";
+        Assert.Equal($"https://ethosdancestudio.com/feedback/workshop/{rawToken}", feedbackUrl);
+        Assert.DoesNotContain("BK-12345678", feedbackUrl);
+        Assert.DoesNotContain("919876543210", feedbackUrl);
+    }
+
+    [Fact]
+    public void BuildFeedbackNoShowJson_ContainsExactTemplateAndDynamicButtonToken()
+    {
+        var rawToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
+        var data = new FeedbackNotificationData(
+            AttendeeName: "Vikram Sen",
+            WorkshopTitle: "Heels Foundation Intensive",
+            RawToken: rawToken,
+            BookingRef: "BK-87654321",
+            NotificationType: Ethos.Api.Domain.Enums.WhatsAppNotificationType.FeedbackNoShow);
+
+        var json = _service.BuildFeedbackNotificationJson(data, "919876543210");
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var template = root.GetProperty("payload").GetProperty("template");
+        Assert.Equal("ethos_feedback_no_show", template.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Null, template.GetProperty("namespace").ValueKind);
+
+        var toAndComponents = template.GetProperty("to_and_components")[0];
+        var comps = toAndComponents.GetProperty("components");
+
+        Assert.Equal("Vikram Sen", comps.GetProperty("body_1").GetProperty("value").GetString());
+        Assert.Equal("Heels Foundation Intensive", comps.GetProperty("body_2").GetProperty("value").GetString());
+
+        var button = comps.GetProperty("button_1");
+        Assert.Equal("button", button.GetProperty("type").GetString());
+        Assert.Equal(rawToken, button.GetProperty("value").GetString());
+    }
 }

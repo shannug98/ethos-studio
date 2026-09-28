@@ -4,10 +4,12 @@ import { Calendar, MapPin, Share2 } from "lucide-react";
 import { workshopsApi } from "../services/workshopsApi";
 import { createSlug } from "../utils/createSlug";
 import "../styles/workshops-page.css";
+import "../styles/workshop-card-meta.css";
+import WorkshopCardMedia from "../components/workshop/WorkshopCardMedia";
 
 import { handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
 import { getWorkshopBannerImage } from "../utils/workshopPresentation";
-import TrainerAvatar from "../components/common/TrainerAvatar";
+
 
 const months = [
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
@@ -67,6 +69,22 @@ function WorkshopsPage() {
           const endDateTime = getWorkshopEndDateTime(w);
           const isCompleted = endDateTime <= now;
 
+          let resolvedStartingPrice = null;
+          if (Array.isArray(w.passTypes) && w.passTypes.length > 0) {
+            const validPassPrices = w.passTypes
+              .map((p) => Number(p.currentPrice ?? p.price))
+              .filter((pr) => !isNaN(pr) && pr > 0);
+            if (validPassPrices.length > 0) {
+              resolvedStartingPrice = Math.min(...validPassPrices);
+            }
+          }
+          if (resolvedStartingPrice == null) {
+            const rawPrice = Number(w.startingPrice ?? w.currentPrice ?? w.price);
+            if (!isNaN(rawPrice) && rawPrice > 0) {
+              resolvedStartingPrice = rawPrice;
+            }
+          }
+
           return {
             id: w.id,
             year: yStr,
@@ -80,12 +98,10 @@ function WorkshopsPage() {
             title: w.title,
             style: w.danceStyle || "WORKSHOP",
             level: w.level || "ALL LEVELS",
-            trainer: w.trainerName || "Ethos Faculty",
-            trainerPhotoUrl: w.trainerPhotoUrl || null,
-            trainerDanceStyles: w.trainerDanceStyles,
             location: w.venue || "Ethos Dance Studio, Hyderabad",
-            image: getWorkshopBannerImage(w) || ETHOS_MEDIA_FALLBACK_SVG,
-            startingPrice: w.currentPrice || w.startingPrice || w.price || 299,
+            image: w.imageUrl || getWorkshopBannerImage(w) || ETHOS_MEDIA_FALLBACK_SVG,
+            isEthosOriginal: w.isEthosOriginal === true,
+            startingPrice: resolvedStartingPrice,
             description: w.description || "Join this transformative movement session with Ethos.",
           };
         });
@@ -248,66 +264,36 @@ function WorkshopsPage() {
                   className={`event-card-modern ${ws.isCompleted ? "is-completed-card" : ""}`}
                   onClick={() => navigate(`/workshops/${createSlug(ws.title || ws.workshopName || ws.id)}`)}
                 >
-                  {/* IMAGE */}
-                  <div className="event-card-media">
-                    <img 
-                      src={ws.image} 
-                      alt={ws.title} 
-                      className="event-card-img" 
-                      loading="lazy" 
-                      decoding="async" 
-                      onError={(e) => handleMediaImgError(e)}
-                    />
-                    {ws.isCompleted ? (
-                      <span className="event-badge-completed">✓ COMPLETED</span>
-                    ) : (
-                      <span className="event-badge-og">★ OG</span>
-                    )}
-                  </div>
+                  {/* ON/INSIDE IMAGE: Poster, OG (conditional), Date, Time, Location, Level */}
+                  <WorkshopCardMedia
+                    image={ws.image}
+                    title={ws.title}
+                    isEthosOriginal={ws.isEthosOriginal}
+                    isCompleted={ws.isCompleted}
+                    date={ws.date}
+                    time={ws.time}
+                    venue={ws.location}
+                    level={ws.level}
+                    aspectRatio="3/4"
+                    showArrow={false}
+                  />
 
-                  {/* CONTENT */}
-                  <div className="event-card-body">
-                    <h3 className="event-card-title">{ws.title}</h3>
+                  {/* CONTENT BELOW IMAGE: Dance Style + Workshop Name + Actions */}
+                  <div className="workshop-card-content-below event-card-body">
+                    <span className="workshop-card-style-eyebrow">{ws.style}</span>
+                    <h3 className="workshop-card-heading event-card-title">{ws.title}</h3>
 
-                    {/* TRAINER CHIP */}
-                    <div className="event-trainer-chip">
-                      <TrainerAvatar
-                        trainer={ws.trainerPhotoUrl}
-                        name={ws.trainer}
-                        size="sm"
-                        className="trainer-chip-avatar"
-                      />
-                      <div className="trainer-chip-meta">
-                        <span className="trainer-chip-name">{ws.trainer}</span>
-                        {ws.trainerDanceStyles && (
-                          <span className="trainer-chip-styles">{ws.trainerDanceStyles}</span>
-                        )}
-                      </div>
-                    </div>
-
-                  {/* DATE & TIME CHIP */}
-                  <div className="event-info-pill">
-                    <Calendar size={16} className="pill-icon" />
-                    <div className="pill-text">
-                      <strong>{ws.date.slice(0, 6)}</strong>
-                      <span>{ws.time.split("-")[0].trim()}</span>
-                    </div>
-                  </div>
-
-                  {/* VENUE CHIP */}
-                  <div className="event-info-pill">
-                    <MapPin size={16} className="pill-icon" />
-                    <div className="pill-text">
-                      <strong>{ws.location.split(",")[0]}</strong>
-                      <span className="truncate-venue">{ws.location}</span>
-                    </div>
-                  </div>
-
-                  {/* FOOTER */}
-                  <div className="event-card-actions">
+                    {/* FOOTER */}
+                    <div className="event-card-actions">
                     <div className="event-price-col">
-                      <span className="starting-from-txt">Starting from</span>
-                      <span className="price-bold">₹{ws.startingPrice}</span>
+                      {ws.startingPrice != null ? (
+                        <>
+                          <span className="starting-from-txt">Starting from</span>
+                          <span className="price-bold">₹{ws.startingPrice}</span>
+                        </>
+                      ) : (
+                        <span className="starting-from-txt" style={{ fontStyle: "italic", color: "#94a3b8" }}>Pricing TBA</span>
+                      )}
                     </div>
 
                     <div className="card-btn-group">

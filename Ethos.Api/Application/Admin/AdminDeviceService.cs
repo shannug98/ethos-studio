@@ -92,37 +92,36 @@ public class AdminDeviceService : IAdminDeviceService
 
                 if (device.AdminUserId != userId)
                 {
+                    // Device credential was issued to a different admin user on this browser/machine.
+                    // Ignore it for this admin and fall through to check slot availability for a new device registration.
+                    device = null;
+                }
+                else
+                {
+                    // Count other active devices for THIS ADMIN
+                    var otherActiveCount = activeSessions
+                        .Where(s => s.AdminDeviceId != device.Id)
+                        .Select(s => s.AdminDeviceId)
+                        .Distinct()
+                        .Count();
+
+                    if (otherActiveCount >= 2)
+                    {
+                        return new DeviceAuthResult
+                        {
+                            Success = false,
+                            ErrorCode = "DEVICE_AUTHORIZATION_BLOCKED",
+                            ErrorMessage = "Both approved device sessions are currently active. Please sign out from one approved device to continue.",
+                            ActiveSessions = MapSessions(activeSessions)
+                        };
+                    }
+
                     return new DeviceAuthResult
                     {
-                        Success = false,
-                        ErrorCode = "DEVICE_NOT_AUTHORIZED",
-                        ErrorMessage = "Device credential belongs to another administrative account."
+                        Success = true,
+                        Device = device
                     };
                 }
-
-                // Count other active devices for THIS ADMIN
-                var otherActiveCount = activeSessions
-                    .Where(s => s.AdminDeviceId != device.Id)
-                    .Select(s => s.AdminDeviceId)
-                    .Distinct()
-                    .Count();
-
-                if (otherActiveCount >= 2)
-                {
-                    return new DeviceAuthResult
-                    {
-                        Success = false,
-                        ErrorCode = "DEVICE_AUTHORIZATION_BLOCKED",
-                        ErrorMessage = "Both approved device sessions are currently active. Please sign out from one approved device to continue.",
-                        ActiveSessions = MapSessions(activeSessions)
-                    };
-                }
-
-                return new DeviceAuthResult
-                {
-                    Success = true,
-                    Device = device
-                };
             }
         }
 
@@ -209,61 +208,49 @@ public class AdminDeviceService : IAdminDeviceService
                 // B. Identity Binding: Verify AdminUserId matches authenticated Admin
                 if (device.AdminUserId != userId)
                 {
-                    _logger.LogWarning("Identity mismatch: Partner {UserId} presented device credential belonging to {DeviceOwnerId}", userId, device.AdminUserId);
-                    await RecordSecurityEventAsync(
-                        "ADMIN_DEVICE_IDENTITY_MISMATCH",
-                        "WARNING",
-                        ipAddress,
-                        userAgent,
-                        userId,
-                        new { targetDeviceId = device.Id, actualOwner = device.AdminUserId },
-                        cancellationToken);
+                    // Presented credential was issued to a different partner.
+                    // Fall through to step 2 to register a fresh device slot for this admin user.
+                }
+                else
+                {
+                    // Check other active device count for THIS ADMIN
+                    var otherActiveCount = activeSessions
+                        .Where(s => s.AdminDeviceId != device.Id)
+                        .Select(s => s.AdminDeviceId)
+                        .Distinct()
+                        .Count();
+
+                    if (otherActiveCount >= 2)
+                    {
+                        return new DeviceAuthResult
+                        {
+                            Success = false,
+                            ErrorCode = "DEVICE_AUTHORIZATION_BLOCKED",
+                            ErrorMessage = "Both approved device sessions are currently active. Please sign out from one approved device to continue.",
+                            ActiveSessions = MapSessions(activeSessions)
+                        };
+                    }
+
+                    // C. Approved Active Device: Update telemetry, status, and return
+                    device.Status = AdminDeviceStatus.Active;
+                    device.RevokedAt = null;
+                    device.LastSeenAt = now;
+                    device.LastSeenIp = ipAddress;
+                    device.UserAgent = userAgent;
+                    if (!string.IsNullOrWhiteSpace(fingerprintTelemetry))
+                    {
+                        device.FingerprintTelemetry = fingerprintTelemetry;
+                    }
+
+                    await _db.SaveChangesAsync(cancellationToken);
 
                     return new DeviceAuthResult
                     {
-                        Success = false,
-                        ErrorCode = "DEVICE_NOT_AUTHORIZED",
-                        ErrorMessage = "Device credential belongs to another administrative account."
+                        Success = true,
+                        Device = device,
+                        IssuedRawCredential = null
                     };
                 }
-
-                // Check other active device count for THIS ADMIN
-                var otherActiveCount = activeSessions
-                    .Where(s => s.AdminDeviceId != device.Id)
-                    .Select(s => s.AdminDeviceId)
-                    .Distinct()
-                    .Count();
-
-                if (otherActiveCount >= 2)
-                {
-                    return new DeviceAuthResult
-                    {
-                        Success = false,
-                        ErrorCode = "DEVICE_AUTHORIZATION_BLOCKED",
-                        ErrorMessage = "Both approved device sessions are currently active. Please sign out from one approved device to continue.",
-                        ActiveSessions = MapSessions(activeSessions)
-                    };
-                }
-
-                // C. Approved Active Device: Update telemetry, status, and return
-                device.Status = AdminDeviceStatus.Active;
-                device.RevokedAt = null;
-                device.LastSeenAt = now;
-                device.LastSeenIp = ipAddress;
-                device.UserAgent = userAgent;
-                if (!string.IsNullOrWhiteSpace(fingerprintTelemetry))
-                {
-                    device.FingerprintTelemetry = fingerprintTelemetry;
-                }
-
-                await _db.SaveChangesAsync(cancellationToken);
-
-                return new DeviceAuthResult
-                {
-                    Success = true,
-                    Device = device,
-                    IssuedRawCredential = null
-                };
             }
         }
 

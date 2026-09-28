@@ -191,14 +191,137 @@
   gap: 0;
 }
 
-.ethos-nav-icon,
-.admin-nav-icon {
-  width: 20px;
-  height: 20px;
-  font-size: 1.05rem;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
+.ethos-nav-icon-wrap {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+/* Specific Accent Colors Matching Modern UI */
+.accent-dashboard {
+  color: #fbbf24;
+}
+
+.accent-insights {
+  color: #c084fc;
+}
+
+.accent-workshops {
+  color: #fb7185;
+}
+
+.accent-trainers {
+  color: #818cf8;
+}
+
+.accent-bookings {
+  color: #38bdf8;
+}
+
+.accent-payments {
+  color: #34d399;
+}
+
+.accent-media {
+  color: #a78bfa;
+}
+
+.accent-classes {
+  color: #f472b6;
+}
+
+.accent-students {
+  color: #38bdf8;
+}
+
+.accent-attendance {
+  color: #4ade80;
+}
+
+.accent-packages {
+  color: #f59e0b;
+}
+
+.accent-feedback {
+  color: #eab308;
+}
+
+.accent-comms {
+  color: #38bdf8;
+}
+
+.accent-observability {
+  color: #22d3ee;
+}
+
+.accent-security {
+  color: #ef4444;
+}
+
+.accent-incidents {
+  color: #f87171;
+}
+
+.accent-corrective {
+  color: #fb923c;
+}
+
+.accent-audit {
+  color: #94a3b8;
+}
+
+.accent-users {
+  color: #a855f7;
+}
+
+.accent-devices {
+  color: #60a5fa;
+}
+
+.accent-platforms {
+  color: #818cf8;
+}
+
+/* Sidebar Section Headers */
+.ethos-sidebar-section-header {
+  padding: 14px 10px 4px;
+  margin-top: 2px;
+}
+
+.ethos-sidebar-section-title {
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #64748b;
+  display: block;
+}
+
+.ethos-admin-sidebar.collapsed .ethos-sidebar-section-header {
+  padding: 8px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.ethos-admin-sidebar.collapsed .ethos-sidebar-section-title {
+  display: none;
+}
+
+.ethos-sidebar-section-divider {
+  display: none;
+}
+
+.ethos-admin-sidebar.collapsed .ethos-sidebar-section-divider {
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 4px auto;
 }
 
 .ethos-nav-label,
@@ -212,16 +335,24 @@
 .ethos-nav-link:hover,
 .admin-nav-link:hover {
   color: #f3f4f6;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ethos-nav-link:hover .ethos-nav-icon-wrap {
+  transform: scale(1.08);
 }
 
 /* Purple Pill Active State Matching Visual Reference */
 .ethos-nav-link.active,
 .admin-nav-link.active {
   color: #ffffff !important;
-  background: #4f46e5 !important; /* Visual reference purple pill */
+  background: #4f46e5 !important; /* Visual reference vibrant purple pill */
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+}
+
+.ethos-nav-link.active .ethos-nav-icon-wrap {
+  color: #ffffff !important;
 }
 
 .ethos-nav-badge-pill,
@@ -235,71 +366,63 @@
   color: #ffffff;
 }
 
-/* Extended Modules Section */
-.ethos-sidebar-extended-wrapper {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+/* Logout Button */
+.ethos-sidebar-logout-container {
+  padding: 12px 6px 6px;
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.ethos-sidebar-extended-toggle {
+.ethos-sidebar-logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  color: #94a3b8;
-  font-size: 0.72rem;
+  gap: 12px;
+  min-height: 38px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 9px;
+  color: #fca5a5;
+  font-size: 0.86rem;
   font-weight: 600;
-  letter-spacing: 0.4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
+  transition: all 0.18s ease;
 }
 
-.ethos-sidebar-extended-toggle:hover {
-  background: rgba(255, 255, 255, 0.07);
+.ethos-admin-sidebar.collapsed .ethos-sidebar-logout-btn {
+  justify-content: center;
+  padding: 8px 0;
+  gap: 0;
+}
+
+.ethos-logout-icon-wrap {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f87171;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.ethos-sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
   color: #ffffff;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
 }
 
-.ethos-extended-count {
-  font-size: 0.65rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
-.ethos-secondary-list {
-  margin-top: 6px;
-  padding-left: 4px;
-}
-
-.ethos-nav-link.secondary {
-  min-height: 34px;
-  padding: 6px 10px;
-  font-size: 0.8rem;
-  color: #94a3b8;
-}
-
-.ethos-nav-link.secondary:hover {
+.ethos-sidebar-logout-btn:hover .ethos-logout-icon-wrap {
+  transform: translateX(2px);
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.ethos-nav-link.secondary.active {
-  background: rgba(79, 70, 229, 0.35) !important;
-  color: #ffffff !important;
 }
 
 /* Bottom Signature: "More Than Dance, A Community" */
 .ethos-sidebar-footer,
 .admin-sidebar-footer {
-  padding-top: 14px;
-  margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
   display: flex;
   justify-content: center;
   align-items: center;

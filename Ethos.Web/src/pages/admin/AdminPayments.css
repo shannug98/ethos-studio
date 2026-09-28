@@ -41,6 +41,20 @@
   white-space: nowrap;
 }
 
+.spin-icon {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* KPI Grid */
 .finance-kpis-grid {
   display: grid;
@@ -551,37 +565,95 @@
   background: #fcfcfd;
 }
 
-/* Trainer Payouts Banner & Table */
-.payout-summary-banner {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  background: var(--admin-bg-surface, #ffffff);
-  border: 1px solid var(--admin-border, #eaecf0);
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+/* Ethos White Modal Override for Record Refund */
+.admin-modal-container.ethos-white-modal {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
 }
 
-.summary-stat-block {
+.admin-modal-container.ethos-white-modal.tone-danger {
+  border-top: 4px solid #dc2626 !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-title {
+  color: #0f172a !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-subtitle {
+  color: #475467 !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-body {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-close-btn {
+  color: #64748b !important;
+}
+
+.admin-modal-container.ethos-white-modal .admin-modal-close-btn:hover {
+  color: #0f172a !important;
+  background: #f1f5f9 !important;
+}
+
+/* Explicit Record Refund Callout & Form */
+.refund-info-callout {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-left: 4px solid #ea580c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #9a3412;
 }
 
-.stat-label {
-  font-size: 11.5px;
+.refund-info-callout strong {
+  color: #7c2d12;
+}
+
+.record-refund-form .form-group label {
+  color: #334155;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--admin-text-secondary, #475467);
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
 }
 
-.stat-number {
-  font-size: 20px;
-  font-weight: 750;
-  color: var(--admin-text-primary, #101828);
+.record-refund-form input,
+.record-refund-form textarea {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.record-refund-form input:focus,
+.record-refund-form textarea:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
+}
+
+.record-refund-btn {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.record-refund-btn:hover:not(:disabled) {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
 }
 
 .table-wrapper {
@@ -642,26 +714,6 @@
 .text-amber { color: #b54708; }
 .text-muted { color: #98a2b3; font-size: 12px; }
 
-/* Status tags for payouts */
-.status-tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-
-.status-tag.status-paid {
-  background: #ecfdf3;
-  color: #027a48;
-  border: 1px solid #a6f4c5;
-}
-
-.status-tag.status-ordercreated {
-  background: #fffaeb;
-  color: #b54708;
-  border: 1px solid #fedf89;
-}
 
 /* Modal Form Styles */
 .form-group {

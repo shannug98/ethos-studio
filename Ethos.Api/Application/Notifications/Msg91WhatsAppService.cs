@@ -335,6 +335,88 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
         return JsonSerializer.Serialize(envelope, JsonOptions);
     }
 
+    public async Task<Msg91DispatchResult> SendFeedbackNotificationAsync(
+        FeedbackNotificationData data,
+        string recipientPhone,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        var templateName = data.NotificationType == Ethos.Api.Domain.Enums.WhatsAppNotificationType.FeedbackAttended
+            ? _options.FeedbackAttendedTemplateName
+            : _options.FeedbackNoShowTemplateName;
+
+        if (string.IsNullOrWhiteSpace(data.RawToken))
+        {
+            return Msg91DispatchResult.Permanent(
+                400,
+                "Feedback raw token cannot be null, empty, or whitespace.",
+                SanitizeSummary(templateName, recipientPhone, data.BookingRef));
+        }
+
+        if (!TryNormalizePhoneNumber(recipientPhone, out var normalizedPhone, out var phoneError, _options.DefaultCountryCode))
+        {
+            return Msg91DispatchResult.Permanent(
+                400,
+                $"Invalid recipient phone number: {phoneError}",
+                SanitizeSummary(templateName, recipientPhone, data.BookingRef));
+        }
+
+        var jsonPayload = BuildFeedbackNotificationJson(data, normalizedPhone);
+        var summary = SanitizeSummary(templateName, normalizedPhone, data.BookingRef);
+
+        if (!_options.Enabled || !_options.IsConfigured)
+        {
+            _logger.LogInformation(
+                "[MSG91 WhatsApp] Outbound messaging is disabled or credentials unconfigured. Skipping feedback notification dispatch for {Recipient} (Booking: {BookingId})",
+                MaskPhone(normalizedPhone),
+                data.BookingRef);
+
+            return Msg91DispatchResult.Skip("MSG91 service is disabled or credentials unconfigured.", summary);
+        }
+
+        return await PostToMsg91Async(jsonPayload, summary, cancellationToken);
+    }
+
+    public string BuildFeedbackNotificationJson(FeedbackNotificationData data, string recipientPhone)
+    {
+        var isAttended = data.NotificationType == Ethos.Api.Domain.Enums.WhatsAppNotificationType.FeedbackAttended;
+        var templateName = isAttended ? _options.FeedbackAttendedTemplateName : _options.FeedbackNoShowTemplateName;
+        var templateNamespace = isAttended ? _options.FeedbackAttendedNamespace : _options.FeedbackNoShowNamespace;
+
+        var envelope = new Msg91OutboundEnvelope<FeedbackComponents>
+        {
+            IntegratedNumber = _options.IntegratedNumber ?? string.Empty,
+            ContentType = "template",
+            Payload = new Msg91Payload<FeedbackComponents>
+            {
+                MessagingProduct = "whatsapp",
+                Type = "template",
+                Template = new Msg91Template<FeedbackComponents>
+                {
+                    Name = templateName,
+                    Language = new Msg91Language { Code = "en", Policy = "deterministic" },
+                    Namespace = templateNamespace,
+                    ToAndComponents = new List<Msg91ToAndComponents<FeedbackComponents>>
+                    {
+                        new()
+                        {
+                            To = new List<string> { recipientPhone },
+                            Components = new FeedbackComponents
+                            {
+                                Body1 = new TextComponent { Value = data.AttendeeName },
+                                Body2 = new TextComponent { Value = data.WorkshopTitle },
+                                Button1 = new ButtonComponent { Type = "button", Value = data.RawToken }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(envelope, JsonOptions);
+    }
+
     private async Task<Msg91DispatchResult> PostToMsg91Async(
         string jsonPayload,
         string summary,

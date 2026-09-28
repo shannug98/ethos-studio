@@ -1,4 +1,5 @@
 using Ethos.Api.Domain.Entities;
+using Ethos.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,10 +17,15 @@ public class WorkshopFeedbackConfiguration : IEntityTypeConfiguration<WorkshopFe
             .HasColumnType("uuid")
             .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.Rating).IsRequired();
+        builder.Property(x => x.Rating)
+            .IsRequired(false);
         builder.Property(x => x.Comment).HasMaxLength(2000);
         builder.Property(x => x.Improvements).HasMaxLength(2000);
         builder.Property(x => x.WouldRecommend).IsRequired();
+
+        builder.Property(x => x.AudienceType)
+            .HasDefaultValue(FeedbackAudienceType.Attended)
+            .IsRequired();
 
         builder.Property(x => x.SubmittedAt)
             .HasColumnType("timestamptz")
@@ -43,9 +49,19 @@ public class WorkshopFeedbackConfiguration : IEntityTypeConfiguration<WorkshopFe
         builder.Property(x => x.StudentProfileId)
             .IsRequired(false);
 
+        builder.Property(x => x.FeedbackFormVersionId)
+            .IsRequired(false);
+
+        builder.Property(x => x.WorkshopFeedbackTokenId)
+            .IsRequired(false);
+
         builder.HasIndex(x => x.WorkshopBookingId)
             .IsUnique()
             .HasFilter("\"WorkshopBookingId\" IS NOT NULL");
+
+        builder.HasIndex(x => x.WorkshopFeedbackTokenId)
+            .IsUnique()
+            .HasFilter("\"WorkshopFeedbackTokenId\" IS NOT NULL");
 
         builder.HasOne(x => x.Workshop)
             .WithMany(x => x.Feedbacks)
@@ -62,5 +78,22 @@ public class WorkshopFeedbackConfiguration : IEntityTypeConfiguration<WorkshopFe
             .WithMany()
             .HasForeignKey(x => x.WorkshopBookingId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.FeedbackFormVersion)
+            .WithMany(x => x.Feedbacks)
+            .HasForeignKey(x => x.FeedbackFormVersionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.WorkshopFeedbackToken)
+            .WithOne(x => x.WorkshopFeedback)
+            .HasForeignKey<WorkshopFeedback>(x => x.WorkshopFeedbackTokenId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasMany(x => x.Answers)
+            .WithOne(x => x.WorkshopFeedback)
+            .HasForeignKey(x => x.WorkshopFeedbackId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

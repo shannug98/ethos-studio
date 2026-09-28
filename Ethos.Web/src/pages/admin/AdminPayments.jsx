@@ -32,11 +32,10 @@ const STATUS_FILTERS = [
 ];
 
 export default function AdminPayments() {
-  const [activeTab, setActiveTab] = useState("transactions"); // 'transactions' | 'payouts'
   const [revenueSummary, setRevenueSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [trainerPayouts, setTrainerPayouts] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Filters & Search
@@ -69,17 +68,6 @@ export default function AdminPayments() {
   const [resolveModal, setResolveModal] = useState({
     open: false,
     transaction: null,
-  });
-
-  // Trainer Payout Modal
-  const [payoutModal, setPayoutModal] = useState({
-    open: false,
-    trainer: null,
-    amount: "",
-    payoutReference: "",
-    notes: "",
-    submitting: false,
-    error: null,
   });
 
   const loadRevenue = async () => {
@@ -123,21 +111,15 @@ export default function AdminPayments() {
     }
   };
 
-  const loadTrainerPayouts = async () => {
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const res = await adminApi.getTrainerPayouts();
-      setTrainerPayouts(res);
-    } catch (err) {
-      console.error("Failed to load trainer payouts", err);
-    }
-  };
-
-  const loadAllData = () => {
-    loadRevenue();
-    if (activeTab === "transactions") {
-      loadTransactions();
-    } else {
-      loadTrainerPayouts();
+      await Promise.all([
+        loadRevenue(),
+        loadTransactions(),
+      ]);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -146,12 +128,8 @@ export default function AdminPayments() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "transactions") {
-      loadTransactions();
-    } else {
-      loadTrainerPayouts();
-    }
-  }, [activeTab, page, search, purposeFilter, statusFilter]);
+    loadTransactions();
+  }, [page, search, purposeFilter, statusFilter]);
 
   // Open Receipt Modal
   const handleViewReceipt = async (txId) => {
@@ -256,70 +234,6 @@ export default function AdminPayments() {
       adminApi.getPaymentById(detailDrawerTx.id).then((freshTx) => {
         if (freshTx) setDetailDrawerTx(freshTx);
       }).catch(() => {});
-    }
-  };
-
-  // Trainer Payout Handlers
-  const handleOpenPayout = (item) => {
-    setPayoutModal({
-      open: true,
-      trainer: item,
-      amount: item.trainerPayoutAmount.toString(),
-      payoutReference: "",
-      notes: "",
-      submitting: false,
-      error: null,
-    });
-  };
-
-  const handleConfirmPayout = async (e) => {
-    e.preventDefault();
-    const { trainer, amount, payoutReference, notes } = payoutModal;
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) {
-      setPayoutModal((prev) => ({ ...prev, error: "Payout amount must be greater than zero." }));
-      return;
-    }
-    if (amt > trainer.trainerPayoutAmount) {
-      setPayoutModal((prev) => ({
-        ...prev,
-        error: `Payout amount (₹${amt}) exceeds calculated share (₹${trainer.trainerPayoutAmount}).`,
-      }));
-      return;
-    }
-    if (!payoutReference.trim()) {
-      setPayoutModal((prev) => ({
-        ...prev,
-        error: "Bank Transfer Reference / UTR is mandatory.",
-      }));
-      return;
-    }
-
-    setPayoutModal((prev) => ({ ...prev, submitting: true, error: null }));
-    try {
-      await adminApi.processTrainerPayout(
-        trainer.trainerId,
-        amt,
-        payoutReference.trim(),
-        notes.trim() || null
-      );
-      setPayoutModal({
-        open: false,
-        trainer: null,
-        amount: "",
-        payoutReference: "",
-        notes: "",
-        submitting: false,
-        error: null,
-      });
-      loadTrainerPayouts();
-      loadRevenue();
-    } catch (err) {
-      setPayoutModal((prev) => ({
-        ...prev,
-        submitting: false,
-        error: err.message || "Failed to process payout.",
-      }));
     }
   };
 
@@ -507,20 +421,22 @@ export default function AdminPayments() {
         <div>
           <h1>Payments & Finance</h1>
           <p className="subtitle">
-            Review customer payments, resolve payment issues, issue official receipts, process refunds, and manage trainer payouts.
+            Review customer payments, resolve payment issues, issue official receipts, and record gateway refunds.
           </p>
         </div>
         <button
           type="button"
           className="admin-btn secondary refresh-btn"
-          onClick={loadAllData}
-          disabled={loading}
+          onClick={handleRefresh}
+          disabled={refreshing || loading}
+          style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
         >
-          {loading ? "Refreshing..." : "↻ Refresh"}
+          <span className={refreshing ? "spin-icon" : ""} style={{ display: "inline-block" }}>↻</span>
+          <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
         </button>
       </div>
 
-      {/* 6 Practical Administrative KPI Cards */}
+      {/* 5 Practical Administrative KPI Cards */}
       {revenueSummary && (
         <div className="finance-kpis-grid">
           <AdminKpiCard
@@ -557,41 +473,13 @@ export default function AdminPayments() {
             subtitle={`Total: ${formatAdminCurrency(revenueSummary.totalRefundedRevenue || 0)}`}
             tone="neutral"
           />
-          <AdminKpiCard
-            title="Trainer Payouts Pending"
-            value={formatAdminCurrency(revenueSummary.trainerPayoutsPendingAmount || 0)}
-            subtitle={`${formatAdminInteger(revenueSummary.trainerPayoutsPendingCount || 0)} trainers eligible`}
-            tone="neutral"
-          />
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="payments-tabs">
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === "transactions" ? "active" : ""}`}
-          onClick={() => {
-            setActiveTab("transactions");
-            setPage(1);
-          }}
-        >
-          Customer Payments & Issues
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === "payouts" ? "active" : ""}`}
-          onClick={() => setActiveTab("payouts")}
-        >
-          Trainer Payouts
-        </button>
-      </div>
-
       {error && <div className="error-state-banner">Error: {error}</div>}
 
-      {/* Transactions Tab */}
-      {activeTab === "transactions" && (
-        <div className="transactions-view-section">
+      {/* Transactions Ledger */}
+      <div className="transactions-view-section">
           {/* Filters Bar */}
           <div className="payments-filters-bar">
             <div className="search-input-group">
@@ -668,7 +556,6 @@ export default function AdminPayments() {
             }}
           />
         </div>
-      )}
 
       {/* Payment Details Drawer */}
       {detailDrawerTx && (
@@ -699,127 +586,6 @@ export default function AdminPayments() {
         />
       )}
 
-      {/* Trainer Payouts Tab */}
-      {activeTab === "payouts" && (
-        <div className="payouts-view-section">
-          {trainerPayouts && (
-            <div className="payout-summary-banner">
-              <div className="summary-stat-block">
-                <span className="stat-label">Active Trainers</span>
-                <span className="stat-number">{trainerPayouts.summary.totalTrainers}</span>
-              </div>
-              <div className="summary-stat-block">
-                <span className="stat-label">Workshop Ticket Revenue</span>
-                <span className="stat-number">
-                  {formatAdminCurrency(trainerPayouts.summary.totalGrossRevenue)}
-                </span>
-              </div>
-              <div className="summary-stat-block">
-                <span className="stat-label">Total Trainer Share</span>
-                <span className="stat-number text-green">
-                  {formatAdminCurrency(trainerPayouts.summary.totalTrainerPayouts)}
-                </span>
-              </div>
-              <div className="summary-stat-block">
-                <span className="stat-label">Studio Retained Share</span>
-                <span className="stat-number text-blue">
-                  {formatAdminCurrency(trainerPayouts.summary.totalStudioRetention)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Trainer</th>
-                  <th>Tier & Split Policy</th>
-                  <th>Workshops / Bookings</th>
-                  <th>Workshop Ticket Revenue</th>
-                  <th>Trainer Earnings</th>
-                  <th>Studio Revenue Share</th>
-                  <th>Payout Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!trainerPayouts || trainerPayouts.payouts.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="empty-row">
-                      No trainer payout calculations available.
-                    </td>
-                  </tr>
-                ) : (
-                  trainerPayouts.payouts.map((item) => (
-                    <tr key={item.trainerId}>
-                      <td>
-                        <strong>{item.fullName}</strong>
-                        <div className="sub-text">
-                          {item.trainerCode} • {item.phone || "No phone"}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-package">{item.tierName}</span>
-                        <div className="sub-text split-policy-details">
-                          {item.hasConfiguredCommission ? (
-                            <>
-                              <div>Trainer receives {item.trainerSharePercentage}%</div>
-                              <div>Studio retains {item.studioSharePercentage}%</div>
-                            </>
-                          ) : (
-                            <span className="text-amber">Unconfigured Policy</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="font-medium">{item.totalWorkshops} workshops</span>
-                        <div className="sub-text">{item.totalBookings} confirmed bookings</div>
-                      </td>
-                      <td>
-                        <strong>{formatAdminCurrency(item.grossRevenue)}</strong>
-                      </td>
-                      <td className="text-green font-semibold">
-                        {formatAdminCurrency(item.trainerPayoutAmount)}
-                      </td>
-                      <td className="text-blue font-semibold">
-                        {formatAdminCurrency(item.studioRetentionAmount)}
-                      </td>
-                      <td>
-                        {item.trainerPayoutAmount === 0 ? (
-                          <span className="badge badge-neutral">Settled</span>
-                        ) : (
-                          <span className="badge badge-pending">Eligible for Payout</span>
-                        )}
-                      </td>
-                      <td>
-                        {item.trainerPayoutAmount > 0 ? (
-                          <button
-                            type="button"
-                            className="admin-btn primary small"
-                            onClick={() => handleOpenPayout(item)}
-                          >
-                            Record Payout
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="admin-btn secondary small"
-                            disabled
-                          >
-                            No Balance
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Official Commercial Receipt Modal (Intact!) */}
       {receiptModal.open && (
         <OfficialCommercialReceipt
@@ -845,20 +611,28 @@ export default function AdminPayments() {
           })
         }
         title="Record Refund"
-        subtitle={`Transaction: #${refundModal.transaction?.id?.substring(0, 8)} • Max Refundable: ${formatAdminCurrency(
+        subtitle={`Transaction: #${refundModal.transaction?.id?.substring(0, 8)} • Maximum Refundable: ${formatAdminCurrency(
           refundModal.transaction?.remainingRefundableAmount ?? refundModal.transaction?.amount ?? 0
         )}`}
         tone="danger"
         maxWidth="540px"
+        className="ethos-white-modal"
       >
-        <form onSubmit={handleConfirmRefund}>
+        <form onSubmit={handleConfirmRefund} className="record-refund-form">
+          <div className="refund-info-callout">
+            <span style={{ fontSize: "16px", flexShrink: 0 }}>ℹ️</span>
+            <div>
+              <strong>Important:</strong> This records a refund that has already been issued through the payment gateway. It does not initiate a new refund.
+            </div>
+          </div>
+
           {refundModal.error && (
             <div className="modal-error-banner">{refundModal.error}</div>
           )}
 
           <div className="form-group">
             <label>
-              Refund Amount (₹) <span className="req">*</span>
+              Refund Amount <span className="req">*</span>
             </label>
             <input
               type="number"
@@ -949,109 +723,10 @@ export default function AdminPayments() {
             </button>
             <button
               type="submit"
-              className="admin-btn danger"
+              className="admin-btn danger record-refund-btn"
               disabled={refundModal.submitting}
             >
-              {refundModal.submitting ? "Recording Refund..." : "Confirm & Record Refund"}
-            </button>
-          </div>
-        </form>
-      </AdminActionModal>
-
-      {/* Trainer Payout Modal */}
-      <AdminActionModal
-        isOpen={payoutModal.open}
-        onClose={() =>
-          setPayoutModal({
-            open: false,
-            trainer: null,
-            amount: "",
-            payoutReference: "",
-            notes: "",
-            submitting: false,
-            error: null,
-          })
-        }
-        title="Record Trainer Payout"
-        subtitle={`Recipient: ${payoutModal.trainer?.fullName} (${payoutModal.trainer?.tierName} Tier)`}
-        tone="primary"
-        maxWidth="540px"
-      >
-        <form onSubmit={handleConfirmPayout}>
-          {payoutModal.error && (
-            <div className="modal-error-banner">{payoutModal.error}</div>
-          )}
-
-          <div className="form-group">
-            <label>
-              Payout Amount (₹) <span className="req">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={payoutModal.amount}
-              onChange={(e) =>
-                setPayoutModal((prev) => ({ ...prev, amount: e.target.value }))
-              }
-              required
-            />
-            <small className="help-text">
-              Eligible calculated share: {formatAdminCurrency(payoutModal.trainer?.trainerPayoutAmount || 0)}
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label>
-              Bank Transfer / UTR Reference <span className="req">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. UTR / IMPS / Bank Transaction Reference"
-              value={payoutModal.payoutReference}
-              onChange={(e) =>
-                setPayoutModal((prev) => ({ ...prev, payoutReference: e.target.value }))
-              }
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Administrative Notes</label>
-            <textarea
-              placeholder="Optional notes regarding this transfer..."
-              rows="2"
-              value={payoutModal.notes}
-              onChange={(e) =>
-                setPayoutModal((prev) => ({ ...prev, notes: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="modal-form-actions">
-            <button
-              type="button"
-              className="admin-btn secondary"
-              disabled={payoutModal.submitting}
-              onClick={() =>
-                setPayoutModal({
-                  open: false,
-                  trainer: null,
-                  amount: "",
-                  payoutReference: "",
-                  notes: "",
-                  submitting: false,
-                  error: null,
-                })
-              }
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="admin-btn primary"
-              disabled={payoutModal.submitting}
-            >
-              {payoutModal.submitting ? "Recording..." : "Record External Payout"}
+              {refundModal.submitting ? "Recording Refund..." : "Record Refund"}
             </button>
           </div>
         </form>

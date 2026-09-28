@@ -1,11 +1,19 @@
+import { useLocation } from "react-router-dom";
 import "../styles/floating-socials.css";
 
 function FloatingSocials() {
+  const location = useLocation();
+
+  // Hide entirely during checkout and payment flows for a focused, unobstructed experience
+  if (location.pathname.includes("/checkout")) {
+    return null;
+  }
+
   return (
     <div className="ethos-floating-socials">
 
       <a
-        href="https://www.instagram.com/"
+        href="https://www.instagram.com/ethos_dancestudio"
         target="_blank"
         rel="noreferrer"
         className="ethos-social ethos-social--instagram"
@@ -39,7 +47,7 @@ function FloatingSocials() {
 
 
       <a
-        href="https://www.youtube.com/"
+        href="https://youtube.com/@ethosdancestudio"
         target="_blank"
         rel="noreferrer"
         className="ethos-social ethos-social--youtube"

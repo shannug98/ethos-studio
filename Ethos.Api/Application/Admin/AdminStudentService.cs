@@ -374,7 +374,7 @@ public class AdminStudentService : IAdminStudentService
                 Id = f.Id,
                 WorkshopId = f.WorkshopId,
                 WorkshopTitle = f.Workshop.Title,
-                Rating = f.Rating,
+                Rating = f.Rating ?? 0,
                 Comment = f.Comment,
                 SubmittedAt = f.SubmittedAt
             })

@@ -41,10 +41,9 @@ test("More Workshops: Navigation button clicks do not navigate browser and scrol
 
 test("More Workshops: Workshop cards maintain luxury Ethos presentation elements", () => {
   assert.ok(jsxContent.includes('className="more-workshop-card"'), "Must render more-workshop-card");
-  assert.ok(jsxContent.includes('className="more-workshop-poster"'), "Must render workshop poster");
-  assert.ok(jsxContent.includes('className="more-workshop-tag"'), "Must render dance style tag");
-  assert.ok(jsxContent.includes('className="more-workshop-name"'), "Must render workshop title");
-  assert.ok(jsxContent.includes('className="more-workshop-info-box"'), "Must render meta info boxes");
+  assert.ok(jsxContent.includes("<WorkshopCardMedia"), "Must render WorkshopCardMedia overlay");
+  assert.ok(jsxContent.includes('className="workshop-card-style-eyebrow"'), "Must render dance style eyebrow");
+  assert.ok(jsxContent.includes('className="workshop-card-heading more-workshop-name"'), "Must render workshop title");
   assert.ok(jsxContent.includes('className="more-card-price"'), "Must render starting price");
   assert.ok(jsxContent.includes('className="more-card-book-btn"'), "Must render Book Now button");
   assert.ok(jsxContent.includes('className="more-card-share-btn"'), "Must render Share button");

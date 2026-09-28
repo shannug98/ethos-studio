@@ -87,6 +87,8 @@ export default function AdminWorkshops() {
     price: "",
     reason: "",
     isEarlyCompletion: false,
+    error: "",
+    loading: false,
   });
 
   const [attendeeModal, setAttendeeModal] = useState({
@@ -341,40 +343,63 @@ export default function AdminWorkshops() {
       return;
     }
 
+    const isFuture = (ws.endUtc ? new Date(ws.endUtc) : new Date(ws.workshopDate || 0)) > new Date();
+
     setActionModal({
       open: true,
       type,
       workshop: ws,
       price: ws.trainerProposedPrice || ws.price || "",
       reason: "",
-      isEarlyCompletion: false,
+      isEarlyCompletion: type === "complete" ? isFuture : false,
+      error: "",
+      loading: false,
     });
   };
 
   const confirmAction = async () => {
-    const { type, workshop, price, reason } = actionModal;
+    const { type, workshop, price, reason, isEarlyCompletion } = actionModal;
+    setActionModal((prev) => ({ ...prev, loading: true, error: "" }));
+
     try {
       if (type === "approve") {
         const p = parseFloat(price);
         if (isNaN(p) || p <= 0) {
-          alert("Approved price must be greater than zero.");
+          setActionModal((prev) => ({ ...prev, loading: false, error: "Approved price must be greater than zero." }));
           return;
         }
         await adminApi.approveWorkshopPrice(workshop.id, p);
       } else if (type === "reject") {
         if (!reason.trim()) {
-          alert("A rejection reason is mandatory.");
+          setActionModal((prev) => ({ ...prev, loading: false, error: "A rejection reason is mandatory." }));
           return;
         }
         await adminApi.rejectWorkshop(workshop.id, reason.trim());
       } else if (type === "cancel") {
         if (!reason.trim()) {
-          alert("A cancellation reason is mandatory.");
+          setActionModal((prev) => ({ ...prev, loading: false, error: "A cancellation reason is mandatory." }));
           return;
         }
         await adminApi.cancelWorkshop(workshop.id, reason.trim());
       } else if (type === "complete") {
-        await adminApi.completeWorkshop(workshop.id);
+        const isFuture = (workshop?.endUtc ? new Date(workshop.endUtc) : new Date(workshop?.workshopDate || 0)) > new Date();
+        const needsOverride = isFuture || isEarlyCompletion || Boolean(reason && reason.trim());
+
+        if (needsOverride && (!reason || reason.trim().length < 5)) {
+          setActionModal((prev) => ({
+            ...prev,
+            loading: false,
+            isEarlyCompletion: true,
+            error: "An early completion override reason of at least 5 characters is required.",
+          }));
+          return;
+        }
+
+        const payload = needsOverride
+          ? { forceComplete: true, overrideReason: reason.trim() }
+          : undefined;
+
+        await adminApi.completeWorkshop(workshop.id, payload);
       } else if (type === "publish") {
         await adminApi.publishWorkshop(workshop.id);
       } else if (type === "unpublish") {
@@ -383,11 +408,21 @@ export default function AdminWorkshops() {
         await adminApi.archiveWorkshop(workshop.id);
       }
 
-      setActionModal({ open: false, type: "", workshop: null, price: "", reason: "", isEarlyCompletion: false });
+      setActionModal({ open: false, type: "", workshop: null, price: "", reason: "", isEarlyCompletion: false, error: "", loading: false });
       loadWorkshops();
       loadCounts();
     } catch (err) {
-      alert(err.message || "Action failed.");
+      const errMsg = err?.message || "Action failed.";
+      if (type === "complete" && (errMsg.includes("future active sessions") || errMsg.includes("forceComplete"))) {
+        setActionModal((prev) => ({
+          ...prev,
+          loading: false,
+          isEarlyCompletion: true,
+          error: "This workshop has future active sessions. Please provide an override reason (min 5 characters) below to proceed.",
+        }));
+      } else {
+        setActionModal((prev) => ({ ...prev, loading: false, error: errMsg }));
+      }
     }
   };
 
@@ -1029,12 +1064,7 @@ export default function AdminWorkshops() {
                                   className="menu-dropdown-item menu-dropdown-complete"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    setActionModal({
-                                      open: true,
-                                      type: "complete",
-                                      workshop: w,
-                                      reason: "",
-                                    });
+                                    handleOpenAction("complete", w);
                                   }}
                                 >
                                   <CheckCircle size={14} />
@@ -1048,12 +1078,7 @@ export default function AdminWorkshops() {
                                   className="menu-dropdown-item menu-dropdown-publish"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    setActionModal({
-                                      open: true,
-                                      type: "publish",
-                                      workshop: w,
-                                      reason: "",
-                                    });
+                                    handleOpenAction("publish", w);
                                   }}
                                 >
                                   <Globe size={14} />
@@ -1067,12 +1092,7 @@ export default function AdminWorkshops() {
                                   className="menu-dropdown-item menu-dropdown-danger"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    setActionModal({
-                                      open: true,
-                                      type: "cancel",
-                                      workshop: w,
-                                      reason: "",
-                                    });
+                                    handleOpenAction("cancel", w);
                                   }}
                                 >
                                   <XCircle size={14} />
@@ -1096,12 +1116,7 @@ export default function AdminWorkshops() {
                             className="btn-card-publish-action"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActionModal({
-                                open: true,
-                                type: "publish",
-                                workshop: w,
-                                reason: "",
-                              });
+                              handleOpenAction("publish", w);
                             }}
                             title="Publish Workshop to Live Site"
                           >
@@ -1123,12 +1138,7 @@ export default function AdminWorkshops() {
                             className="btn-card-complete-action"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActionModal({
-                                open: true,
-                                type: "complete",
-                                workshop: w,
-                                reason: "",
-                              });
+                              handleOpenAction("complete", w);
                             }}
                             title="Complete Workshop & Clean Media"
                           >
@@ -1395,7 +1405,7 @@ export default function AdminWorkshops() {
                             {(w.status === "Approved" || w.status === "Unpublished") && (
                               <button
                                 className="btn-table-publish"
-                                onClick={() => setActionModal({ open: true, type: "publish", workshop: w, reason: "" })}
+                                onClick={() => handleOpenAction("publish", w)}
                                 title="Publish Workshop to Live Site"
                               >
                                 <Globe size={14} />
@@ -1404,7 +1414,7 @@ export default function AdminWorkshops() {
                             {isEndedRow && (
                               <button
                                 className="btn-table-complete"
-                                onClick={() => setActionModal({ open: true, type: "complete", workshop: w, reason: "" })}
+                                onClick={() => handleOpenAction("complete", w)}
                                 title="Complete Workshop & Clean Media"
                               >
                                 <CheckCircle size={14} />
@@ -1550,68 +1560,344 @@ export default function AdminWorkshops() {
         </div>
       )}
 
-      {/* Action Modal (Approve, Reject, Cancel, etc.) */}
+      {/* Redesigned Administrative Action Modal */}
       {actionModal.open && (
-        <div className="modal-backdrop" onClick={() => setActionModal({ ...actionModal, open: false })}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>
-                {actionModal.type === "approve" && "Approve Workshop"}
-                {actionModal.type === "reject" && "Reject Workshop"}
-                {actionModal.type === "cancel" && "Cancel Workshop"}
-                {actionModal.type === "complete" && "Mark Workshop Completed"}
-                {actionModal.type === "publish" && "Publish Workshop"}
-                {actionModal.type === "unpublish" && "Unpublish Workshop"}
-              </h3>
+        <div className="admin-action-modal-backdrop" onClick={() => !actionModal.loading && setActionModal({ ...actionModal, open: false })}>
+          <div
+            className={`admin-action-modal-card ${
+              actionModal.type === "cancel"
+                ? "admin-action-modal-card--cancel"
+                : actionModal.type === "complete"
+                ? "admin-action-modal-card--complete"
+                : ""
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* MODAL HEADER */}
+            <div
+              className={`admin-action-modal-header ${
+                actionModal.type === "cancel"
+                  ? "danger-header"
+                  : actionModal.type === "complete"
+                  ? "complete-header"
+                  : ""
+              }`}
+            >
+              <div className="admin-action-modal-title-wrap">
+                {actionModal.type === "cancel" && (
+                  <div className="admin-action-modal-badge danger-badge">
+                    <AlertTriangle size={18} />
+                  </div>
+                )}
+                {actionModal.type === "complete" && (
+                  <div className="admin-action-modal-badge complete-badge">
+                    <CheckCircle size={18} />
+                  </div>
+                )}
+                <h3>
+                  {actionModal.type === "approve" && "Approve Workshop"}
+                  {actionModal.type === "reject" && "Reject Workshop"}
+                  {actionModal.type === "cancel" && "Cancel Workshop"}
+                  {actionModal.type === "complete" && "Mark Workshop Completed"}
+                  {actionModal.type === "publish" && "Publish Workshop"}
+                  {actionModal.type === "unpublish" && "Unpublish Workshop"}
+                </h3>
+              </div>
               <button
-                className="close-btn"
-                onClick={() => setActionModal({ ...actionModal, open: false })}
+                type="button"
+                className="admin-action-modal-close"
+                onClick={() => !actionModal.loading && setActionModal({ ...actionModal, open: false })}
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <p>
-                Target Workshop: <strong>{actionModal.workshop?.title}</strong>
-              </p>
 
-              {actionModal.type === "approve" && (
-                <div className="modal-field">
-                  <label>Approved Starting Price (₹)</label>
-                  <input
-                    type="number"
-                    className="modal-input"
-                    value={actionModal.price}
-                    onChange={(e) => setActionModal({ ...actionModal, price: e.target.value })}
-                  />
+            {/* MODAL BODY */}
+            <div className="admin-action-modal-body">
+              {actionModal.type === "complete" ? (
+                <div className="complete-workshop-flow">
+                  <p className="cancel-modal-intro">
+                    Finalize workshop attendance records and complete this workshop.
+                  </p>
+
+                  {/* WORKSHOP IDENTITY SECTION */}
+                  <div className="cancel-workshop-target-box">
+                    <span className="cancel-target-eyebrow">WORKSHOP</span>
+                    <h4 className="cancel-target-title">{actionModal.workshop?.title}</h4>
+                    {actionModal.workshop?.trainerName && (
+                      <p className="cancel-target-trainers">
+                        Faculty: <strong>{actionModal.workshop.trainerName}</strong>
+                      </p>
+                    )}
+
+                    {/* COMPACT METADATA STRIP */}
+                    <div className="cancel-target-meta-strip">
+                      <div className="cancel-meta-cell">
+                        <Calendar size={14} className="cancel-meta-icon" />
+                        <span>
+                          {actionModal.workshop?.workshopDate
+                            ? new Date(actionModal.workshop.workshopDate).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "Date TBA"}
+                        </span>
+                      </div>
+                      <div className="cancel-meta-cell">
+                        <Users size={14} className="cancel-meta-icon" />
+                        <span>
+                          {actionModal.workshop?.bookedTicketsCount ?? actionModal.workshop?.totalBookings ?? actionModal.workshop?.bookingsCount ?? 0} bookings
+                        </span>
+                      </div>
+                      <div className="cancel-meta-cell">
+                        <IndianRupee size={14} className="cancel-meta-icon" />
+                        <span>
+                          ₹{Number(actionModal.workshop?.revenue ?? actionModal.workshop?.totalRevenue ?? ((actionModal.workshop?.bookedTicketsCount || 0) * (actionModal.workshop?.price || 0))).toLocaleString("en-IN")} revenue
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WHAT WILL HAPPEN SUMMARY CHECKLIST */}
+                  <div className="complete-impact-summary-box">
+                    <div className="complete-summary-item">
+                      <span className="complete-bullet-icon">✓</span>
+                      <div>
+                        <strong>Lock Attendance & Records:</strong> All attendee check-ins, tickets, and booking records will be permanently archived and locked.
+                      </div>
+                    </div>
+                    <div className="complete-summary-item">
+                      <span className="complete-bullet-icon">✓</span>
+                      <div>
+                        <strong>Archive from Live Schedule:</strong> The workshop will be removed from upcoming public listings and moved to Past Workshops.
+                      </div>
+                    </div>
+                    <div className="complete-summary-item">
+                      <span className="complete-bullet-icon">✓</span>
+                      <div>
+                        <strong>Optimize Cloud Storage:</strong> Promotional banners will be safely cleaned up from cloud storage. Permanent portrait posters remain intact.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* EARLY COMPLETION WARNING & REASON INPUT (IF FUTURE OR FLAGGED) */}
+                  {((actionModal.workshop?.endUtc ? new Date(actionModal.workshop.endUtc) : new Date(actionModal.workshop?.workshopDate || 0)) > new Date() || actionModal.isEarlyCompletion) && (
+                    <div className="early-completion-box">
+                      <div className="early-completion-banner">
+                        <AlertTriangle size={18} className="warning-icon" />
+                        <div>
+                          <strong>Early Completion Notice:</strong> This workshop still has scheduled/upcoming session dates. To finalize and complete it ahead of schedule, an override reason is required.
+                        </div>
+                      </div>
+                      <div className="admin-modal-field" style={{ marginTop: "12px", marginBottom: "0" }}>
+                        <label className="admin-modal-label">
+                          Early completion override reason <span className="required-star">*</span>
+                        </label>
+                        <textarea
+                          className="admin-modal-textarea"
+                          rows={3}
+                          placeholder="Explain why this workshop is being completed early (e.g., Session concluded ahead of schedule, weather emergency)..."
+                          value={actionModal.reason}
+                          onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value, error: "" })}
+                          autoFocus
+                        />
+                        {actionModal.reason && actionModal.reason.trim().length < 5 && (
+                          <span style={{ fontSize: "11.5px", color: "#DC2626", marginTop: "4px" }}>
+                            Reason must be at least 5 characters (currently {actionModal.reason.trim().length}/5).
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* IN-MODAL ERROR BANNER */}
+                  {actionModal.error && (
+                    <div className="admin-modal-error-banner">
+                      <AlertTriangle size={16} className="warning-icon" />
+                      <span>{actionModal.error}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : actionModal.type === "cancel" ? (
+                <div className="cancel-workshop-flow">
+                  <p className="cancel-modal-intro">
+                    You are about to cancel this workshop.
+                  </p>
 
-              {(actionModal.type === "reject" || actionModal.type === "cancel") && (
-                <div className="modal-field">
-                  <label>Reason (Mandatory)</label>
-                  <textarea
-                    className="modal-textarea"
-                    rows={3}
-                    placeholder="Enter reason..."
-                    value={actionModal.reason}
-                    onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value })}
-                  />
+                  {/* WORKSHOP IDENTITY SECTION */}
+                  <div className="cancel-workshop-target-box">
+                    <span className="cancel-target-eyebrow">WORKSHOP</span>
+                    <h4 className="cancel-target-title">{actionModal.workshop?.title}</h4>
+                    {actionModal.workshop?.trainerName && (
+                      <p className="cancel-target-trainers">
+                        Faculty: <strong>{actionModal.workshop.trainerName}</strong>
+                      </p>
+                    )}
+
+                    {/* COMPACT METADATA STRIP */}
+                    <div className="cancel-target-meta-strip">
+                      <div className="cancel-meta-cell">
+                        <Calendar size={14} className="cancel-meta-icon" />
+                        <span>
+                          {actionModal.workshop?.workshopDate
+                            ? new Date(actionModal.workshop.workshopDate).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "Date TBA"}
+                        </span>
+                      </div>
+                      <div className="cancel-meta-cell">
+                        <Users size={14} className="cancel-meta-icon" />
+                        <span>
+                          {actionModal.workshop?.bookedTicketsCount ?? actionModal.workshop?.totalBookings ?? actionModal.workshop?.bookingsCount ?? 0} bookings
+                        </span>
+                      </div>
+                      <div className="cancel-meta-cell">
+                        <IndianRupee size={14} className="cancel-meta-icon" />
+                        <span>
+                          ₹{Number(actionModal.workshop?.revenue ?? actionModal.workshop?.totalRevenue ?? ((actionModal.workshop?.bookedTicketsCount || 0) * (actionModal.workshop?.price || 0))).toLocaleString("en-IN")} revenue
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MANDATORY CANCELLATION REASON */}
+                  <div className="admin-modal-field">
+                    <label className="admin-modal-label">
+                      Cancellation reason <span className="required-star">*</span>
+                    </label>
+                    <textarea
+                      className="admin-modal-textarea"
+                      rows={4}
+                      placeholder="Explain why this workshop is being cancelled..."
+                      value={actionModal.reason}
+                      onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value, error: "" })}
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* WARNING BANNER */}
+                  <div className="cancel-impact-warning-banner">
+                    <AlertTriangle size={18} className="warning-icon" />
+                    <div>
+                      {(actionModal.workshop?.bookedTicketsCount ?? actionModal.workshop?.totalBookings ?? 0) > 0 ? (
+                        <p>
+                          <strong>{actionModal.workshop?.bookedTicketsCount ?? actionModal.workshop?.totalBookings} customers</strong> are currently booked. Cancelling this workshop will place it into the cancelled state. Existing booking and refund handling will follow the system's cancellation process.
+                        </p>
+                      ) : (
+                        <p>
+                          This action will place the workshop into the cancelled state and remove it from public listings.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* IN-MODAL ERROR BANNER */}
+                  {actionModal.error && (
+                    <div className="admin-modal-error-banner">
+                      <AlertTriangle size={16} className="warning-icon" />
+                      <span>{actionModal.error}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* OTHER ACTIONS (Approve, Reject, Publish, etc.) */
+                <div>
+                  <p className="admin-modal-target-lead">
+                    Target Workshop: <strong>{actionModal.workshop?.title}</strong>
+                  </p>
+
+                  {actionModal.type === "approve" && (
+                    <div className="admin-modal-field">
+                      <label className="admin-modal-label">Approved Starting Price (₹)</label>
+                      <input
+                        type="number"
+                        className="admin-modal-input"
+                        value={actionModal.price}
+                        onChange={(e) => setActionModal({ ...actionModal, price: e.target.value, error: "" })}
+                      />
+                    </div>
+                  )}
+
+                  {actionModal.type === "reject" && (
+                    <div className="admin-modal-field">
+                      <label className="admin-modal-label">
+                        Rejection reason <span className="required-star">*</span>
+                      </label>
+                      <textarea
+                        className="admin-modal-textarea"
+                        rows={4}
+                        placeholder="Explain reason for rejection..."
+                        value={actionModal.reason}
+                        onChange={(e) => setActionModal({ ...actionModal, reason: e.target.value, error: "" })}
+                        autoFocus
+                      />
+                    </div>
+                  )}
+
+                  {(actionModal.type === "publish" || actionModal.type === "unpublish") && (
+                    <p style={{ fontSize: "14px", color: "#475569", margin: "12px 0 0", lineHeight: 1.6 }}>
+                      {actionModal.type === "publish" && "Publishing this workshop will make it visible to public attendees on the website schedule."}
+                      {actionModal.type === "unpublish" && "Unpublishing will hide this workshop from public listings while keeping existing bookings intact."}
+                    </p>
+                  )}
+
+                  {/* IN-MODAL ERROR BANNER */}
+                  {actionModal.error && (
+                    <div className="admin-modal-error-banner">
+                      <AlertTriangle size={16} className="warning-icon" />
+                      <span>{actionModal.error}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-            <div className="modal-actions">
+
+            {/* MODAL ACTIONS / FOOTER */}
+            <div className="admin-action-modal-footer">
               <button
-                className="admin-btn secondary"
-                onClick={() => setActionModal({ ...actionModal, open: false })}
+                type="button"
+                className="admin-action-btn admin-action-btn-neutral"
+                onClick={() => !actionModal.loading && setActionModal({ ...actionModal, open: false })}
+                disabled={actionModal.loading}
               >
                 Cancel
               </button>
               <button
-                className={`admin-btn ${actionModal.type === "reject" || actionModal.type === "cancel" ? "danger" : "primary"}`}
+                type="button"
+                disabled={
+                  actionModal.loading ||
+                  (actionModal.type === "cancel" && !actionModal.reason?.trim()) ||
+                  (actionModal.type === "reject" && !actionModal.reason?.trim()) ||
+                  (actionModal.type === "complete" &&
+                    ((actionModal.workshop?.endUtc ? new Date(actionModal.workshop.endUtc) : new Date(actionModal.workshop?.workshopDate || 0)) > new Date() || actionModal.isEarlyCompletion) &&
+                    (!actionModal.reason || actionModal.reason.trim().length < 5))
+                }
+                className={`admin-action-btn ${
+                  actionModal.type === "cancel" || actionModal.type === "reject"
+                    ? "admin-action-btn-danger"
+                    : actionModal.type === "complete"
+                    ? "admin-action-btn-complete"
+                    : "admin-action-btn-primary"
+                }`}
                 onClick={confirmAction}
               >
-                Confirm
+                {actionModal.loading ? (
+                  "Processing..."
+                ) : (
+                  <>
+                    {actionModal.type === "cancel" && "Confirm Cancellation"}
+                    {actionModal.type === "reject" && "Confirm Rejection"}
+                    {actionModal.type === "approve" && "Confirm Approval"}
+                    {actionModal.type === "complete" && "Confirm Completion"}
+                    {actionModal.type === "publish" && "Confirm Publish"}
+                    {actionModal.type === "unpublish" && "Confirm Unpublish"}
+                  </>
+                )}
               </button>
             </div>
           </div>

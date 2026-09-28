@@ -487,29 +487,57 @@
   justify-content: space-between;
 }
 
+.workshop-edit-form .form-control,
+.details-card .form-control,
 .form-control {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 14px;
   font-size: 14px;
   font-family: inherit;
-  color: #0f172a;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
   border-radius: 8px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
+  box-shadow: none !important;
 }
 
+.workshop-edit-form .form-control:focus,
+.details-card .form-control:focus,
 .form-control:focus {
-  border-color: #ff5500;
-  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+  border-color: #ff5500 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.15) !important;
 }
 
-.form-control:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
+.workshop-edit-form .form-control:disabled,
+.details-card .form-control:disabled,
+.form-control:disabled,
+fieldset:disabled .form-control {
+  background: #f8fafc !important;
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  border-color: #e2e8f0 !important;
   cursor: not-allowed;
+}
+
+/* Ensure autofill in workshop subpages stays white */
+.ethos-workshop-portal input:-webkit-autofill,
+.ethos-workshop-portal input:-webkit-autofill:hover,
+.ethos-workshop-portal input:-webkit-autofill:focus,
+.ethos-workshop-portal select:-webkit-autofill,
+.ethos-workshop-portal textarea:-webkit-autofill,
+.details-card input:-webkit-autofill,
+.workshop-edit-form input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
 }
 
 textarea.form-control {

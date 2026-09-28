@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
 using Ethos.Api.Application.Admin;
+using Ethos.Api.Application.Analytics;
 using Ethos.Api.Application.Attendance;
 using Ethos.Api.Application.Auth;
 using Ethos.Api.Application.Classes;
@@ -231,6 +232,24 @@ builder.Services.AddRateLimiter(options =>
                     });
             }
 
+            // Public product analytics event ingestion: 120 req/min/IP
+            if (path.StartsWithSegments("/api/analytics"))
+            {
+                var ip =
+                    context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: $"analytics-ip:{ip}",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 120,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    });
+            }
+
             return RateLimitPartition.GetNoLimiter("no-limit");
         });
 });
@@ -289,6 +308,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IStudentNotificationReminderService, StudentNotificationReminderService>();
 builder.Services.AddScoped<IStudentDashboardService, StudentDashboardService>();
 builder.Services.AddScoped<IEchoAssistantService, EchoAssistantService>();
+builder.Services.AddScoped<IAnalyticsEventService, AnalyticsEventService>();
+builder.Services.AddScoped<IAnalyticsQueryService, AnalyticsQueryService>();
+builder.Services.AddScoped<IAdminInsightsService, AdminInsightsService>();
 
 // MSG91 WhatsApp Outbox & Ticket PDF Engine
 builder.Services.Configure<Msg91Options>(
@@ -343,6 +365,8 @@ builder.Services.AddScoped<IAdminPackageService, AdminPackageService>();
 builder.Services.AddScoped<IAdminPaymentService, AdminPaymentService>();
 builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
 builder.Services.AddScoped<IGuestWorkshopFeedbackService, GuestWorkshopFeedbackService>();
+builder.Services.AddScoped<IFeedbackEligibilityService, FeedbackEligibilityService>();
+builder.Services.AddHostedService<FeedbackEligibilityBackgroundWorker>();
 
 builder.Services.AddScoped<IAdminTrainerService, AdminTrainerService>();
 builder.Services.AddScoped<IAdminTrainerApplicationService, AdminTrainerApplicationService>();
@@ -364,12 +388,13 @@ builder.Services.AddScoped<IRefundOutboxDispatcher, RefundOutboxDispatcher>();
 builder.Services.AddHostedService<RefundOutboxBackgroundWorker>();
 builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
 builder.Services.AddScoped<IPaymentReceiptService, PaymentReceiptService>();
-builder.Services.AddScoped<ITrainerPayoutService, TrainerPayoutService>();
 
 // Batch 4 Admin Observability, Security Center & Incidents
+builder.Services.AddSingleton<IWorkerLivenessTracker, WorkerLivenessTracker>();
 builder.Services.AddSingleton<ITelemetryQueue, ChannelTelemetryQueue>();
 builder.Services.AddHostedService<TelemetryBackgroundWorker>();
 builder.Services.AddScoped<IAdminObservabilityService, AdminObservabilityService>();
+builder.Services.AddScoped<ISystemHealthService, SystemHealthService>();
 builder.Services.AddScoped<IAdminSecurityCenterService, AdminSecurityCenterService>();
 builder.Services.AddScoped<IAdminIncidentService, AdminIncidentService>();
 
@@ -608,6 +633,25 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Lightweight Public Health Endpoints for Uptime Monitoring (Zero secrets or internal diagnostics exposed)
+app.MapGet("/health", async (ISystemHealthService healthService, CancellationToken ct) =>
+{
+    var health = await healthService.GetUnifiedHealthAsync(ct);
+    var isHealthy = health.OverallStatus != "Error";
+    return isHealthy
+        ? Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow })
+        : Results.Json(new { status = "Unhealthy", timestamp = DateTime.UtcNow }, statusCode: StatusCodes.Status503ServiceUnavailable);
+});
+
+app.MapGet("/api/health", async (ISystemHealthService healthService, CancellationToken ct) =>
+{
+    var health = await healthService.GetUnifiedHealthAsync(ct);
+    var isHealthy = health.OverallStatus != "Error";
+    return isHealthy
+        ? Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow })
+        : Results.Json(new { status = "Unhealthy", timestamp = DateTime.UtcNow }, statusCode: StatusCodes.Status503ServiceUnavailable);
+});
 
 app.Run();
 

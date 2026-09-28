@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Ethos.Api.Application.Common;
 using Ethos.Api.Application.Finance;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,13 +13,16 @@ public class RefundOutboxBackgroundWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<RefundOutboxBackgroundWorker> _logger;
+    private readonly IWorkerLivenessTracker _livenessTracker;
 
     public RefundOutboxBackgroundWorker(
         IServiceProvider serviceProvider,
-        ILogger<RefundOutboxBackgroundWorker> logger)
+        ILogger<RefundOutboxBackgroundWorker> logger,
+        IWorkerLivenessTracker livenessTracker)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _livenessTracker = livenessTracker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,6 +31,7 @@ public class RefundOutboxBackgroundWorker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            _livenessTracker.RecordHeartbeat("worker_refund", "Active / Polling");
             try
             {
                 using var scope = _serviceProvider.CreateScope();

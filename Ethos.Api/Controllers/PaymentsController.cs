@@ -88,9 +88,9 @@ public class PaymentsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Webhook processing error: " + ex.Message });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Payment webhook processing failed. TraceId: {HttpContext.TraceIdentifier}" });
         }
     }
 

@@ -58,9 +58,10 @@ public static class AdminPermissions
     public const string UserUpdateStatus = "ADMIN_USER_UPDATE_STATUS";
     public const string UserAuditView = "ADMIN_USER_AUDIT_VIEW";
 
-    // Observability & Security Center
+    // Observability, Analytics & Security Center
     public const string ObservabilityView = "OBSERVABILITY_VIEW";
     public const string ObservabilityManage = "OBSERVABILITY_MANAGE";
+    public const string AnalyticsView = "ANALYTICS_VIEW";
     public const string SecurityCenterView = "SECURITY_CENTER_VIEW";
     public const string SecurityCenterManage = "SECURITY_CENTER_MANAGE";
 
@@ -88,7 +89,7 @@ public static class AdminPermissions
     {
         MediaView, MediaUpload, MediaDelete,
         AdminDashboardView, AdminAuditView, AdminSecurityView,
-        ObservabilityView, ObservabilityManage, SecurityCenterView, SecurityCenterManage,
+        ObservabilityView, ObservabilityManage, AnalyticsView, SecurityCenterView, SecurityCenterManage,
         UserView, UserUpdateStatus, UserAuditView, LegacyUserView,
         StudentView, StudentUpdate, StudentSuspend, StudentCorrect,
         TrainerView, TrainerApprove, TrainerReject, TrainerCorrect,

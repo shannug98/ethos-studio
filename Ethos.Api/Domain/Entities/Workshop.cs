@@ -66,6 +66,8 @@ public class Workshop
 
     public DateTime UpdatedAt { get; set; }
 
+    public bool IsEthosOriginal { get; set; } = false;
+
     public TrainerProfile? TrainerProfile { get; set; }
 
     public bool AllowReEntry { get; set; } = true;
@@ -94,6 +96,8 @@ public class Workshop
 
     public ICollection<WorkshopFeedback> Feedbacks { get; set; }
         = new List<WorkshopFeedback>();
+
+    public WorkshopFeedbackSetting? FeedbackSetting { get; set; }
 
     public DateTime GetBookingCutoffUtc()
     {

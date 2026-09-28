@@ -884,11 +884,11 @@ export default function AdminVideos() {
               </div>
             </div>
 
-            {/* Card 4: Founder */}
+            {/* Card 4: Founders */}
             <div className="placement-card">
               <div className="placement-card-header">
-                <h4 className="placement-card-title">Founder</h4>
-                <p className="placement-card-desc">1 image • Images only</p>
+                <h4 className="placement-card-title">Founders</h4>
+                <p className="placement-card-desc">2 images • Images only</p>
               </div>
 
               <div className="placement-preview-box">
@@ -904,12 +904,12 @@ export default function AdminVideos() {
                         handleOpenPreview(getPlacementById("founder"), getPlacementById("founder")?.slots?.[0], founderItems[0]);
                       }
                     }}
-                    aria-label="Preview Founder"
+                    aria-label="Preview Founder 1"
                     title="Click to preview"
                   >
                     <img
                       src={getMediaUrl(founderItems[0])}
-                      alt={founderItems[0].title || "Founder"}
+                      alt={founderItems[0].title || "Founder 1"}
                       className="single-preview-img"
                       onError={(e) => handleMediaImgError(e, ETHOS_MEDIA_FALLBACK_SVG)}
                     />
@@ -927,7 +927,7 @@ export default function AdminVideos() {
               </div>
 
               <div className="placement-card-footer">
-                <span className="placement-count-badge">{founderItems.length} / 1</span>
+                <span className="placement-count-badge">{founderItems.length} / 2</span>
                 <button
                   type="button"
                   className="btn-manage-placement"

@@ -15,7 +15,6 @@ public class AdminPaymentService : IAdminPaymentService
     private readonly IPaymentRefundService _refundService;
     private readonly IPaymentReconciliationService _reconciliationService;
     private readonly IPaymentReceiptService _receiptService;
-    private readonly ITrainerPayoutService _payoutService;
     private readonly IAdminAuditService _auditService;
 
     public AdminPaymentService(
@@ -23,14 +22,12 @@ public class AdminPaymentService : IAdminPaymentService
         IPaymentRefundService refundService,
         IPaymentReconciliationService reconciliationService,
         IPaymentReceiptService receiptService,
-        ITrainerPayoutService payoutService,
         IAdminAuditService auditService)
     {
         _db = db;
         _refundService = refundService;
         _reconciliationService = reconciliationService;
         _receiptService = receiptService;
-        _payoutService = payoutService;
         _auditService = auditService;
     }
 
@@ -570,12 +567,6 @@ public class AdminPaymentService : IAdminPaymentService
         var pendingGateway = await _db.PaymentTransactions
             .CountAsync(p => p.Status == PaymentStatus.PaymentPending, cancellationToken);
 
-        var trainerPayouts = await _payoutService.GetTrainerPayoutsAsync(cancellationToken);
-        var pendingPayoutsCount = trainerPayouts.Payouts.Count(p => p.Status != "PROCESSED" && p.TrainerPayoutAmount > 0);
-        var pendingPayoutsAmount = trainerPayouts.Payouts
-            .Where(p => p.Status != "PROCESSED" && p.TrainerPayoutAmount > 0)
-            .Sum(p => p.TrainerPayoutAmount);
-
         return new AdminRevenueResponse
         {
             TotalSuccessfulRevenue = netRevenue,
@@ -591,8 +582,8 @@ public class AdminPaymentService : IAdminPaymentService
             PendingTransactionsCount = pendingCount,
             PaymentsNeedingAttentionCount = activeDiscrepancies + pendingGateway,
             CustomerIssuesCount = activeDiscrepancies,
-            TrainerPayoutsPendingCount = pendingPayoutsCount,
-            TrainerPayoutsPendingAmount = pendingPayoutsAmount,
+            TrainerPayoutsPendingCount = 0,
+            TrainerPayoutsPendingAmount = 0,
             RefundsIssuedCount = refundEvents.Count
         };
     }
@@ -1112,18 +1103,5 @@ public class AdminPaymentService : IAdminPaymentService
     {
         return _receiptService.GetPaymentReceiptAsync(transactionId, adminUserId, cancellationToken);
     }
-
-    public Task<AdminTrainerPayoutResponse> GetTrainerPayoutsAsync(CancellationToken cancellationToken)
-    {
-        return _payoutService.GetTrainerPayoutsAsync(cancellationToken);
-    }
-
-    public Task ProcessTrainerPayoutAsync(
-        Guid trainerId,
-        Guid adminUserId,
-        AdminProcessTrainerPayoutRequest request,
-        CancellationToken cancellationToken)
-    {
-        return _payoutService.ProcessTrainerPayoutAsync(trainerId, adminUserId, request, cancellationToken);
-    }
 }
+

@@ -1,4 +1,5 @@
 using Ethos.Api.Domain.Entities;
+using Ethos.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -20,6 +21,15 @@ public class WorkshopFeedbackTokenConfiguration : IEntityTypeConfiguration<Works
             .HasMaxLength(128)
             .IsRequired();
 
+        builder.Property(x => x.AudienceType)
+            .HasConversion<int>()
+            .HasDefaultValue(FeedbackAudienceType.Attended)
+            .IsRequired();
+
+        builder.Property(x => x.FeedbackFormVersionId)
+            .HasColumnType("uuid")
+            .IsRequired(false);
+
         builder.Property(x => x.ExpiresAt)
             .HasColumnType("timestamptz")
             .IsRequired();
@@ -35,10 +45,17 @@ public class WorkshopFeedbackTokenConfiguration : IEntityTypeConfiguration<Works
             .IsUnique();
 
         builder.HasIndex(x => x.WorkshopBookingId);
+        builder.HasIndex(x => x.FeedbackFormVersionId);
 
         builder.HasOne(x => x.WorkshopBooking)
             .WithMany()
             .HasForeignKey(x => x.WorkshopBookingId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.FeedbackFormVersion)
+            .WithMany()
+            .HasForeignKey(x => x.FeedbackFormVersionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

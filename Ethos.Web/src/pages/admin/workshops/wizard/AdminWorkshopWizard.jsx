@@ -96,6 +96,7 @@ const INITIAL_FORM = {
   registrationType: "Standard",
   termsAndCancellationPolicy: "",
   status: 3, // 3: Approved, 1: Draft, 2: PendingApproval
+  isEthosOriginal: false,
   pricingTiers: [
     { tierNumber: 1, tierName: "Early Bird Tier", minTickets: 1, maxTickets: 10, price: 500 },
     { tierNumber: 2, tierName: "Standard Tier", minTickets: 11, maxTickets: 20, price: 600 },
@@ -277,12 +278,12 @@ export default function AdminWorkshopWizard() {
                 return {
                   id: p.id,
                   category,
-                  workshopSessionId: p.workshopSessionId || null,
-                  targetSessionClientId: matchedSess?.clientId || matchedSess?.id || null,
+                  workshopSessionId: null,
+                  targetSessionClientId: null,
                   name: p.name || "",
                   description: p.description || "",
                   price: p.currentPrice ?? p.price ?? 500,
-                  sessionsIncluded: p.sessionsIncluded != null ? Number(p.sessionsIncluded) : (category === "ALL_ACCESS" ? (mappedSessions.length || 1) : 1),
+                  sessionsIncluded: p.sessionsIncluded != null ? Number(p.sessionsIncluded) : (category === "ALL_ACCESS" ? null : 1),
                   totalQuantity: p.totalQuantity ?? 50,
                   salesStartUtc: p.salesStartUtc ? String(p.salesStartUtc).slice(0, 16) : "",
                   salesEndUtc: p.salesEndUtc ? String(p.salesEndUtc).slice(0, 16) : "",
@@ -342,6 +343,7 @@ export default function AdminWorkshopWizard() {
             registrationType: ws.registrationType || "Standard",
             termsAndCancellationPolicy: ws.termsAndCancellationPolicy || "",
             status: ws.status === "Draft" ? 1 : ws.status === "PendingApproval" ? 2 : 3,
+            isEthosOriginal: ws.isEthosOriginal ?? false,
           });
         } catch (err) {
           console.error("Failed to load workshop data:", err);
@@ -540,7 +542,7 @@ export default function AdminWorkshopWizard() {
         errs.title = "Workshop title must be at least 5 characters.";
       }
       if (!form.trainerProfileId) {
-        errs.trainerProfileId = "Please select a lead trainer.";
+        errs.trainerProfileId = "Please select at least one trainer.";
       }
       if (form.danceStyle === "Other" && !form.customStyle?.trim()) {
         errs.customStyle = "Please specify the custom dance style.";
@@ -634,7 +636,7 @@ export default function AdminWorkshopWizard() {
             errs.passTypes = `Ticket Type "${pt.name || i + 1}" capacity must be at least 1 ticket.`;
             break;
           }
-          if (pt.category === "BUNDLE" || (pt.sessionsIncluded != null && pt.sessionsIncluded !== 1)) {
+          if (pt.category === "BUNDLE" || (pt.sessionsIncluded != null && pt.sessionsIncluded > 1)) {
             if (Number(pt.sessionsIncluded) < 2) {
               errs.passTypes = `Multi-Session Pass "${pt.name}" must include at least 2 sessions.`;
               break;
@@ -950,22 +952,17 @@ export default function AdminWorkshopWizard() {
 
             const basePrice = pTiers && pTiers[0] ? pTiers[0].price : (Number(p.price) || 500);
 
-            let resolvedSessionId = p.workshopSessionId || undefined;
-            if (resolvedSessionId && sessionClientToIdMap.has(resolvedSessionId)) {
-              resolvedSessionId = sessionClientToIdMap.get(resolvedSessionId);
-            } else if (!resolvedSessionId && p.targetSessionClientId && sessionClientToIdMap.has(p.targetSessionClientId)) {
-              resolvedSessionId = sessionClientToIdMap.get(p.targetSessionClientId);
-            }
+            const numSessions = (p.sessionsIncluded !== null && p.sessionsIncluded !== undefined && p.sessionsIncluded !== "")
+              ? Number(p.sessionsIncluded)
+              : null;
 
             return {
               id: p.id && p.id.length >= 32 ? p.id : undefined,
-              workshopSessionId: resolvedSessionId,
+              workshopSessionId: null,
               name: p.name.trim(),
               description: p.description?.trim() || "",
               price: basePrice,
-              sessionsIncluded: (p.sessionsIncluded !== null && p.sessionsIncluded !== undefined && p.sessionsIncluded !== "")
-                ? Number(p.sessionsIncluded)
-                : null,
+              sessionsIncluded: numSessions,
               totalQuantity: Number(p.totalQuantity) || 50,
               salesStartUtc: p.salesStartUtc && p.salesStartUtc.trim() !== ""
                 ? (p.salesStartUtc.includes("Z") ? p.salesStartUtc : new Date(p.salesStartUtc).toISOString())
@@ -986,6 +983,7 @@ export default function AdminWorkshopWizard() {
       publicVisibility: form.publicVisibility,
       registrationType: form.registrationType || "Standard",
       termsAndCancellationPolicy: form.termsAndCancellationPolicy || "",
+      isEthosOriginal: form.isEthosOriginal ?? false,
       timezone: "Asia/Kolkata",
       status: targetStatus,
       pricingTiers: (Array.isArray(form.passTypes) && form.passTypes.length > 0) ? undefined : formattedTiers,

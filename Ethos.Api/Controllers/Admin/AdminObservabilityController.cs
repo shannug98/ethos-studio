@@ -15,13 +15,16 @@ public class AdminObservabilityController : ControllerBase
 {
     private readonly IAdminObservabilityService _observabilityService;
     private readonly IAdminAuthorizationService _authService;
+    private readonly ISystemHealthService _healthService;
 
     public AdminObservabilityController(
         IAdminObservabilityService observabilityService,
-        IAdminAuthorizationService authService)
+        IAdminAuthorizationService authService,
+        ISystemHealthService healthService)
     {
         _observabilityService = observabilityService;
         _authService = authService;
+        _healthService = healthService;
     }
 
     [HttpGet("logs")]
@@ -70,13 +73,13 @@ public class AdminObservabilityController : ControllerBase
     }
 
     [HttpGet("health")]
-    public async Task<ActionResult<DeepHealthCheckResponse>> GetDeepHealthCheck(
+    public async Task<ActionResult<SystemHealthResponse>> GetDeepHealthCheck(
         CancellationToken cancellationToken = default)
     {
         var auth = await _authService.AuthorizeActionAsync(User, AdminPermissions.ObservabilityView, "OBSERVABILITY", null, HttpContext, cancellationToken);
         if (!auth.Success) return StatusCode(auth.StatusCode, new { message = auth.ErrorMessage, errorCode = auth.ErrorCode });
 
-        var result = await _observabilityService.GetDeepHealthCheckAsync(cancellationToken);
+        var result = await _healthService.GetUnifiedHealthAsync(cancellationToken);
         return Ok(result);
     }
 

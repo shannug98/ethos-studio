@@ -44,6 +44,8 @@ public class AdminCreateWorkshopRequest
 
     public Guid? TrainerProfileId { get; set; }
 
+    public bool IsEthosOriginal { get; set; }
+
     public string? ImageUrl { get; set; }
     public string? LandscapeImageUrl { get; set; }
 
@@ -121,6 +123,8 @@ public class AdminUpdateWorkshopRequest
     public int Capacity { get; set; }
 
     public Guid? TrainerProfileId { get; set; }
+
+    public bool IsEthosOriginal { get; set; }
 
     public string? ImageUrl { get; set; }
     public string? LandscapeImageUrl { get; set; }

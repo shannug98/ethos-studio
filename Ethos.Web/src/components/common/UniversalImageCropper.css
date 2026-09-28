@@ -1,0 +1,345 @@
+/* Universal Image Cropper Styles */
+
+.universal-cropper-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: cropperFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cropperFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.universal-cropper-modal {
+  background: #141316;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(223, 128, 108, 0.15);
+  overflow: hidden;
+  color: #fff;
+}
+
+.universal-cropper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #18171b;
+}
+
+.universal-cropper-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.universal-cropper-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f4f4f5;
+}
+
+.universal-cropper-preset-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #df806c;
+  background: rgba(223, 128, 108, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.universal-cropper-close-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.universal-cropper-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.universal-cropper-presets-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #121114;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+}
+
+.universal-cropper-preset-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.universal-cropper-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.universal-cropper-preset-btn.is-selected {
+  background: rgba(223, 128, 108, 0.18);
+  border-color: #df806c;
+  color: #df806c;
+}
+
+.universal-cropper-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 3px solid #ef4444;
+  color: #fca5a5;
+  padding: 10px 16px;
+  font-size: 12px;
+}
+
+.universal-cropper-body {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d0c0e;
+  min-height: 320px;
+  max-height: 52vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+.universal-cropper-viewport-wrap {
+  position: relative;
+  max-width: 100%;
+  max-height: 48vh;
+  width: auto;
+  height: 48vh;
+  border: 2px dashed rgba(223, 128, 108, 0.6);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.universal-cropper-img {
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  transition: transform 0.05s ease-out;
+  transform-origin: center center;
+  pointer-events: auto;
+}
+
+.universal-cropper-img.is-dragging {
+  transition: none;
+}
+
+.universal-cropper-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 33.333% 33.333%;
+  pointer-events: none;
+}
+
+.universal-cropper-empty-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  cursor: pointer;
+  color: #a1a1aa;
+  text-align: center;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.universal-cropper-empty-drop:hover {
+  border-color: #df806c;
+  background: rgba(223, 128, 108, 0.04);
+  color: #fff;
+}
+
+.universal-cropper-empty-drop strong {
+  font-size: 14px;
+  color: #f4f4f5;
+}
+
+.universal-cropper-empty-drop span {
+  font-size: 12px;
+}
+
+.universal-cropper-controls {
+  padding: 16px 20px;
+  background: #18171b;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.universal-cropper-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.universal-cropper-slider {
+  flex: 1;
+  accent-color: #df806c;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.universal-cropper-zoom-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4d4d8;
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.universal-cropper-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.universal-cropper-left-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.universal-cropper-btn-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d4d4d8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.universal-cropper-btn-subtle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.universal-cropper-right-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.universal-cropper-btn-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #a1a1aa;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.universal-cropper-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.universal-cropper-btn-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #df806c;
+  border: 1px solid #df806c;
+  color: #0c0b0e;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(223, 128, 108, 0.25);
+}
+
+.universal-cropper-btn-apply:hover {
+  background: #e89584;
+  box-shadow: 0 6px 16px rgba(223, 128, 108, 0.35);
+}
+
+@media (max-width: 600px) {
+  .universal-cropper-modal {
+    max-height: 95vh;
+  }
+  .universal-cropper-actions-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .universal-cropper-left-actions,
+  .universal-cropper-right-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .universal-cropper-left-actions button,
+  .universal-cropper-right-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+}

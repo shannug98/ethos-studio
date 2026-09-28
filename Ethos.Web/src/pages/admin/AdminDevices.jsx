@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { RefreshCw } from "lucide-react";
 import { adminApi, getAdminUser } from "../../services/adminApi";
 import AdminKpiCard from "../../components/admin/common/AdminKpiCard";
 import { formatAdminLastActive, formatAdminDateTime } from "../../utils/adminFormatters";
@@ -68,8 +69,15 @@ export default function AdminDevices() {
           </p>
         </div>
         <div className="admin-header-actions">
-          <button type="button" className="btn btn-secondary" onClick={loadSessions} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh Sessions"}
+          <button
+            type="button"
+            className="admin-devices-refresh-btn"
+            onClick={loadSessions}
+            disabled={loading}
+            title="Refresh active sessions"
+          >
+            <RefreshCw size={14} className={loading ? "spin" : ""} />
+            <span>{loading ? "Refreshing..." : "Refresh Sessions"}</span>
           </button>
         </div>
       </div>

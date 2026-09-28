@@ -378,13 +378,51 @@ export default function AdminWorkshopOverview() {
           icon="₹"
           tone="brand"
         />
-        <AdminKpiCard
-          title="Lead Trainer"
-          value={workshop.TrainerName || workshop.trainerName || "Ethos Master"}
-          subtitle={`Style: ${workshop.DanceStyle || workshop.danceStyle} (${workshop.Level || workshop.level})`}
-          icon="🩰"
-          tone="neutral"
-        />
+        {(() => {
+          const trainersList = workshop.Trainers || workshop.trainers || [];
+          const firstTrainerName =
+            trainersList[0]?.TrainerName ||
+            trainersList[0]?.trainerName ||
+            trainersList[0]?.fullName ||
+            workshop.TrainerName ||
+            workshop.trainerName ||
+            "Ethos Faculty";
+          const extraCount = trainersList.length > 1 ? trainersList.length - 1 : 0;
+
+          return (
+            <AdminKpiCard
+              title="Faculty"
+              className="admin-kpi-card--text-value"
+              value={
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <span
+                    style={{
+                      fontSize: "1.15rem",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "block",
+                      maxWidth: "230px",
+                    }}
+                    title={firstTrainerName}
+                  >
+                    {firstTrainerName}
+                  </span>
+                  {extraCount > 0 && (
+                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
+                      + {extraCount} more faculty
+                    </span>
+                  )}
+                </div>
+              }
+              subtitle={`Style: ${workshop.DanceStyle || workshop.danceStyle || "General"} (${workshop.Level || workshop.level || "All Levels"})`}
+              icon="🩰"
+              tone="neutral"
+            />
+          );
+        })()}
       </div>
 
       {/* 2-Column Grid: Schedule / Venue + Recent Check-ins */}
@@ -535,7 +573,7 @@ export default function AdminWorkshopOverview() {
                 <textarea
                   rows="3"
                   className="form-control"
-                  placeholder="e.g. Lead trainer unavailable due to emergency, studio facility maintenance..."
+                  placeholder="e.g. Faculty unavailable due to emergency, studio facility maintenance..."
                   value={cancelModal.reason}
                   onChange={(e) =>
                     setCancelModal((prev) => ({ ...prev, reason: e.target.value, error: null }))

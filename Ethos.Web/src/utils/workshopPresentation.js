@@ -145,3 +145,20 @@ export function getWorkshopBannerImage(workshop) {
   return workshop.landscapeImageUrl || workshop.imageUrl || null;
 }
 
+/**
+ * Authoritative customer-facing pass scope label from SessionsIncluded.
+ * null / undefined -> All Workshops
+ * 1 -> Solo
+ * 2 -> Dual
+ * 3 -> Trio
+ * N > 3 -> N-Session Bundle
+ */
+export function getPassScopeLabel(sessionsIncluded) {
+  if (sessionsIncluded == null) return "All Workshops";
+  const n = Number(sessionsIncluded);
+  if (n === 1) return "Solo";
+  if (n === 2) return "Dual";
+  if (n === 3) return "Trio";
+  return `${n}-Session Bundle`;
+}
+

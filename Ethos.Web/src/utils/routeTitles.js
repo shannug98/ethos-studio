@@ -17,6 +17,7 @@ export function getRouteTitle(pathname = "/", hash = "") {
   if (path === "/workshops") return "Workshops | Ethos Dance Studio";
   if (path.startsWith("/workshops/") && path.includes("/checkout")) return "Checkout | Ethos Dance Studio";
   if (path.startsWith("/workshops/")) return "Workshop Details | Ethos Dance Studio";
+  if (path.startsWith("/trainers/") || path.startsWith("/faculty/")) return "Faculty Profile | Ethos Dance Studio";
   if (path === "/gallery") return "Gallery | Ethos Dance Studio";
   if (path === "/classes") return "Classes | Ethos Dance Studio";
   if (path === "/events") return "Events | Ethos Dance Studio";

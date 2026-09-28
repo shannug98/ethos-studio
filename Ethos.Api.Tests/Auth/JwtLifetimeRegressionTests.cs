@@ -111,15 +111,15 @@ public class JwtLifetimeRegressionTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
-                ["Razorpay:KeyId"] = "rzp_live_realproductionkey12345",
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeyId"] = "rzp_live_TEST_FIXTURE_NOT_A_REAL_KEY",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = badExpiration,
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "false"

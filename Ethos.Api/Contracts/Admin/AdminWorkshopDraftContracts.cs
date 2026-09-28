@@ -10,6 +10,8 @@ public class AdminSaveWorkshopDraftRequest
     public string DraftJson { get; set; } = "{}";
 
     public long ExpectedVersion { get; set; } = 0;
+
+    public bool IsEthosOriginal { get; set; }
 }
 
 public class AdminWorkshopDraftResponse
@@ -21,4 +23,5 @@ public class AdminWorkshopDraftResponse
     public long Version { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsEthosOriginal { get; set; }
 }

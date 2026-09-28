@@ -120,7 +120,7 @@ function About() {
             </p>
 
             <p>
-              Ethos is a space built around movement,
+              Ethos dance studio is a space built around movement,
               expression and people. A place where
               you can discover your style, challenge
               yourself and find a community that moves
@@ -213,21 +213,22 @@ function About() {
           </h3>
 
           <p>
-            There is no single way to dance.
+            Maybe you find your rhythm in Hip-Hop.
+Maybe it’s Bollywood, Tollywood, Freestyle—or a style you’ve never tried before.
           </p>
 
           <p>
-            Some people find themselves through
-            contemporary movement. Others through
-            hip hop, jazz, freestyle or something they
-            have never tried before.
+            At Ethos, you don’t have to fit into one style.
+
+Explore different movements. Learn from different trainers. Meet different people. Try something new.
+
+Because dance is not about finding the right way to move.
+
+
           </p>
 
           <p>
-            That's why Ethos is designed to give you
-            room to explore. Learn from different
-            trainers, experience different styles and
-            discover what movement means to you.
+           It’s about finding your way.
           </p>
 
           <a
@@ -431,7 +432,7 @@ function About() {
         <div className="about-stat">
 
           <strong>
-            500<span>+</span>
+            200<span>+</span>
           </strong>
 
           <small>
@@ -443,7 +444,7 @@ function About() {
         <div className="about-stat">
 
           <strong>
-            20<span>+</span>
+            10<span>+</span>
           </strong>
 
           <small>

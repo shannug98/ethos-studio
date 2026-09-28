@@ -278,115 +278,102 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
               <span className="ticket-brand-emblem">✦</span>
               <div className="ticket-brand-text">
                 <strong>ETHOS DANCE STUDIO</strong>
-                <small>{booking.passName ? `${booking.passName.toUpperCase()} · TICKET` : "OFFICIAL WORKSHOP PASS"}</small>
+                <small>{booking.passName ? `${booking.passName.toUpperCase()}` : "OFFICIAL DIGITAL PASS"}</small>
               </div>
             </div>
 
             <div className={`ticket-status-pill ${isCheckedIn ? "status-checked-in" : "status-confirmed"}`}>
-              <CheckCircle size={14} className="ticket-status-icon" />
-              <span>{isCheckedIn ? "ENTRY CONFIRMED (CHECKED IN)" : "ACTIVE PASS / READY FOR ENTRY"}</span>
+              <CheckCircle size={13} className="ticket-status-icon" />
+              <span>{isCheckedIn ? "CHECKED IN" : "ACTIVE ENTRY PASS"}</span>
             </div>
           </div>
 
-          {/* MAIN EVENT BODY */}
+          {/* MAIN PASS BODY */}
           <div className="workshop-ticket-body">
+            {/* WORKSHOP & SESSION TITLE */}
             <div className="ticket-title-section">
-              <div className="ticket-title-header">
-                <span className="ticket-eyebrow">
-                  {currentTicket?.sessionTitle 
-                    ? `SESSION: ${currentTicket.sessionTitle.toUpperCase()}`
-                    : (isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "MASTERCLASS & INTENSIVE")}
-                </span>
-                {currentTicket?.ticketNumber && (
-                  <span className="ticket-num-badge">{currentTicket.ticketNumber}</span>
-                )}
-              </div>
+              <span className="ticket-eyebrow">
+                {currentTicket?.sessionTitle 
+                  ? `SESSION: ${currentTicket.sessionTitle.toUpperCase()}`
+                  : (isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "WORKSHOP PASS")}
+              </span>
               <h2 className="ticket-workshop-title">{booking.workshopTitle || "Dance Workshop"}</h2>
             </div>
 
-            {/* EVENT SCHEDULE GRID */}
-            <div className="ticket-details-grid">
-              <div className="ticket-detail-item">
-                <Calendar size={16} className="ticket-detail-icon" />
-                <div>
-                  <span className="detail-label">DATE</span>
-                  <strong className="detail-value">
+            {/* DOMINANT QR CREDENTIAL SPOTLIGHT */}
+            <div className="ticket-qr-spotlight">
+              <div className="ticket-qr-container">
+                {currentTicket?.qrToken ? (
+                  <QrCode value={currentTicket.qrToken} size={180} color="#ffffff" bgColor="#0d0b0a" />
+                ) : (
+                  <QrCode value={currentTicket?.ticketNumber || bookingRef} size={180} color="#ffffff" bgColor="#0d0b0a" />
+                )}
+              </div>
+              <div className="ticket-qr-caption">
+                <div className="qr-ref-code">
+                  TICKET: <strong>{currentTicket?.ticketNumber || bookingRef}</strong>
+                </div>
+                <span className="qr-scan-hint">
+                  {isCheckedIn ? "Pass verified & checked in" : "Present this QR code at studio entrance"}
+                </span>
+              </div>
+            </div>
+
+            {/* CLEAN UNIFIED META GRID */}
+            <div className="ticket-unified-grid">
+              <div className="ticket-grid-col">
+                <div className="ticket-meta-block">
+                  <div className="meta-header-row">
+                    <span className="meta-label">ATTENDEE</span>
+                    {!isCheckedIn && !editingGuest && (
+                      <button 
+                        type="button" 
+                        className="edit-guest-btn"
+                        onClick={() => setEditingGuest(true)}
+                        title="Edit Attendee Details"
+                      >
+                        <Edit2 size={11} />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </div>
+                  <strong className="meta-value-main">{currentTicket?.attendeeName || "Guest Attendee"}</strong>
+                  {currentTicket?.attendeePhone && (
+                    <span className="meta-sub-text">{currentTicket.attendeePhone}</span>
+                  )}
+                </div>
+
+                <div className="ticket-meta-block">
+                  <span className="meta-label">DATE &amp; TIME</span>
+                  <strong className="meta-value-main">
                     {formatDate(currentTicket?.sessionDate || booking.workshopDate)}
                   </strong>
-                </div>
-              </div>
-
-              <div className="ticket-detail-item">
-                <Clock size={16} className="ticket-detail-icon" />
-                <div>
-                  <span className="detail-label">TIME</span>
-                  <strong className="detail-value">
+                  <span className="meta-sub-text">
                     {currentTicket?.sessionStartTime && currentTicket?.sessionEndTime
                       ? `${formatTime(currentTicket.sessionStartTime)} – ${formatTime(currentTicket.sessionEndTime)}`
                       : (booking.startTime && booking.endTime
                           ? `${formatTime(booking.startTime)} – ${formatTime(booking.endTime)}`
                           : "Session Time Confirmed")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="ticket-grid-col">
+                <div className="ticket-meta-block">
+                  <span className="meta-label">INSTRUCTOR</span>
+                  <strong className="meta-value-main">
+                    {currentTicket?.sessionTrainerName || booking.trainerName || "Ethos Faculty"}
                   </strong>
+                  <span className="meta-sub-text">
+                    {currentTicket?.passName || booking.passName || (isGroupBooking ? `Pass ${activeIndex + 1}/${tickets.length}` : "Standard Admission")}
+                  </span>
                 </div>
-              </div>
 
-              <div className="ticket-detail-item">
-                <User size={16} className="ticket-detail-icon" />
-                <div>
-                  <span className="detail-label">INSTRUCTOR</span>
-                  <strong className="detail-value">
-                    {currentTicket?.sessionTrainerName || booking.trainerName || "Elite Faculty"}
-                  </strong>
+                <div className="ticket-meta-block">
+                  <span className="meta-label">VENUE</span>
+                  <strong className="meta-value-main">{booking.venue || "Ethos Dance Studio"}</strong>
+                  <span className="meta-sub-text">Hyderabad Arena</span>
                 </div>
-              </div>
-
-              <div className="ticket-detail-item">
-                <MapPin size={16} className="ticket-detail-icon" />
-                <div>
-                  <span className="detail-label">VENUE</span>
-                  <strong className="detail-value">{booking.venue || "Ethos Dance Studio Main Arena"}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* ATTENDEE & ADMISSION STRIP */}
-            <div className="ticket-meta-strip">
-              <div className="ticket-meta-col">
-                <div className="meta-header-with-action">
-                  <span className="meta-label">ATTENDEE</span>
-                  {!isCheckedIn && !editingGuest && (
-                    <button 
-                      type="button" 
-                      className="edit-guest-btn"
-                      onClick={() => setEditingGuest(true)}
-                      title="Edit Attendee Details"
-                    >
-                      <Edit2 size={12} />
-                      <span>Edit</span>
-                    </button>
-                  )}
-                </div>
-                <strong className="meta-value">{currentTicket?.attendeeName || "Guest Attendee"}</strong>
-                <small className="meta-sub">
-                  {currentTicket?.isPrimaryAttendee ? "Primary Booking Holder" : "Assigned Guest"}
-                  {currentTicket?.attendeePhone ? ` • ${currentTicket.attendeePhone}` : ""}
-                </small>
-              </div>
-
-              <div className="ticket-meta-col">
-                <span className="meta-label">ADMISSION TYPE</span>
-                <strong className="meta-value ticket-price-highlight">
-                  {currentTicket?.passName || booking.passName || (isGroupBooking ? `PASS ${activeIndex + 1} OF ${tickets.length}` : "SOLO PASS")}
-                </strong>
-                <small className="meta-sub">Verified Razorpay</small>
-              </div>
-
-              <div className="ticket-meta-col">
-                <span className="meta-label">TICKET NO.</span>
-                <strong className="meta-value ticket-ref-code">
-                  {currentTicket?.ticketNumber || bookingRef}
-                </strong>
-                <small className="meta-sub">Official Pass</small>
               </div>
             </div>
 
@@ -394,7 +381,7 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
             {editingGuest && (
               <form className="guest-edit-form" onSubmit={handleSaveGuest}>
                 <div className="guest-form-title">
-                  <span>Assign Attendee Identity for Pass #{activeIndex + 1}</span>
+                  <span>Assign Attendee for Pass #{activeIndex + 1}</span>
                   <button type="button" className="guest-close-btn" onClick={() => setEditingGuest(false)}>
                     <X size={14} />
                   </button>
@@ -450,45 +437,12 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
                 <span>{saveSuccess}</span>
               </div>
             )}
-
-            {/* PERFORATION NOTCHES */}
-            <div className="ticket-perforation">
-              <div className="perforation-notch notch-left" />
-              <div className="perforation-line" />
-              <div className="perforation-notch notch-right" />
-            </div>
-
-            {/* QR CODE & ENTRY CODE SECTION */}
-            <div className="ticket-qr-section">
-              <div className="ticket-qr-box">
-                {currentTicket?.qrToken ? (
-                  <QrCode value={currentTicket.qrToken} size={130} color="#ffffff" bgColor="#12100e" />
-                ) : (
-                  <QrCode value={currentTicket?.ticketNumber || bookingRef} size={130} color="#ffffff" bgColor="#12100e" />
-                )}
-              </div>
-
-              <div className="ticket-qr-meta">
-                <div className="qr-security-badge">
-                  <ShieldCheck size={14} />
-                  <span>HIGH-ENTROPY SECURE QR TOKEN</span>
-                </div>
-                <p className="qr-instructions">
-                  {isCheckedIn
-                    ? "This ticket pass has already been validated and checked in for entry."
-                    : `Present this pass QR code (Pass ${activeIndex + 1} of ${tickets.length}) at studio check-in.`}
-                </p>
-                <div className="qr-ref-pill">
-                  TICKET: <strong>{currentTicket?.ticketNumber || bookingRef}</strong>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* TICKET FOOTER */}
           <div className="workshop-ticket-footer">
             <div className="ticket-footer-terms">
-              <span>Non-transferable once checked in • Please arrive 15 minutes prior to session start</span>
+              <span>Non-transferable • Arrive 15 minutes prior to session start</span>
             </div>
           </div>
         </div>

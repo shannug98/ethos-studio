@@ -33,6 +33,20 @@ export const ADMIN_MODULE_REGISTRY = [
     componentName: "AdminDashboard",
   },
 
+  // 2. Product Analytics & Live Insights
+  {
+    id: "analytics",
+    path: "/admin_portal/analytics",
+    relativeRoute: "analytics",
+    label: "Live Insights",
+    description: "Product conversion funnel, visitor telemetry, and workshop analytics",
+    section: "COMMAND",
+    icon: "📈",
+    requiredPermission: "ANALYTICS_VIEW",
+    isNavigable: true,
+    componentName: "AdminAnalytics",
+  },
+
   // 2. User & Account Control
   {
     id: "users",
@@ -179,7 +193,7 @@ export const ADMIN_MODULE_REGISTRY = [
     path: "/admin_portal/payments",
     relativeRoute: "payments",
     label: "Payments & Finance",
-    description: "Financial transactions, gateway reconciliations, refunds, and trainer payouts",
+    description: "Financial transactions, gateway reconciliations, receipts, and refund audit records",
     section: "OPERATIONS",
     icon: "💳",
     requiredPermission: "PAYMENT_VIEW",
@@ -361,6 +375,7 @@ export function getNavSections(attentionCounts = {}) {
 export const ADMIN_BREADCRUMBS = {
   "/admin_portal": ["Admin Portal", "Dashboard"],
   "/admin_portal/dashboard": ["Admin Portal", "Dashboard"],
+  "/admin_portal/analytics": ["Admin Portal", "Live Insights"],
   "/admin_portal/users": ["Admin Portal", "Users & Accounts"],
   "/admin_portal/students": ["Admin Portal", "Students"],
   "/admin_portal/trainers": ["Admin Portal", "Trainers"],

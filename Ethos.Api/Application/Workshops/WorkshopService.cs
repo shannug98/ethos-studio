@@ -322,6 +322,7 @@ public class WorkshopService : IWorkshopService
         return new WorkshopResponse
         {
             Id = w.Id,
+            IsEthosOriginal = w.IsEthosOriginal,
             Title = w.Title,
             Description = w.Description,
             DanceStyle = w.DanceStyle,
@@ -625,7 +626,10 @@ public class WorkshopService : IWorkshopService
             // anonymous / guest
         }
 
-        quantity = Math.Clamp(quantity, 1, 10);
+        if (quantity < 1 || quantity > 10)
+        {
+            throw new ArgumentException("Ticket quantity must be between 1 and 10.");
+        }
         var nowUtc = DateTime.UtcNow;
 
         if (passTypeId.HasValue)
@@ -646,9 +650,9 @@ public class WorkshopService : IWorkshopService
             var activeSessions = workshop?.Sessions.Where(s => s.IsActive).ToList() ?? new List<WorkshopSession>();
 
             // Category-specific session validation
-            if (pass.WorkshopSessionId.HasValue)
+            if (pass.WorkshopSessionId.HasValue && !pass.SessionsIncluded.HasValue)
             {
-                // Single-Session pass
+                // Single-Session pass (legacy fixed admin-bound)
                 var linkedSession = activeSessions.FirstOrDefault(s => s.Id == pass.WorkshopSessionId.Value);
                 if (linkedSession == null)
                 {
@@ -799,7 +803,11 @@ public class WorkshopService : IWorkshopService
         CancellationToken cancellationToken = default)
     {
         request ??= new CreateWorkshopOrderRequest();
-        var quantity = Math.Clamp(request.Quantity, 1, 10);
+        if (request.Quantity < 1 || request.Quantity > 10)
+        {
+            throw new ArgumentException("Ticket quantity must be between 1 and 10.");
+        }
+        var quantity = request.Quantity;
 
         var idempotencyKey = request.IdempotencyKey?.Trim();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -1090,7 +1098,7 @@ public class WorkshopService : IWorkshopService
                 .ToListAsync(cancellationToken);
 
             List<WorkshopSession> targetSessions;
-            if (pass.WorkshopSessionId.HasValue)
+            if (pass.WorkshopSessionId.HasValue && !pass.SessionsIncluded.HasValue)
             {
                 var linkedSession = allActiveSessions.FirstOrDefault(s => s.Id == pass.WorkshopSessionId.Value);
                 if (linkedSession == null)
@@ -1785,7 +1793,7 @@ public class WorkshopService : IWorkshopService
                 Id = f.Id,
                 WorkshopId = f.WorkshopId,
                 WorkshopTitle = f.Workshop.Title,
-                Rating = f.Rating,
+                Rating = f.Rating ?? 0,
                 TeachingRating = f.TeachingRating,
                 EnergyRating = f.EnergyRating,
                 ContentRating = f.ContentRating,
@@ -1860,7 +1868,7 @@ public class WorkshopService : IWorkshopService
             Id = feedback.Id,
             WorkshopId = feedback.WorkshopId,
             WorkshopTitle = booking.Workshop.Title,
-            Rating = feedback.Rating,
+            Rating = feedback.Rating ?? 0,
             TeachingRating = feedback.TeachingRating,
             EnergyRating = feedback.EnergyRating,
             ContentRating = feedback.ContentRating,
@@ -1906,7 +1914,7 @@ public class WorkshopService : IWorkshopService
             Id = feedback.Id,
             WorkshopId = feedback.WorkshopId,
             WorkshopTitle = feedback.Workshop.Title,
-            Rating = feedback.Rating,
+            Rating = feedback.Rating ?? 0,
             TeachingRating = feedback.TeachingRating,
             EnergyRating = feedback.EnergyRating,
             ContentRating = feedback.ContentRating,

@@ -223,22 +223,22 @@ public class WorkshopPhase5Tests
             adminService.CreateWorkshopAsync(adminId, validReq, CancellationToken.None));
         Assert.Contains("Single-session ticket", ex1.Message);
 
-        // Case 3: Invalid Bundle (WorkshopSessionId == null with SessionsIncluded = 1)
+        // Case 3: Invalid SessionsIncluded (SessionsIncluded < 1)
         var invalidPass2 = new List<AdminWorkshopPassTypeItem>
         {
             new()
             {
-                Name = "Contradictory Bundle",
+                Name = "Invalid Zero Session Ticket",
                 Price = 500m,
                 TotalQuantity = 20,
                 WorkshopSessionId = null,
-                SessionsIncluded = 1
+                SessionsIncluded = 0
             }
         };
         validReq.PassTypes = invalidPass2;
         var ex2 = await Assert.ThrowsAsync<ArgumentException>(() =>
             adminService.CreateWorkshopAsync(adminId, validReq, CancellationToken.None));
-        Assert.Contains("Multi-session bundle ticket", ex2.Message);
+        Assert.Contains("must have SessionsIncluded greater than or equal to 1", ex2.Message);
 
         // Case 4: Nonexistent Session Referenced
         var invalidPass3 = new List<AdminWorkshopPassTypeItem>

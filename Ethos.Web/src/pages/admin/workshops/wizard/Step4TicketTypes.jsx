@@ -70,12 +70,9 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
   };
 
   const getCategory = (ticket) => {
-    if (ticket.category === "BUNDLE" || (ticket.sessionsIncluded != null && Number(ticket.sessionsIncluded) >= 2)) {
-      return "BUNDLE";
-    }
-    if (ticket.category === "SINGLE" || Number(ticket.sessionsIncluded) === 1) {
-      return "SINGLE";
-    }
+    if (ticket.category === "ALL_ACCESS" || ticket.sessionsIncluded == null) return "ALL_ACCESS";
+    if (ticket.category === "SINGLE" || Number(ticket.sessionsIncluded) === 1) return "SINGLE";
+    if (ticket.category === "BUNDLE" || Number(ticket.sessionsIncluded) >= 2) return "BUNDLE";
     return "ALL_ACCESS";
   };
 
@@ -90,7 +87,7 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
           <h2 className="wizard-section-title">Step 4 — Configure Ticket Types</h2>
         </div>
         <p className="wizard-section-desc">
-          Define the ticket types available for this workshop (All Sessions Pass, Solo Pass for 1 session, or Multi-Session Bundle).
+          Define the ticket types available for this workshop (Solo, Dual, Trio, or All Workshops).
           Configure commercial quotas and pass entitlements. Pricing and progressive volume tiers will be configured next in Step 5.
         </p>
       </div>
@@ -264,17 +261,27 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
                     {/* Scope Badge */}
                     {category === "ALL_ACCESS" && (
                       <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", background: "#FEF3C7", color: "#B45309", borderRadius: "6px" }}>
-                        All Sessions
+                        All Workshops
                       </span>
                     )}
                     {category === "SINGLE" && (
                       <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", background: "#DBEAFE", color: "#1D4ED8", borderRadius: "6px" }}>
-                        Solo Pass (1 Session)
+                        Solo
                       </span>
                     )}
-                    {category === "BUNDLE" && (
+                    {category === "BUNDLE" && Number(ticket.sessionsIncluded) === 2 && (
                       <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", background: "#F3E8FF", color: "#7E22CE", borderRadius: "6px" }}>
-                        {ticket.sessionsIncluded || 2}-Session Pass
+                        Dual
+                      </span>
+                    )}
+                    {category === "BUNDLE" && Number(ticket.sessionsIncluded) === 3 && (
+                      <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", background: "#F3E8FF", color: "#7E22CE", borderRadius: "6px" }}>
+                        Trio
+                      </span>
+                    )}
+                    {category === "BUNDLE" && Number(ticket.sessionsIncluded) > 3 && (
+                      <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", background: "#F3E8FF", color: "#7E22CE", borderRadius: "6px" }}>
+                        {ticket.sessionsIncluded}-Session Bundle
                       </span>
                     )}
                   </div>
@@ -324,92 +331,59 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
 
                   <div
                     className="step4-scope-grid"
-                    style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}
+                    style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}
                   >
-                    {/* All Sessions Option */}
+                    {/* SOLO */}
                     <button
                       type="button"
-                      onClick={() => handleTicketChange(idx, {
-                        category: "ALL_ACCESS",
-                        sessionsIncluded: null,
-                        workshopSessionId: null,
-                        targetSessionClientId: null,
-                      })}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        border: category === "ALL_ACCESS" ? "2px solid #FF5500" : "1.5px solid #CBD5E1",
-                        background: category === "ALL_ACCESS" ? "#FFF7ED" : "#FFFFFF",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: category === "ALL_ACCESS" ? "#C2410C" : "#1E293B" }}>
-                        ✦ All Sessions Pass
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>
-                        Full access to all sessions in the workshop
-                      </div>
-                    </button>
-
-                    {/* Solo Pass Option */}
-                    <button
-                      type="button"
-                      onClick={() => handleTicketChange(idx, {
-                        category: "SINGLE",
-                        sessionsIncluded: 1,
-                        workshopSessionId: null,
-                        targetSessionClientId: null,
-                      })}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        textAlign: "left",
-                        cursor: "pointer",
+                      onClick={() => handleTicketChange(idx, { category: "SINGLE", sessionsIncluded: 1, workshopSessionId: null, targetSessionClientId: null })}
+                      style={{ padding: "10px 14px", borderRadius: "8px", textAlign: "left", cursor: "pointer",
                         border: category === "SINGLE" ? "2px solid #2563EB" : "1.5px solid #CBD5E1",
-                        background: category === "SINGLE" ? "#EFF6FF" : "#FFFFFF",
-                        transition: "all 0.15s ease",
-                      }}
+                        background: category === "SINGLE" ? "#EFF6FF" : "#FFFFFF", transition: "all 0.15s ease" }}
                     >
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: category === "SINGLE" ? "#1D4ED8" : "#1E293B" }}>
-                        👤 Solo Pass (1 Session)
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>
-                        Attendee chooses 1 session at booking
-                      </div>
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: category === "SINGLE" ? "#1D4ED8" : "#1E293B" }}>Solo</div>
+                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>Attend 1 workshop</div>
                     </button>
 
-                    {/* Multi-Session Option */}
+                    {/* DUAL */}
                     <button
                       type="button"
-                      onClick={() => handleTicketChange(idx, {
-                        category: "BUNDLE",
-                        sessionsIncluded: Math.max(2, Number(ticket.sessionsIncluded) || 2),
-                        workshopSessionId: null,
-                        targetSessionClientId: null,
-                      })}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        border: category === "BUNDLE" ? "2px solid #7C3AED" : "1.5px solid #CBD5E1",
-                        background: category === "BUNDLE" ? "#F5F3FF" : "#FFFFFF",
-                        transition: "all 0.15s ease",
-                      }}
+                      onClick={() => handleTicketChange(idx, { category: "BUNDLE", sessionsIncluded: 2, workshopSessionId: null, targetSessionClientId: null })}
+                      style={{ padding: "10px 14px", borderRadius: "8px", textAlign: "left", cursor: "pointer",
+                        border: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 2) ? "2px solid #7C3AED" : "1.5px solid #CBD5E1",
+                        background: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 2) ? "#F5F3FF" : "#FFFFFF", transition: "all 0.15s ease" }}
                     >
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: category === "BUNDLE" ? "#6D28D9" : "#1E293B" }}>
-                        📚 Multi-Session Pass
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>
-                        Attendee chooses N sessions at booking
-                      </div>
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 2) ? "#6D28D9" : "#1E293B" }}>Dual</div>
+                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>Attend 2 workshops</div>
+                    </button>
+
+                    {/* TRIO */}
+                    <button
+                      type="button"
+                      onClick={() => handleTicketChange(idx, { category: "BUNDLE", sessionsIncluded: 3, workshopSessionId: null, targetSessionClientId: null })}
+                      style={{ padding: "10px 14px", borderRadius: "8px", textAlign: "left", cursor: "pointer",
+                        border: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 3) ? "2px solid #7C3AED" : "1.5px solid #CBD5E1",
+                        background: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 3) ? "#F5F3FF" : "#FFFFFF", transition: "all 0.15s ease" }}
+                    >
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: (category === "BUNDLE" && Number(ticket.sessionsIncluded) === 3) ? "#6D28D9" : "#1E293B" }}>Trio</div>
+                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>Attend 3 workshops</div>
+                    </button>
+
+                    {/* ALL WORKSHOPS */}
+                    <button
+                      type="button"
+                      onClick={() => handleTicketChange(idx, { category: "ALL_ACCESS", sessionsIncluded: null, workshopSessionId: null, targetSessionClientId: null })}
+                      style={{ padding: "10px 14px", borderRadius: "8px", textAlign: "left", cursor: "pointer",
+                        border: category === "ALL_ACCESS" ? "2px solid #FF5500" : "1.5px solid #CBD5E1",
+                        background: category === "ALL_ACCESS" ? "#FFF7ED" : "#FFFFFF", transition: "all 0.15s ease" }}
+                    >
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: category === "ALL_ACCESS" ? "#C2410C" : "#1E293B" }}>All Workshops</div>
+                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "3px" }}>Attend all workshops</div>
                     </button>
                   </div>
 
-                  {/* Multi-Session Count Configurator */}
-                  {category === "BUNDLE" && (
+                  {/* Custom N > 3 configurator (only shown when category is BUNDLE and sessionsIncluded > 3) */}
+                  {category === "BUNDLE" && Number(ticket.sessionsIncluded) > 3 && (
                     <div
                       style={{
                         display: "flex",
@@ -427,10 +401,10 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
                         Attendee selects exactly:
                       </span>
                       <NumericInput
-                        min={2}
+                        min={4}
                         max={totalSessionsCount > 0 ? totalSessionsCount : 30}
-                        value={Number(ticket.sessionsIncluded) || 2}
-                        onChange={(val) => handleTicketChange(idx, "sessionsIncluded", Math.max(2, val || 2))}
+                        value={Number(ticket.sessionsIncluded) || 4}
+                        onChange={(val) => handleTicketChange(idx, "sessionsIncluded", Math.max(4, val || 4))}
                         className="tier-input-field text-center"
                         style={{
                           width: "70px",
@@ -444,7 +418,7 @@ export default function Step4TicketTypes({ form, onChange, errors }) {
                         }}
                       />
                       <span style={{ fontSize: "12px", color: "#6B7280" }}>
-                        sessions from the {totalSessionsCount > 0 ? `${totalSessionsCount} available workshop sessions` : "workshop schedule"}.
+                        workshops from the schedule.
                       </span>
                     </div>
                   )}

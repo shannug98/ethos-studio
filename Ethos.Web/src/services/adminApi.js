@@ -938,14 +938,6 @@ export const adminApi = {
   getPaymentReceipt: (transactionId) =>
     adminRequest(`/api/admin/payments/${transactionId}/receipt`),
 
-  getTrainerPayouts: () => adminRequest("/api/admin/finance/trainer-payouts"),
-
-  processTrainerPayout: (trainerId, amount, payoutReference, notes = null) =>
-    adminRequest(`/api/admin/finance/trainer-payouts/${trainerId}/process`, {
-      method: "POST",
-      body: JSON.stringify({ amount, payoutReference, notes }),
-    }),
-
   // Phase 18.12: Observability & Telemetry Engine
   getObservabilityLogs: (params = "") =>
     adminRequest(`/api/admin/observability/logs${params ? `?${params}` : ""}`),
@@ -1296,6 +1288,106 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  // ==========================================
+  // Product Analytics & Live Insights Engine
+  // ==========================================
+  getAnalyticsSummary: (range = "last7days") =>
+    adminRequest(`/api/admin/analytics/summary?range=${encodeURIComponent(range)}`),
+
+  getAnalyticsTrends: (range = "last30days") =>
+    adminRequest(`/api/admin/analytics/trends?range=${encodeURIComponent(range)}`),
+
+  getAnalyticsEvents: (range = "last30days") =>
+    adminRequest(`/api/admin/analytics/events?range=${encodeURIComponent(range)}`),
+
+  getAnalyticsWorkshops: (range = "last30days", limit = 10) =>
+    adminRequest(`/api/admin/analytics/workshops?range=${encodeURIComponent(range)}&limit=${limit}`),
+
+  getAnalyticsRecent: (limit = 20) =>
+    adminRequest(`/api/admin/analytics/recent?limit=${limit}`),
+
+  // ==========================================
+  // Workstream 5.6 — Business Live Insights
+  // ==========================================
+  getAdminInsightsOverview: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/overview?${params.toString()}`);
+  },
+
+  getAdminInsightsTrends: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/trends?${params.toString()}`);
+  },
+
+  getAdminInsightsWorkshops: (range = "last7days", limit = 10) => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    params.set("limit", String(limit));
+    return adminRequest(`/api/admin/insights/workshops?${params.toString()}`);
+  },
+
+  getAdminInsightsPayments: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/payments?${params.toString()}`);
+  },
+
+  getAdminInsightsLive: (windowMinutes = 15, workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("windowMinutes", String(windowMinutes));
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/live?${params.toString()}`);
+  },
+
+  getAdminInsightsActivity: (limit = 20, workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/activity?${params.toString()}`);
+  },
+
+  getAdminInsightsTrafficSources: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/traffic-sources?${params.toString()}`);
+  },
+
+  getAdminInsightsDevices: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/devices?${params.toString()}`);
+  },
+
+  getAdminInsightsLocations: (range = "last7days", workshopId = "") => {
+    const params = new URLSearchParams();
+    params.set("range", range);
+    if (workshopId) {
+      params.set("workshopId", workshopId);
+    }
+    return adminRequest(`/api/admin/insights/locations?${params.toString()}`);
+  },
 };
 
 export const getDailyActivity = adminApi.getDailyActivity;

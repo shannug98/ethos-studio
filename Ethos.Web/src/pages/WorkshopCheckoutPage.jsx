@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import WorkshopPassModal from "../components/student/WorkshopPassModal";
 import { getWorkshopTimingDisplay } from "../utils/workshopPresentation";
 import { ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
+import { trackWorkshopCheckoutStarted, trackWorkshopCheckoutCompleted } from "../services/analytics";
 import "./WorkshopCheckoutPage.css";
 
 const fallbackImage = ETHOS_MEDIA_FALLBACK_SVG;
@@ -164,7 +165,16 @@ export default function WorkshopCheckoutPage() {
   const [confirmedBooking, setConfirmedBooking] = useState(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey, setIdempotencyKey] = useState(() => stateData.checkoutAttemptId || crypto.randomUUID());
+
+  const sortedSessionIdsKey = Array.isArray(selectedSessionIds)
+    ? selectedSessionIds.slice().sort().join(",")
+    : "";
+
+  // Regenerate idempotency key whenever material order parameters change or on fresh checkout attempt
+  useEffect(() => {
+    setIdempotencyKey(stateData.checkoutAttemptId || crypto.randomUUID());
+  }, [workshop?.id, passTypeId, quantity, sortedSessionIdsKey, stateData.checkoutAttemptId]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -194,6 +204,10 @@ export default function WorkshopCheckoutPage() {
           if (ws) {
             setWorkshop(ws);
             if (pr && !pricing) setPricing(pr);
+            trackWorkshopCheckoutStarted(ws.id, {
+              title: ws.title || "",
+              quantity: String(quantity),
+            });
           } else {
             setNotFound(true);
           }
@@ -202,6 +216,11 @@ export default function WorkshopCheckoutPage() {
         }
       }
       resolveWorkshop();
+    } else if (workshop?.id) {
+      trackWorkshopCheckoutStarted(workshop.id, {
+        title: workshop.title || "",
+        quantity: String(quantity),
+      });
     }
   }, [identifier, workshop, pricing, navigate]);
 
@@ -262,7 +281,25 @@ export default function WorkshopCheckoutPage() {
         orderPayload.selectedSessionIds = selectedSessionIds;
       }
 
-      const order = await workshopsApi.createWorkshopOrder(workshop.id, orderPayload);
+      let order;
+      try {
+        order = await workshopsApi.createWorkshopOrder(workshop.id, orderPayload);
+      } catch (orderErr) {
+        const errMsg = orderErr?.data?.message || orderErr?.message || "";
+        if (
+          orderErr?.status === 409 ||
+          errMsg.includes("Idempotency key") ||
+          errMsg.includes("different order parameters")
+        ) {
+          // Stale idempotency key conflict detected — auto-heal with fresh attempt key
+          const freshKey = crypto.randomUUID();
+          setIdempotencyKey(freshKey);
+          orderPayload.idempotencyKey = freshKey;
+          order = await workshopsApi.createWorkshopOrder(workshop.id, orderPayload);
+        } else {
+          throw orderErr;
+        }
+      }
 
       // 2. Test mode / sandbox handling strictly in development mode
       const isTestOrder = Boolean(import.meta.env.DEV) && (!order.razorpayKeyId || order.razorpayKeyId === "rzp_test_placeholder" || order.razorpayOrderId?.startsWith("order_test_"));
@@ -277,6 +314,11 @@ export default function WorkshopCheckoutPage() {
           setConfirmedBooking(bookingResult);
           setIsPassModalOpen(true);
           setIdempotencyKey(crypto.randomUUID());
+          trackWorkshopCheckoutCompleted(workshop.id, {
+            transactionId: order.transactionId || "",
+            quantity: String(quantity),
+            isTest: "true",
+          });
         } catch (verErr) {
           console.error("Test payment verification error:", verErr);
           setErrorMsg(verErr?.data?.message || verErr?.message || "Failed to complete test booking.");
@@ -315,6 +357,10 @@ export default function WorkshopCheckoutPage() {
             setConfirmedBooking(bookingResult);
             setIsPassModalOpen(true);
             setIdempotencyKey(crypto.randomUUID());
+            trackWorkshopCheckoutCompleted(workshop.id, {
+              transactionId: order.transactionId || "",
+              quantity: String(quantity),
+            });
           } catch (verErr) {
             console.error("Verification error:", verErr);
             setErrorMsg(verErr?.data?.message || "Payment verification failed. Please contact support with Payment ID.");

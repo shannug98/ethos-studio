@@ -435,12 +435,12 @@ export default function AdminWorkshopBookingsAttendees() {
   // Booking table column definitions (9 required columns)
   const bookingColumns = [
     {
+      header: "Booking Reference",
       key: "bookingReference",
-      title: "Booking Reference",
-      render: (val, row) => (
+      render: (row) => (
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span className="font-mono font-bold" style={{ color: "#f97316" }}>
-            {val || `BK-${(row.bookingId || row.id || "").toString().slice(0, 8).toUpperCase()}`}
+            {row.bookingReference || `BK-${(row.bookingId || row.id || "").toString().slice(0, 8).toUpperCase()}`}
           </span>
           {row.isGuest ? (
             <span style={{ fontSize: "11px", padding: "1px 5px", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "#94a3b8" }}>
@@ -451,22 +451,22 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Customer",
       key: "studentName",
-      title: "Customer",
-      render: (name, row) => (
+      render: (row) => (
         <div>
-          <div className="font-bold">{name || "Workshop Attendee"}</div>
+          <div className="font-bold">{row.studentName || "Workshop Attendee"}</div>
           <div style={{ fontSize: "12px", color: "#94a3b8" }}>{row.studentPhone || "—"}</div>
           {row.studentEmail ? <div style={{ fontSize: "11px", color: "#64748b" }}>{row.studentEmail}</div> : null}
         </div>
       ),
     },
     {
+      header: "Pass / Ticket Type",
       key: "passName",
-      title: "Pass / Ticket Type",
-      render: (passName, row) => (
+      render: (row) => (
         <div>
-          <span className="font-medium" style={{ color: "#e2e8f0" }}>{passName || "Standard Admission"}</span>
+          <span className="font-medium" style={{ color: "#e2e8f0" }}>{row.passName || "Standard Admission"}</span>
           {row.sessionsIncludedCount ? (
             <div style={{ fontSize: "11px", color: "#94a3b8" }}>{row.sessionsIncludedCount} Sessions Pass</div>
           ) : null}
@@ -474,9 +474,9 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Attendees",
       key: "attendees",
-      title: "Attendees",
-      render: (_, row) => {
+      render: (row) => {
         const count = row.tickets?.length || 1;
         const isExpanded = expandedBookingIds.has(row.bookingId || row.id);
         return (
@@ -503,11 +503,11 @@ export default function AdminWorkshopBookingsAttendees() {
       },
     },
     {
+      header: "Payment",
       key: "paymentStatus",
-      title: "Payment",
-      render: (status, row) => (
+      render: (row) => (
         <div>
-          <AdminBadge variant={getStatusVariant(status)}>{status || "Paid"}</AdminBadge>
+          <AdminBadge variant={getStatusVariant(row.paymentStatus)}>{row.paymentStatus || "Paid"}</AdminBadge>
           <div style={{ fontSize: "12px", fontWeight: "600", marginTop: "2px", color: "#f8fafc" }}>
             ₹{Number(row.totalPrice || row.amount || workshop?.Price || workshop?.price || 0).toLocaleString("en-IN")}
           </div>
@@ -515,23 +515,23 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Booking Status",
       key: "status",
-      title: "Booking Status",
-      render: (status) => <AdminBadge variant={getStatusVariant(status)}>{status}</AdminBadge>,
+      render: (row) => <AdminBadge variant={getStatusVariant(row.status)}>{row.status}</AdminBadge>,
     },
     {
+      header: "Booked Date",
       key: "bookedAt",
-      title: "Booked Date",
-      render: (date) => (
+      render: (row) => (
         <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-          {date ? new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+          {row.bookedAt ? new Date(row.bookedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
         </span>
       ),
     },
     {
+      header: "Check-in",
       key: "checkInSummary",
-      title: "Check-in",
-      render: (_, row) => {
+      render: (row) => {
         const tickets = row.tickets || [];
         if (tickets.length === 0) {
           return <AdminBadge variant={row.attendanceStatus === "Present" ? "success" : "neutral"}>{row.attendanceStatus || "Pending"}</AdminBadge>;
@@ -548,9 +548,9 @@ export default function AdminWorkshopBookingsAttendees() {
       },
     },
     {
+      header: "Actions",
       key: "actions",
-      title: "Actions",
-      render: (_, row) => {
+      render: (row) => {
         const isCancelled = row.status === "Cancelled";
         const tickets = row.tickets || [];
         const hasUncheckedIn = tickets.length > 0 ? tickets.some((t) => !t.checkedInAt) : row.attendanceStatus !== "Present";
@@ -613,16 +613,16 @@ export default function AdminWorkshopBookingsAttendees() {
   // Attendee table column definitions (for [Attendees] view)
   const attendeeColumns = [
     {
+      header: "Ticket #",
       key: "ticketNumber",
-      title: "Ticket #",
-      render: (num) => <span className="font-mono font-bold" style={{ color: "#f97316" }}>{num}</span>,
+      render: (row) => <span className="font-mono font-bold" style={{ color: "#f97316" }}>{row.ticketNumber}</span>,
     },
     {
+      header: "Attendee Name",
       key: "attendeeName",
-      title: "Attendee Name",
-      render: (name, row) => (
+      render: (row) => (
         <div>
-          <div className="font-bold">{name}</div>
+          <div className="font-bold">{row.attendeeName}</div>
           <div style={{ fontSize: "11px", color: "#94a3b8" }}>
             {row.attendeePhoneMasked || "—"} {row.isGuest ? "(Guest)" : ""}
           </div>
@@ -630,14 +630,14 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Booking Ref",
       key: "bookingReference",
-      title: "Booking Ref",
-      render: (ref) => <span className="font-mono">{ref}</span>,
+      render: (row) => <span className="font-mono">{row.bookingReference}</span>,
     },
     {
+      header: "Session / Pass",
       key: "sessionTitle",
-      title: "Session / Pass",
-      render: (_, row) => (
+      render: (row) => (
         <div>
           <div style={{ fontWeight: 600, color: "#e2e8f0" }}>
             {row.sessionTitle || "Workshop Session"}
@@ -652,19 +652,19 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Payment",
       key: "paymentStatus",
-      title: "Payment",
-      render: (status) => <AdminBadge variant={getStatusVariant(status)}>{status}</AdminBadge>,
+      render: (row) => <AdminBadge variant={getStatusVariant(row.paymentStatus)}>{row.paymentStatus}</AdminBadge>,
     },
     {
+      header: "Check-in Status",
       key: "isCheckedIn",
-      title: "Check-in Status",
-      render: (checkedIn, row) => (
+      render: (row) => (
         <div>
-          <AdminBadge variant={checkedIn ? "success" : "neutral"}>
-            {checkedIn ? "Checked In" : "Pending"}
+          <AdminBadge variant={row.isCheckedIn ? "success" : "neutral"}>
+            {row.isCheckedIn ? "Checked In" : "Pending"}
           </AdminBadge>
-          {checkedIn && row.formattedCheckedInAt ? (
+          {row.isCheckedIn && row.formattedCheckedInAt ? (
             <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
               {row.formattedCheckedInAt} ({row.checkInMethod || "Scan"})
             </div>
@@ -673,9 +673,9 @@ export default function AdminWorkshopBookingsAttendees() {
       ),
     },
     {
+      header: "Actions",
       key: "actions",
-      title: "Actions",
-      render: (_, row) => (
+      render: (row) => (
         <div style={{ display: "flex", gap: "6px" }}>
           {!row.isCheckedIn ? (
             <button

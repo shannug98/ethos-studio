@@ -64,21 +64,24 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #d4d4d8;
-  padding: 8px 16px;
+  color: #e4e4e7;
+  padding: 8px 18px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
-  margin-bottom: 24px;
-  transition: all 0.2s;
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
 }
 
 .workshop-back-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: rgba(223, 128, 108, 0.18);
+  border-color: #df806c;
+  color: #ffffff;
+  transform: translateX(-3px);
 }
 
 .workshop-hero-card {
@@ -782,11 +785,6 @@
   flex-shrink: 0;
 }
 
-/* MOBILE TOP BAR (HIDDEN ON DESKTOP) */
-.mobile-details-top-bar {
-  display: none;
-}
-
 /* MORE WORKSHOPS / MORE EVENTS SECTION (IMAGE 2) */
 .more-workshops-section {
   margin-top: 56px;
@@ -876,82 +874,36 @@
   flex: 0 0 clamp(290px, 26vw, 340px);
   max-width: 340px;
   scroll-snap-align: start;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.2s;
+  transition: none;
 }
 
 .more-workshop-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(223, 128, 108, 0.4);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
-}
-
-.more-workshop-poster-wrap {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  background: #18181b;
-  overflow: hidden;
-}
-
-.more-workshop-poster {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.more-workshop-card:hover .more-workshop-poster {
-  transform: scale(1.03);
-}
-
-.more-workshop-tag {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(18, 18, 22, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(223, 128, 108, 0.35);
-  color: #df806c;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .more-workshop-details {
-  padding: 18px;
+  padding: 14px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   flex: 1;
 }
 
 .more-workshop-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: #f7eee9;
   margin: 0;
   line-height: 1.35;
-}
-
-.more-workshop-info-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  letter-spacing: -0.01em;
 }
 
 .more-box-icon {
@@ -1050,60 +1002,6 @@
 }
 
 @media (max-width: 960px) {
-  /* Mobile Details Top Bar (Image 1) */
-  .mobile-details-top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    background: rgba(18, 18, 22, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    position: sticky;
-    top: 0;
-    z-index: 900;
-    width: 100%;
-  }
-
-  .mobile-details-back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: none;
-    color: #f4f4f5;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    max-width: 75%;
-  }
-
-  .mobile-details-top-title {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mobile-details-share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #f4f4f5;
-    padding: 6px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .workshop-hero-banner .workshop-back-btn {
-    display: none;
-  }
-
   .workshop-details-page {
     padding-bottom: 90px;
   }
@@ -1291,24 +1189,61 @@
     scroll-snap-align: start;
   }
 
-  /* Lift floating socials cleanly when mobile sticky bottom bar is visible */
-  .ethos-floating-socials,
+  /* Lift floating socials when sticky booking bar is present with clean clearance */
   body.has-sticky-booking-bar .ethos-floating-socials {
-    bottom: 82px !important;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
     transition: bottom 0.25s ease;
   }
 }
 
 @media (max-width: 768px) {
   .workshop-hero-banner {
-    padding-top: 16px;
+    padding-top: calc(80px + 18px);
     padding-bottom: 16px;
   }
 
+  .workshop-hero-content-wrap {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workshop-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    padding: 7px 15px;
+  }
+
   .workshop-hero-card {
-    height: 300px;
-    max-height: 300px;
+    height: auto;
+    max-height: none;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+  }
+
+  .workshop-hero-card-backdrop {
+    display: none;
+  }
+
+  .workshop-hero-img {
+    width: auto;
+    max-width: min(280px, 85vw);
+    aspect-ratio: 3 / 4;
+    height: auto;
+    max-height: 380px;
+    object-fit: cover;
     border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
   }
 
   .workshop-details-container {
@@ -1361,3 +1296,94 @@
 }
 
 
+
+/* =========================================================
+   SELECT PASS & BOOK CTA (inline, replaces old pass accordion)
+   ========================================================= */
+
+.workshop-book-cta-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  background: rgba(255, 85, 0, 0.06);
+  border: 1px solid rgba(255, 85, 0, 0.25);
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.workshop-book-cta-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.workshop-book-cta-from {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(247, 238, 233, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.workshop-book-cta-amount {
+  font-family: "GT Alpina", "Georgia", serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.workshop-book-cta-label {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(247, 238, 233, 0.55);
+}
+
+.workshop-book-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 13px 26px;
+  background: #FF5500;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(255, 85, 0, 0.3);
+}
+
+.workshop-book-cta-btn:hover {
+  background: #e64e00;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 85, 0, 0.4);
+}
+
+.workshop-book-cta-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+  .workshop-book-cta-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .workshop-book-cta-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -87,10 +87,10 @@ runTest("1.4 Trainers.jsx uses deterministic slot matching and zero sorted[idx] 
   assert.ok(file.includes("data.find((m) => Number(m.displayOrder) === slotOrder)"), "Must deterministically match slotOrder");
 });
 
-runTest("1.5 Founders.jsx strictly matches Slot 1 without || data[0] fallback", () => {
+runTest("1.5 Founders.jsx strictly matches Slot 1 and Slot 2 deterministically", () => {
   const file = fs.readFileSync(path.join(rootDir, "Ethos.Web/src/components/home/Founders.jsx"), "utf8");
-  assert.ok(file.includes("data.find((m) => Number(m.displayOrder) === 1)"), "Must deterministically match Slot 1");
-  assert.ok(!file.includes("|| data[0]"), "Must NOT contain || data[0] fallback");
+  assert.ok(file.includes("Number(m.displayOrder) === 1"), "Must deterministically match Slot 1");
+  assert.ok(file.includes("Number(m.displayOrder) === 2"), "Must deterministically match Slot 2");
   assert.ok(!file.includes("data[0].publicUrl"), "Must NOT access data[0].publicUrl");
 });
 
@@ -108,7 +108,7 @@ runTest("1.7 MediaPlacementCatalog.js classifies 8 fixed placements and 3 unboun
   const expectedFixed = [
     { id: "hero-banner", count: 6 },
     { id: "we-are-ethos", count: 3 },
-    { id: "founder", count: 1 },
+    { id: "founder", count: 2 },
     { id: "trainers", count: 4 },
     { id: "homepage-reels", count: 20 },
     { id: "gallery-slideshow", count: 20 },

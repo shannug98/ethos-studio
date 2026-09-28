@@ -1015,19 +1015,22 @@ a {
   color: #ffffff !important;
 }
 
-/* 7. Browser autofill overrides */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active,
-textarea:-webkit-autofill,
-textarea:-webkit-autofill:hover,
-textarea:-webkit-autofill:focus,
-textarea:-webkit-autofill:active,
-select:-webkit-autofill,
-select:-webkit-autofill:hover,
-select:-webkit-autofill:focus,
-select:-webkit-autofill:active {
+/* 7. Browser autofill overrides (strictly scoped to Trainer portal) */
+.trainer-page input:-webkit-autofill,
+.trainer-page input:-webkit-autofill:hover,
+.trainer-page input:-webkit-autofill:focus,
+.trainer-page input:-webkit-autofill:active,
+.trainer-page textarea:-webkit-autofill,
+.trainer-page textarea:-webkit-autofill:hover,
+.trainer-page textarea:-webkit-autofill:focus,
+.trainer-page textarea:-webkit-autofill:active,
+.trainer-page select:-webkit-autofill,
+.trainer-page select:-webkit-autofill:hover,
+.trainer-page select:-webkit-autofill:focus,
+.trainer-page select:-webkit-autofill:active,
+.trainer-application-page input:-webkit-autofill,
+.trainer-login-page input:-webkit-autofill,
+.trainer-portal input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #171717 inset !important;
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff !important;

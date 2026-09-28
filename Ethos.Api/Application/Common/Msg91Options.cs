@@ -24,6 +24,16 @@ public class Msg91Options
 
     public string? PasswordResetNamespace { get; set; } = null;
 
+    public string FeedbackAttendedTemplateName { get; set; } = "ethos_feedback_attended";
+
+    public string? FeedbackAttendedNamespace { get; set; } = null;
+
+    public string FeedbackNoShowTemplateName { get; set; } = "ethos_feedback_no_show";
+
+    public string? FeedbackNoShowNamespace { get; set; } = null;
+
+    public string FeedbackBaseUrl { get; set; } = "https://ethosdancestudio.com/feedback/workshop";
+
     public string DefaultCountryCode { get; set; } = "91";
 
     public int TimeoutSeconds { get; set; } = 15;

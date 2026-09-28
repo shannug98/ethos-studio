@@ -2,114 +2,286 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
-  padding: 24px;
+  min-height: 70vh;
+  padding: 32px 16px;
+  background: #f8fafc;
 }
 
 .admin-error-card {
-  max-width: 540px;
+  max-width: 580px;
   width: 100%;
-  background: #111622;
-  border: 1px solid #7f1d1d;
-  border-radius: 12px;
-  padding: 32px;
-  text-align: center;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 36px 32px;
+  text-align: left;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+/* TOP HEADER */
+.admin-error-top {
+  margin-bottom: 24px;
 }
 
 .admin-error-badge {
-  display: inline-block;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.5px;
   padding: 4px 10px;
   border-radius: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .admin-error-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin-bottom: 12px;
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.35;
 }
 
-.admin-error-message {
+.admin-error-description {
   font-size: 0.9rem;
-  color: #94a3b8;
-  line-height: 1.5;
-  margin-bottom: 24px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
 }
 
-.admin-error-trace {
+/* WHAT YOU CAN DO SECTION */
+.admin-error-section {
+  margin-bottom: 20px;
+}
+
+.admin-error-section-title {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.admin-error-steps-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.admin-error-steps-list {
+  margin: 0;
+  padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: #0b0e14;
-  border: 1px solid #1e2638;
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin-bottom: 24px;
-  font-family: monospace;
+  gap: 6px;
 }
 
-.trace-caption {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 700;
-}
-
-.trace-key {
+.admin-error-steps-list li {
   font-size: 0.85rem;
-  color: #38bdf8;
-  word-break: break-all;
+  color: #334155;
+  line-height: 1.45;
 }
 
-.admin-error-actions {
+/* AFFECTED AREA & CORRELATION REFERENCE */
+.admin-error-meta-row {
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-radius: 10px;
   flex-wrap: wrap;
 }
 
-.admin-error-actions button {
-  padding: 8px 16px;
+.admin-error-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-error-meta-label {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.admin-error-meta-value {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.admin-error-trace-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 3px 8px;
   border-radius: 6px;
-  font-size: 0.85rem;
+}
+
+.admin-error-trace-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.admin-error-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
 }
 
-.admin-error-actions .btn-primary {
-  background: #d4af37;
-  color: #0b0e14;
-  border: none;
+.admin-error-copy-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
-.admin-error-actions .btn-primary:hover {
-  background: #e5be48;
+/* TECHNICAL DETAILS ACCORDION */
+.admin-error-tech-accordion {
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-.admin-error-actions .btn-secondary {
-  background: #1e293b;
-  color: #f1f5f9;
-  border: 1px solid #334155;
+.admin-error-tech-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+  background: #fafafa;
+  transition: background 0.15s ease;
 }
 
-.admin-error-actions .btn-secondary:hover {
-  background: #334155;
+.admin-error-tech-summary:hover {
+  background: #f4f4f5;
+  color: #334155;
 }
 
-.admin-error-actions .btn-danger {
-  background: transparent;
+.accordion-arrow {
+  transition: transform 0.2s ease;
+}
+
+.admin-error-tech-accordion[open] .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+.admin-error-tech-content {
+  padding: 12px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.tech-error-msg {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
   color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  margin: 0 0 8px 0;
+  word-break: break-all;
 }
 
-.admin-error-actions .btn-danger:hover {
-  background: rgba(239, 68, 68, 0.15);
+.tech-stack-trace {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* ACTION BUTTONS */
+.admin-error-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.admin-error-btn.primary-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.admin-error-btn.primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.admin-error-btn.secondary-btn {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.admin-error-btn.secondary-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.admin-error-btn.ghost-btn {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid transparent;
+}
+
+.admin-error-btn.ghost-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+@media (max-width: 600px) {
+  .admin-error-card {
+    padding: 24px 18px;
+  }
+  .admin-error-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .admin-error-btn {
+    width: 100%;
+  }
 }

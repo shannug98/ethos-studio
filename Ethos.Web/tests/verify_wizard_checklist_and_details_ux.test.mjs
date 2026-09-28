@@ -55,8 +55,8 @@ test("Public Workshop Details Page: Default open accordions and hero backdrop", 
   // Default open sections
   assert.match(
     detailsJsx,
-    /openSections.*passes:\s*true.*schedule:\s*true.*about:\s*true/s,
-    "WorkshopDetailsPage must open Passes, Schedule, and About by default"
+    /openSections.*schedule:\s*true.*about:\s*true/s,
+    "WorkshopDetailsPage must open Schedule and About by default"
   );
 
   // Hero card backdrop container in JSX
@@ -80,11 +80,15 @@ test("Public Workshop Details Page: Default open accordions and hero backdrop", 
     "WorkshopDetailsPage.css must use object-fit: contain so portrait posters are fully visible without cropping"
   );
 
-  // remainingSeats must be destructured from getPassAvailability
+  const modalJsx = fs.readFileSync(
+    path.resolve(__dirname, "../src/components/workshop/SelectTicketsModal.jsx"),
+    "utf8"
+  );
+  // remainingSeats must be destructured from getPassAvailability in SelectTicketsModal
   assert.match(
-    detailsJsx,
+    modalJsx,
     /const\s*\{\s*isSoldOut,\s*remainingSeats\s*\}\s*=\s*getPassAvailability\(pass\)/,
-    "WorkshopDetailsPage.jsx must destructure remainingSeats so it does not throw ReferenceError"
+    "SelectTicketsModal.jsx must destructure remainingSeats so it does not throw ReferenceError"
   );
 });
 

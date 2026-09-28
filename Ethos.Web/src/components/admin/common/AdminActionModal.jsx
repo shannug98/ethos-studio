@@ -11,6 +11,7 @@ export default function AdminActionModal({
   secondaryAction,
   tone = "neutral", // neutral, danger, warning, success
   maxWidth = "640px",
+  className = "",
 }) {
   const modalRef = useRef(null);
 
@@ -40,7 +41,7 @@ export default function AdminActionModal({
   return (
     <div className="admin-modal-backdrop" onClick={onClose}>
       <div
-        className={`admin-modal-container tone-${tone}`}
+        className={`admin-modal-container tone-${tone} ${className}`.trim()}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

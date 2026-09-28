@@ -1,9 +1,11 @@
 using Ethos.Api.Application.Common;
+using Ethos.Api.Application.Feedback;
 using Ethos.Api.Application.Workshops;
 using Ethos.Api.Domain.Entities;
 using Ethos.Api.Domain.Enums;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -15,6 +17,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
     private readonly IMsg91WhatsAppService _msg91Service;
     private readonly ITicketPdfService _ticketPdfService;
     private readonly Msg91Options _options;
+    private readonly IConfiguration? _configuration;
     private readonly ILogger<WhatsAppOutboxDispatcher> _logger;
 
     public WhatsAppOutboxDispatcher(
@@ -22,13 +25,15 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         IMsg91WhatsAppService msg91Service,
         ITicketPdfService ticketPdfService,
         IOptions<Msg91Options> options,
-        ILogger<WhatsAppOutboxDispatcher> logger)
+        ILogger<WhatsAppOutboxDispatcher> logger,
+        IConfiguration? configuration = null)
     {
         _dbContext = dbContext;
         _msg91Service = msg91Service;
         _ticketPdfService = ticketPdfService;
         _options = options.Value;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<int> RecoverAbandonedLeasesAsync(CancellationToken cancellationToken = default)
@@ -171,6 +176,10 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
                 else if (record.NotificationType == WhatsAppNotificationType.TicketPdf)
                 {
                     await DispatchTicketPdfAsync(record, cancellationToken);
+                }
+                else if (record.NotificationType is WhatsAppNotificationType.FeedbackAttended or WhatsAppNotificationType.FeedbackNoShow)
+                {
+                    await DispatchFeedbackNotificationAsync(record, cancellationToken);
                 }
                 else
                 {
@@ -371,6 +380,81 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
         ApplyDispatchResult(record, result, ticket.AttendeeName);
     }
 
+    private async Task DispatchFeedbackNotificationAsync(
+        WhatsAppNotification record,
+        CancellationToken cancellationToken)
+    {
+        var booking = record.WorkshopBooking;
+        if (booking == null || booking.Workshop == null)
+        {
+            record.Status = WhatsAppNotificationStatus.Failed;
+            record.LastError = "Associated booking or workshop record was not found.";
+            record.LeaseExpiresAt = null;
+            record.LockedByWorkerId = null;
+            return;
+        }
+
+        var workshop = booking.Workshop;
+        var attendeeName = !string.IsNullOrWhiteSpace(record.WorkshopTicket?.AttendeeName)
+            ? record.WorkshopTicket.AttendeeName
+            : (!string.IsNullOrWhiteSpace(booking.GuestName)
+                ? booking.GuestName
+                : (booking.StudentProfile?.User?.FullName ?? "Ethos Student"));
+
+        var secretKey = _configuration?["TicketSecurity:SecretKey"];
+        var rawToken = FeedbackTokenHelper.DeriveRawToken(booking.Id, secretKey);
+        var tokenHash = FeedbackTokenHelper.HashToken(rawToken);
+
+        // Find existing unexpired token for this booking
+        var tokenEntity = await _dbContext.WorkshopFeedbackTokens
+            .Where(t => t.WorkshopBookingId == booking.Id && t.UsedAt == null && t.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (tokenEntity == null)
+        {
+            record.Status = WhatsAppNotificationStatus.Failed;
+            record.LastError = "Authoritative WorkshopFeedbackToken not found or already expired/used for this booking. Aborting dispatch.";
+            record.LeaseExpiresAt = null;
+            record.LockedByWorkerId = null;
+            record.NextAttemptAt = null;
+            _logger.LogError(
+                "[WhatsApp Outbox] Authoritative WorkshopFeedbackToken missing for Booking {BookingId}. Notification {NotificationId} failed.",
+                booking.Id,
+                record.Id);
+            return;
+        }
+
+        // Verify hash matches derived token
+        if (!string.Equals(tokenEntity.TokenHash, tokenHash, StringComparison.OrdinalIgnoreCase))
+        {
+            record.Status = WhatsAppNotificationStatus.Failed;
+            record.LastError = "Token hash mismatch with active database record. Secret key may have been rotated; aborting dispatch to prevent sending invalid link.";
+            record.LeaseExpiresAt = null;
+            record.LockedByWorkerId = null;
+            record.NextAttemptAt = null; // Do not retry mismatched secret without admin intervention
+            _logger.LogError(
+                "[WhatsApp Outbox] Token hash mismatch for Booking {BookingId}. Stored hash does not match currently derived hash with current server secret.",
+                booking.Id);
+            return;
+        }
+
+        var bookingRef = "BK-" + booking.Id.ToString()[..8].ToUpperInvariant();
+        var data = new FeedbackNotificationData(
+            AttendeeName: attendeeName,
+            WorkshopTitle: workshop.Title,
+            RawToken: rawToken,
+            BookingRef: bookingRef,
+            NotificationType: record.NotificationType);
+
+        var result = await _msg91Service.SendFeedbackNotificationAsync(
+            data,
+            record.RecipientPhone,
+            cancellationToken);
+
+        ApplyDispatchResult(record, result, attendeeName);
+    }
+
     private void ApplyDispatchResult(
         WhatsAppNotification record,
         Msg91DispatchResult result,
@@ -393,6 +477,15 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
                 record.WorkshopTicket.WhatsAppSent = true;
             }
 
+            var templateId = record.NotificationType switch
+            {
+                WhatsAppNotificationType.BookingConfirmed => _options.BookingConfirmedTemplateName,
+                WhatsAppNotificationType.TicketPdf => _options.TicketPdfTemplateName,
+                WhatsAppNotificationType.FeedbackAttended => _options.FeedbackAttendedTemplateName,
+                WhatsAppNotificationType.FeedbackNoShow => _options.FeedbackNoShowTemplateName,
+                _ => record.NotificationType.ToString()
+            };
+
             // Log communication record for studio audit trail
             _dbContext.CommunicationLogs.Add(new CommunicationLog
             {
@@ -401,9 +494,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
                 Channel = "WHATSAPP",
                 Recipient = MaskPhone(record.RecipientPhone),
                 RecipientUserId = record.WorkshopBooking?.StudentProfile?.UserId,
-                TemplateId = record.NotificationType == WhatsAppNotificationType.BookingConfirmed
-                    ? _options.BookingConfirmedTemplateName
-                    : _options.TicketPdfTemplateName,
+                TemplateId = templateId,
                 Subject = null,
                 BodyPreview = $"WhatsApp {record.NotificationType} sent to {attendeeName} ({MaskPhone(record.RecipientPhone)})",
                 Status = "SENT",

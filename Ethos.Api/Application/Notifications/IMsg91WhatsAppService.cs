@@ -17,6 +17,11 @@ public interface IMsg91WhatsAppService
         string recipientPhone,
         CancellationToken cancellationToken = default);
 
+    Task<Msg91DispatchResult> SendFeedbackNotificationAsync(
+        FeedbackNotificationData data,
+        string recipientPhone,
+        CancellationToken cancellationToken = default);
+
     bool TryNormalizePhoneNumber(
         string? rawPhone,
         out string normalizedPhone,
@@ -29,5 +34,9 @@ public interface IMsg91WhatsAppService
 
     string BuildTicketPdfJson(
         TicketPdfData data,
+        string recipientPhone);
+
+    string BuildFeedbackNotificationJson(
+        FeedbackNotificationData data,
         string recipientPhone);
 }

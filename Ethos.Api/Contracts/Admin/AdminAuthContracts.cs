@@ -62,6 +62,8 @@ public class AdminUserInfoResponse
     public string Phone { get; set; } = null!;
 
     public List<string> Roles { get; set; } = new();
+
+    public string? DisplayRole { get; set; }
 }
 
 public class AdminDeviceResponse

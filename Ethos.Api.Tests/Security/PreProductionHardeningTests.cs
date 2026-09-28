@@ -56,6 +56,9 @@ public class PreProductionHardeningTests
         public Task<Msg91DispatchResult> SendTicketPdfAsync(TicketPdfData data, string recipientPhone, CancellationToken cancellationToken = default) =>
             Task.FromResult(Msg91DispatchResult.Accepted("msg_t", "req_t"));
 
+        public Task<Msg91DispatchResult> SendFeedbackNotificationAsync(FeedbackNotificationData data, string recipientPhone, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Msg91DispatchResult.Accepted("msg_fb", "req_fb"));
+
         public bool TryNormalizePhoneNumber(string? rawPhone, out string normalizedPhone, out string? failureReason, string defaultCountryCode = "91")
         {
             normalizedPhone = "91" + (rawPhone ?? "").TrimStart('+').Trim();
@@ -65,6 +68,7 @@ public class PreProductionHardeningTests
 
         public string BuildBookingConfirmedJson(BookingConfirmedData data, string recipientPhone) => "{}";
         public string BuildTicketPdfJson(TicketPdfData data, string recipientPhone) => "{}";
+        public string BuildFeedbackNotificationJson(FeedbackNotificationData data, string recipientPhone) => "{}";
     }
 
     private class MockCurrentUserService : ICurrentUserService
@@ -372,19 +376,19 @@ public class PreProductionHardeningTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
-                ["Razorpay:KeyId"] = "rzp_live_realproductionkey12345",
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeyId"] = "rzp_live_TEST_FIXTURE_NOT_A_REAL_KEY",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = "60",
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "true",
-                ["Msg91:AuthKey"] = "real_production_msg91_auth_key_12345",
+                ["Msg91:AuthKey"] = "test_fixture_msg91_auth_key_12345",
                 ["Msg91:IntegratedNumber"] = "919988776655"
             })
             .Build();
@@ -400,15 +404,15 @@ public class PreProductionHardeningTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
-                ["Razorpay:KeyId"] = "rzp_live_realproductionkey12345",
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeyId"] = "rzp_live_TEST_FIXTURE_NOT_A_REAL_KEY",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = "60",
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "false",
@@ -452,19 +456,19 @@ public class PreProductionHardeningTests
         var settings = new Dictionary<string, string?>
         {
             ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
-            ["Razorpay:KeyId"] = "rzp_live_realproductionkey12345",
-            ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-            ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-            ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+            ["Razorpay:KeyId"] = "rzp_live_TEST_FIXTURE_NOT_A_REAL_KEY",
+            ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+            ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+            ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
             ["Jwt:ExpirationMinutes"] = "60",
-            ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-            ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-            ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-            ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+            ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+            ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+            ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+            ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
             ["CloudflareR2:BucketName"] = "ethos-production-media",
             ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
             ["Msg91:Enabled"] = "true",
-            ["Msg91:AuthKey"] = "real_production_msg91_auth_key_12345",
+            ["Msg91:AuthKey"] = "test_fixture_msg91_auth_key_12345",
             ["Msg91:IntegratedNumber"] = "919988776655"
         };
 
@@ -485,19 +489,19 @@ public class PreProductionHardeningTests
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
                 ["Razorpay:AcceptanceTestMode"] = "true",
-                ["Razorpay:KeyId"] = "rzp_test_realacceptancekey12345",
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeyId"] = "rzp_test_TEST_FIXTURE_NOT_A_REAL_KEY",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = "60",
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "true",
-                ["Msg91:AuthKey"] = "real_production_msg91_auth_key_12345",
+                ["Msg91:AuthKey"] = "test_fixture_msg91_auth_key_12345",
                 ["Msg91:IntegratedNumber"] = "919988776655"
             })
             .Build();
@@ -519,14 +523,14 @@ public class PreProductionHardeningTests
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
                 ["Razorpay:AcceptanceTestMode"] = "true",
                 ["Razorpay:KeyId"] = invalidKeyId,
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = "60",
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "false"
@@ -544,15 +548,15 @@ public class PreProductionHardeningTests
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=prod.db;Database=neondb;SSL Mode=Require;Trust Server Certificate=false;",
                 ["Razorpay:AcceptanceTestMode"] = "false",
-                ["Razorpay:KeyId"] = "rzp_test_realacceptancekey12345",
-                ["Razorpay:KeySecret"] = "realproductionsecretkeyabcdefgh",
-                ["Razorpay:WebhookSecret"] = "realproductionwebhooksecret64characterlongstringhere1234567890!!",
-                ["Jwt:SecretKey"] = "realproductionjwtsecret64characterlongstringhere12345678901234!!",
+                ["Razorpay:KeyId"] = "rzp_test_TEST_FIXTURE_NOT_A_REAL_KEY",
+                ["Razorpay:KeySecret"] = "test_fixture_secret_key_abcdefgh",
+                ["Razorpay:WebhookSecret"] = "test_fixture_webhook_secret_64characterlongstringhere1234567890!!",
+                ["Jwt:SecretKey"] = "test_fixture_jwt_secret_64characterlongstringhere12345678901234!!",
                 ["Jwt:ExpirationMinutes"] = "60",
-                ["TicketSecurity:SecretKey"] = "realproductionticketsecret64characterlongstringhere123456789012!!",
-                ["CloudflareR2:AccountId"] = "real_production_cloudflare_r2_account_id_12345",
-                ["CloudflareR2:AccessKeyId"] = "real_production_r2_access_key_id_12345",
-                ["CloudflareR2:SecretAccessKey"] = "real_production_r2_secret_access_key_12345",
+                ["TicketSecurity:SecretKey"] = "test_fixture_ticket_secret_64characterlongstringhere123456789012!!",
+                ["CloudflareR2:AccountId"] = "test_fixture_cloudflare_r2_account_id_12345",
+                ["CloudflareR2:AccessKeyId"] = "test_fixture_r2_access_key_id_12345",
+                ["CloudflareR2:SecretAccessKey"] = "test_fixture_r2_secret_access_key_12345",
                 ["CloudflareR2:BucketName"] = "ethos-production-media",
                 ["CloudflareR2:PublicDomain"] = "https://media.ethosdancestudio.com",
                 ["Msg91:Enabled"] = "false"

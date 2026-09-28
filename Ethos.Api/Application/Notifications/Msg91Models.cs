@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Ethos.Api.Domain.Enums;
 
 namespace Ethos.Api.Application.Notifications;
 
@@ -20,6 +21,14 @@ public record TicketPdfData(
     string BookingId,
     string PdfHttpsUrl,
     string FileName
+);
+
+public record FeedbackNotificationData(
+    string AttendeeName,
+    string WorkshopTitle,
+    string RawToken,
+    string BookingRef,
+    WhatsAppNotificationType NotificationType
 );
 
 public record Msg91DispatchResult(
@@ -159,6 +168,27 @@ public class PasswordResetComponents
 {
     [JsonPropertyName("body_1")]
     public TextComponent Body1 { get; set; } = new();
+}
+
+public class FeedbackComponents
+{
+    [JsonPropertyName("body_1")]
+    public TextComponent Body1 { get; set; } = new();
+
+    [JsonPropertyName("body_2")]
+    public TextComponent Body2 { get; set; } = new();
+
+    [JsonPropertyName("button_1")]
+    public ButtonComponent Button1 { get; set; } = new();
+}
+
+public class ButtonComponent
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "button";
+
+    [JsonPropertyName("value")]
+    public string Value { get; set; } = string.Empty;
 }
 
 public class TextComponent

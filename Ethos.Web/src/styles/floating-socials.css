@@ -8,7 +8,7 @@
   left: 16px;
   bottom: 28px;
 
-  z-index: 9500;
+  z-index: 800;
 
   display: flex;
   flex-direction: column;
@@ -250,33 +250,13 @@
    MOBILE
    ========================================================= */
 
-@media (max-width: 600px) {
-
+@media (max-width: 768px) {
+  /* Hide fixed side floating socials on mobile so they never block cards, schedules, or buttons */
   .ethos-floating-socials {
-    left: 10px;
-    bottom: 16px;
-
-    gap: 7px;
-
-    padding: 7px;
-  }
-
-  .ethos-social {
-    width: 38px;
-    height: 38px;
-  }
-
-  .ethos-social svg {
-    width: 19px;
-    height: 19px;
+    display: none !important;
   }
 }
 
-@media (max-height: 480px) and (orientation: landscape) {
-  .ethos-floating-socials {
-    display: none;
-  }
-}
 
 
 @media (prefers-reduced-motion: reduce) {

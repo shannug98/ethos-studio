@@ -45,11 +45,8 @@ export default function SelectTicketsModal({
           ? activePassTypes.find((p) => p.id === initialPassTypeId) || activePassTypes[0]
           : activePassTypes[0];
         setSelectedPassId(defaultPass?.id || null);
-        if (defaultPass?.workshopSessionId) {
-          setSelectedSessionIds([defaultPass.workshopSessionId]);
-        } else {
-          setSelectedSessionIds([]);
-        }
+        // Initially ZERO sessions selected for Solo, Dual, Trio
+        setSelectedSessionIds([]);
         setSessionOverlapError("");
         setQuantity(1);
         setQuote(null);
@@ -100,16 +97,12 @@ export default function SelectTicketsModal({
     setSessionOverlapError("");
   }, [selectedSessionIds, currentPass, availableSessions]);
 
-  // Reset selected sessions when switching passes
+  // Reset selected sessions to ZERO when switching passes
   const handleSelectPass = (pass) => {
     const { isSoldOut } = getPassAvailability(pass);
     if (isSoldOut) return;
     setSelectedPassId(pass.id);
-    if (pass.workshopSessionId) {
-      setSelectedSessionIds([pass.workshopSessionId]);
-    } else {
-      setSelectedSessionIds([]);
-    }
+    setSelectedSessionIds([]);
     setSessionOverlapError("");
     setQuantity(1);
     setQuote(null);
@@ -117,14 +110,19 @@ export default function SelectTicketsModal({
   };
 
   const handleToggleSession = (sessionId) => {
-    if (!currentPass || currentPass.isOverallPass || currentPass.workshopSessionId) return;
+    if (!currentPass || currentPass.isOverallPass) return;
+
+    const s = availableSessions.find((x) => x.id === sessionId);
+    if (s && s.remainingSeats != null && s.remainingSeats < quantity) {
+      return; // Cannot select session with insufficient seats for requested quantity
+    }
 
     const maxAllowed = currentPass.sessionsIncluded || 1;
     if (selectedSessionIds.includes(sessionId)) {
       setSelectedSessionIds((prev) => prev.filter((id) => id !== sessionId));
     } else {
       if (selectedSessionIds.length >= maxAllowed) {
-        // If single session, toggle to newly clicked one
+        // If single session (Solo), clicking another session replaces previous selection
         if (maxAllowed === 1) {
           setSelectedSessionIds([sessionId]);
         }
@@ -138,31 +136,34 @@ export default function SelectTicketsModal({
   const isPassSelectionDone = useMemo(() => {
     if (!currentPass) return false;
     if (currentPass.isOverallPass) return true;
-    if (currentPass.workshopSessionId) return true;
     const requiredCount = currentPass.sessionsIncluded || 1;
     return selectedSessionIds.length === requiredCount && !sessionOverlapError;
   }, [currentPass, selectedSessionIds, sessionOverlapError]);
 
-  // Calculate maximum quantity allowed for the selected pass
+  // Calculate maximum quantity allowed for the selected pass (min 1, max 10)
   const maxPassQuantity = useMemo(() => {
     if (!currentPass) return 10;
     const { remainingSeats } = getPassAvailability(currentPass);
     let cap = 10;
-    if (currentPass.workshopSessionId) {
-      const s = availableSessions.find((x) => x.id === currentPass.workshopSessionId);
-      if (s && s.remainingSeats != null) cap = s.remainingSeats;
-    } else if (currentPass.isOverallPass) {
+    if (currentPass.isOverallPass) {
       const rems = availableSessions.map((x) => (x.remainingSeats != null ? x.remainingSeats : 10));
-      if (rems.length > 0) cap = Math.min(...rems);
+      if (rems.length > 0) cap = Math.min(cap, ...rems);
     } else if (selectedSessionIds.length > 0) {
       const rems = availableSessions
         .filter((x) => selectedSessionIds.includes(x.id))
         .map((x) => (x.remainingSeats != null ? x.remainingSeats : 10));
-      if (rems.length > 0) cap = Math.min(...rems);
+      if (rems.length > 0) cap = Math.min(cap, ...rems);
     }
     const maxPass = remainingSeats != null ? remainingSeats : 10;
     return Math.max(1, Math.min(10, maxPass, cap));
   }, [currentPass, availableSessions, selectedSessionIds]);
+
+  // If selected quantity ever exceeds maxPassQuantity, automatically adjust it
+  useEffect(() => {
+    if (quantity > maxPassQuantity) {
+      setQuantity(Math.max(1, maxPassQuantity));
+    }
+  }, [maxPassQuantity, quantity]);
 
   // Server Quote Fetching for both Passes & Legacy Tiers
   useEffect(() => {
@@ -181,9 +182,7 @@ export default function SelectTicketsModal({
           return;
         }
 
-        const sids = currentPass.workshopSessionId
-          ? [currentPass.workshopSessionId]
-          : currentPass.isOverallPass
+        const sids = currentPass.isOverallPass
           ? []
           : selectedSessionIds;
 
@@ -301,6 +300,7 @@ export default function SelectTicketsModal({
   // Check if pass configuration is valid
   const isPassValid = (() => {
     if (!hasPasses || !currentPass) return false;
+    if (quantity < 1 || quantity > 10) return false;
     const { isSoldOut } = getPassAvailability(currentPass);
     if (isSoldOut) return false;
     if (quoteError) return false;
@@ -378,11 +378,17 @@ export default function SelectTicketsModal({
                             <span className="pass-type-name">{pass.name}</span>
                             {pass.isOverallPass ? (
                               <span className="pass-entitlement-pill">
-                                All Sessions
+                                All Workshops
                               </span>
+                            ) : pass.sessionsIncluded === 1 ? (
+                              <span className="pass-entitlement-pill">Solo</span>
+                            ) : pass.sessionsIncluded === 2 ? (
+                              <span className="pass-entitlement-pill">Dual</span>
+                            ) : pass.sessionsIncluded === 3 ? (
+                              <span className="pass-entitlement-pill">Trio</span>
                             ) : (
                               <span className="pass-entitlement-pill">
-                                {pass.sessionsIncluded} {pass.sessionsIncluded === 1 ? "Session Included" : "Sessions Included"}
+                                {pass.sessionsIncluded} Sessions
                               </span>
                             )}
                           </div>
@@ -428,141 +434,17 @@ export default function SelectTicketsModal({
                 })}
               </div>
 
-              {/* STEP 2: SESSION PICKER (FOR FINITE PASSES) OR ALL-ACCESS SUMMARY */}
+              {/* STEP 2: NUMBER OF TICKETS / QUANTITY SELECTOR */}
               {currentPass && (
-                <div className="pass-sessions-section">
-                  <div className="pass-section-header" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                      <span className="section-step-badge">2</span>
-                      <div>
-                        <h3 className="section-heading">
-                          {currentPass.isOverallPass
-                            ? "Included Sessions (All-Access)"
-                            : `Select Your ${currentPass.sessionsIncluded} Session${currentPass.sessionsIncluded > 1 ? "s" : ""}`}
-                        </h3>
-                        <p className="section-hint">
-                          {currentPass.isOverallPass
-                            ? "You have full all-access! All scheduled sessions below are included with this pass."
-                            : `Choose ${currentPass.sessionsIncluded} session${currentPass.sessionsIncluded > 1 ? "s" : ""} to attend.`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {!currentPass.isOverallPass && (
-                      <span className="selection-count-pill">
-                        {selectedSessionIds.length} of {currentPass.sessionsIncluded || 1} selected
-                      </span>
-                    )}
-                  </div>
-
-                  {sessionOverlapError && (
-                    <div className="session-overlap-alert">
-                      <AlertCircle size={16} />
-                      <span>{sessionOverlapError}</span>
-                    </div>
-                  )}
-
-                  {/* SESSIONS GROUPED BY DATE */}
-                  {getChronologicalGroupedSessions(availableSessions, workshop.workshopDate).map(([dateStr, sessionsOnDate]) => {
-                    return (
-                      <div key={dateStr} className="modal-date-sessions-group">
-                        <div className="modal-date-sessions-header">
-                          <div className="modal-date-left">
-                            <Calendar size={14} style={{ color: "#df806c" }} />
-                            <span>{formatDateFull(dateStr)}</span>
-                          </div>
-                          <span className="modal-date-count">
-                            {sessionsOnDate.length} {sessionsOnDate.length === 1 ? "Session Available" : "Sessions Available"}
-                          </span>
-                        </div>
-
-                        <div className="pass-sessions-list">
-                          {sessionsOnDate.map((session) => {
-                            const isSelected = selectedSessionIds.includes(session.id);
-                            const isOverall = currentPass.isOverallPass;
-                            const isSessionClosed = session.isBookingClosed || session.remainingSeats <= 0;
-                            const maxReached =
-                              !isOverall &&
-                              !isSelected &&
-                              selectedSessionIds.length >= (currentPass.sessionsIncluded || 1);
-
-                            const trainerObj = workshop.trainers?.find(
-                              (t) => (t.id || t.trainerProfileId) === session.trainerProfileId
-                            );
-                            const sessionTrainerName = getTrainerDisplayName(session.trainerName || trainerObj);
-
-                            return (
-                              <div
-                                key={session.id}
-                                className={`session-picker-card ${
-                                  isOverall || isSelected ? "is-active-session" : ""
-                                } ${isSessionClosed ? "is-session-closed" : ""} ${
-                                  maxReached && !isSessionClosed ? "is-session-disabled" : ""
-                                }`}
-                                onClick={() => {
-                                  if (!isOverall && !isSessionClosed && (!maxReached || currentPass.sessionsIncluded === 1)) {
-                                    handleToggleSession(session.id);
-                                  }
-                                }}
-                              >
-                                <div className="session-radio-container">
-                                  <div className={`session-radio-outer ${isSelected || isOverall ? "selected" : ""}`}>
-                                    {(isSelected || isOverall) && <div className="session-radio-inner" />}
-                                  </div>
-                                </div>
-
-                                <div className="session-trainer-avatar-col">
-                                  <TrainerAvatar
-                                    trainer={trainerObj}
-                                    name={sessionTrainerName}
-                                    size={38}
-                                    bordered
-                                    borderColor="rgba(223, 128, 108, 0.5)"
-                                  />
-                                </div>
-
-                                <div className="session-picker-info">
-                                  <div className="session-time-row">
-                                    <span className="session-time-text">
-                                      <Clock size={13} style={{ color: "#df806c" }} />
-                                      {formatTime(session.startTime)} – {formatTime(session.endTime)}
-                                    </span>
-                                    <span className="session-trainer-inline">
-                                      <User size={13} />
-                                      {sessionTrainerName}
-                                    </span>
-                                    <span className="session-seats-badge">
-                                      {session.remainingSeats != null ? `${session.remainingSeats} Seats Left` : "Seats Available"}
-                                    </span>
-                                  </div>
-                                  <h4 className="session-title-text">{session.title}</h4>
-                                  {session.description && (
-                                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#a1a1aa", lineHeight: 1.35 }}>
-                                      {session.description}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* STEP 3: QUANTITY & PRICE SUMMARY (WHEN PASS SELECTION COMPLETE) */}
-              {currentPass && isPassSelectionDone && (
-                <div className="pass-quantity-section" style={{ marginTop: "16px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="pass-quantity-step-section" style={{ marginTop: "16px", padding: "16px 20px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span className="section-step-badge">3</span>
+                        <span className="section-step-badge">2</span>
                         <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#fff" }}>Number of Tickets</h4>
                       </div>
                       <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#a1a1aa" }}>
-                        Select how many passes to book ({maxPassQuantity} max available).
+                        ₹{Number(currentPass.currentPrice ?? currentPass.price).toLocaleString("en-IN")} per pass • {maxPassQuantity < 10 ? `Max ${maxPassQuantity} tickets available` : "Select 1 to 10 tickets per purchase"}
                       </p>
                     </div>
 
@@ -576,7 +458,7 @@ export default function SelectTicketsModal({
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="stepper-value">{quantity}</span>
+                      <span className="stepper-value" style={{ minWidth: "24px", textAlign: "center", fontWeight: 800 }}>{quantity}</span>
                       <button
                         type="button"
                         className="stepper-btn"
@@ -614,6 +496,137 @@ export default function SelectTicketsModal({
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* STEP 3: SESSION PICKER (FOR FINITE PASSES) OR ALL-ACCESS SUMMARY */}
+              {currentPass && (
+                <div className="pass-sessions-section">
+                  <div className="pass-section-header" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                      <span className="section-step-badge">3</span>
+                      <div>
+                        <h3 className="section-heading">
+                          {currentPass.isOverallPass
+                            ? "Included Sessions (All-Access)"
+                            : `Select Your ${currentPass.sessionsIncluded} Session${currentPass.sessionsIncluded > 1 ? "s" : ""}`}
+                        </h3>
+                        <p className="section-hint">
+                          {currentPass.isOverallPass
+                            ? "You have full all-access! All scheduled sessions below are included with this pass."
+                            : `Choose ${currentPass.sessionsIncluded} session${currentPass.sessionsIncluded > 1 ? "s" : ""} to attend with your ${quantity} ${quantity === 1 ? "ticket" : "tickets"}.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!currentPass.isOverallPass && (
+                      <span className="selection-count-pill">
+                        {selectedSessionIds.length} of {currentPass.sessionsIncluded || 1} selected
+                      </span>
+                    )}
+                  </div>
+
+                  {sessionOverlapError && (
+                    <div className="session-overlap-alert">
+                      <AlertCircle size={16} />
+                      <span>{sessionOverlapError}</span>
+                    </div>
+                  )}
+
+                  {/* SESSIONS GROUPED BY DATE */}
+                  {getChronologicalGroupedSessions(availableSessions, workshop.workshopDate).map(([dateStr, sessionsOnDate]) => {
+                    return (
+                      <div key={dateStr} className="modal-date-sessions-group">
+                        <div className="modal-date-sessions-header">
+                          <div className="modal-date-left">
+                            <Calendar size={14} style={{ color: "#df806c" }} />
+                            <span>{formatDateFull(dateStr)}</span>
+                          </div>
+                          <span className="modal-date-count">
+                            {sessionsOnDate.length} {sessionsOnDate.length === 1 ? "Session Available" : "Sessions Available"}
+                          </span>
+                        </div>
+
+                        <div className="pass-sessions-list">
+                          {sessionsOnDate.map((session) => {
+                            const isSelected = selectedSessionIds.includes(session.id);
+                            const isOverall = currentPass.isOverallPass;
+                            const notEnoughSeats = session.remainingSeats != null && session.remainingSeats < quantity;
+                            const isSessionClosed = session.isBookingClosed || session.remainingSeats <= 0;
+                            const maxReached =
+                              !isOverall &&
+                              !isSelected &&
+                              (currentPass.sessionsIncluded || 1) > 1 &&
+                              selectedSessionIds.length >= (currentPass.sessionsIncluded || 1);
+                            const isSessionDisabled = !isOverall && (isSessionClosed || notEnoughSeats || (maxReached && (currentPass.sessionsIncluded || 1) > 1));
+
+                            const trainerObj = workshop.trainers?.find(
+                              (t) => (t.id || t.trainerProfileId) === session.trainerProfileId
+                            );
+                            const sessionTrainerName = getTrainerDisplayName(session.trainerName || trainerObj);
+
+                            return (
+                              <div
+                                key={session.id}
+                                className={`session-picker-card ${
+                                  isOverall || isSelected ? "is-active-session" : ""
+                                } ${isSessionClosed ? "is-session-closed" : ""} ${
+                                  isSessionDisabled && !isSessionClosed ? "is-session-disabled" : ""
+                                }`}
+                                onClick={() => {
+                                  if (!isOverall && !isSessionDisabled) {
+                                    handleToggleSession(session.id);
+                                  }
+                                }}
+                              >
+                                <div className="session-radio-container">
+                                  <div className={`session-radio-outer ${isSelected || isOverall ? "selected" : ""}`}>
+                                    {(isSelected || isOverall) && <div className="session-radio-inner" />}
+                                  </div>
+                                </div>
+
+                                <div className="session-trainer-avatar-col">
+                                  <TrainerAvatar
+                                    trainer={trainerObj}
+                                    name={sessionTrainerName}
+                                    size={38}
+                                    bordered
+                                    borderColor="rgba(223, 128, 108, 0.5)"
+                                  />
+                                </div>
+
+                                <div className="session-picker-info">
+                                  <div className="session-time-row">
+                                    <span className="session-time-text">
+                                      <Clock size={13} style={{ color: "#df806c" }} />
+                                      {formatTime(session.startTime)} – {formatTime(session.endTime)}
+                                    </span>
+                                    <span className="session-trainer-inline">
+                                      <User size={13} />
+                                      {sessionTrainerName}
+                                    </span>
+                                    <span className="session-seats-badge" style={notEnoughSeats ? { color: "#f87171", background: "rgba(239, 68, 68, 0.12)", borderColor: "rgba(239, 68, 68, 0.25)" } : {}}>
+                                      {session.remainingSeats != null
+                                        ? notEnoughSeats
+                                          ? `Only ${session.remainingSeats} Left (Need ${quantity})`
+                                          : `${session.remainingSeats} Seats Left`
+                                        : "Seats Available"}
+                                    </span>
+                                  </div>
+                                  <h4 className="session-title-text">{session.title}</h4>
+                                  {session.description && (
+                                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#a1a1aa", lineHeight: 1.35 }}>
+                                      {session.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -741,10 +754,10 @@ export default function SelectTicketsModal({
           <div className="select-tickets-footer-left">
             <div className="footer-meta-col footer-pass-col">
               <span className="footer-meta-label">Selected Pass</span>
-              <span className="footer-meta-value" title={currentPass ? `${currentPass.name} (${currentPass.isOverallPass ? "All Sessions" : `${currentPass.sessionsIncluded || 1} Session`})` : ""}>
+              <span className="footer-meta-value" title={currentPass ? `${currentPass.name} (${currentPass.isOverallPass ? "All Workshops" : currentPass.sessionsIncluded === 1 ? "Solo" : currentPass.sessionsIncluded === 2 ? "Dual" : currentPass.sessionsIncluded === 3 ? "Trio" : `${currentPass.sessionsIncluded} Sessions`})` : ""}>
                 {hasPasses
                   ? currentPass
-                    ? `${currentPass.name} (${currentPass.isOverallPass ? "All Sessions" : `${currentPass.sessionsIncluded || 1} Session`})`
+                    ? `${quantity}x ${currentPass.name} (${currentPass.isOverallPass ? "All Workshops" : currentPass.sessionsIncluded === 1 ? "Solo" : currentPass.sessionsIncluded === 2 ? "Dual" : currentPass.sessionsIncluded === 3 ? "Trio" : `${currentPass.sessionsIncluded} Sessions`})`
                     : "None selected"
                   : `${quantity} ${quantity === 1 ? "Ticket" : "Tickets"}`}
               </span>

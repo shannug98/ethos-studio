@@ -92,6 +92,10 @@ public class AppDbContext : DbContext
 
 
     public DbSet<WorkshopFeedback> WorkshopFeedbacks => Set<WorkshopFeedback>();
+    public DbSet<WorkshopFeedbackSetting> WorkshopFeedbackSettings => Set<WorkshopFeedbackSetting>();
+    public DbSet<FeedbackFormVersion> FeedbackFormVersions => Set<FeedbackFormVersion>();
+    public DbSet<FeedbackQuestion> FeedbackQuestions => Set<FeedbackQuestion>();
+    public DbSet<WorkshopFeedbackAnswer> WorkshopFeedbackAnswers => Set<WorkshopFeedbackAnswer>();
 
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
@@ -128,6 +132,8 @@ public class AppDbContext : DbContext
     public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
 
     public DbSet<RefundJob> RefundJobs => Set<RefundJob>();
+
+    public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

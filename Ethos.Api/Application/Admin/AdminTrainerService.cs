@@ -110,6 +110,8 @@ public class AdminTrainerService : IAdminTrainerService
             ProfilePhotoUrl = t.ProfilePhotoUrl,
             PrimaryDanceStyle = t.PrimaryDanceStyle,
             SecondaryDanceStyles = t.SecondaryDanceStyles,
+            ExperienceYears = t.ExperienceYears,
+            Bio = t.Bio,
             ApprovedAt = t.ApprovedAt,
             CreatedAt = t.CreatedAt
         }).ToList();
@@ -289,7 +291,7 @@ public class AdminTrainerService : IAdminTrainerService
                 WorkshopTitle = f.Workshop.Title,
                 WorkshopDate = f.Workshop.WorkshopDate,
                 BookingReference = f.WorkshopBookingId.HasValue ? f.WorkshopBookingId.Value.ToString().Substring(0, 8).ToUpper() : "DIRECT",
-                Rating = f.Rating,
+                Rating = f.Rating ?? 0,
                 Comment = f.Comment,
                 CreatedAt = f.SubmittedAt
             })
@@ -457,7 +459,8 @@ public class AdminTrainerService : IAdminTrainerService
             .Where(f => f.Workshop.TrainerProfileId == t.Id)
             .ToListAsync(cancellationToken);
 
-        var avgRating = feedback.Count > 0 ? Math.Round(feedback.Average(f => (double)f.Rating), 2) : 5.0;
+        var ratedFeedback = feedback.Where(f => f.Rating.HasValue).ToList();
+        var avgRating = ratedFeedback.Count > 0 ? Math.Round(ratedFeedback.Average(f => (double)f.Rating!.Value), 2) : 5.0;
         if (feedback.Count >= 1 && avgRating < 3.5)
         {
             businessIssues.Add(new DiagnosticIssue
@@ -695,6 +698,8 @@ public class AdminTrainerService : IAdminTrainerService
             ProfilePhotoUrl = trainer.ProfilePhotoUrl,
             PrimaryDanceStyle = trainer.PrimaryDanceStyle,
             SecondaryDanceStyles = trainer.SecondaryDanceStyles,
+            ExperienceYears = trainer.ExperienceYears,
+            Bio = trainer.Bio,
             ApprovedAt = trainer.ApprovedAt,
             CreatedAt = trainer.CreatedAt
         };
@@ -757,6 +762,8 @@ public class AdminTrainerService : IAdminTrainerService
             ProfilePhotoUrl = trainer.ProfilePhotoUrl,
             PrimaryDanceStyle = trainer.PrimaryDanceStyle,
             SecondaryDanceStyles = trainer.SecondaryDanceStyles,
+            ExperienceYears = trainer.ExperienceYears,
+            Bio = trainer.Bio,
             ApprovedAt = trainer.ApprovedAt,
             CreatedAt = trainer.CreatedAt
         };

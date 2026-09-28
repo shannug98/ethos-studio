@@ -13,17 +13,20 @@ public class AdminDashboardService : IAdminDashboardService
     private readonly AppDbContext _db;
     private readonly IAdminDeviceService _adminDeviceService;
     private readonly IConfiguration _configuration;
+    private readonly ISystemHealthService _systemHealthService;
     private readonly ILogger<AdminDashboardService> _logger;
 
     public AdminDashboardService(
         AppDbContext db,
         IAdminDeviceService adminDeviceService,
         IConfiguration configuration,
+        ISystemHealthService systemHealthService,
         ILogger<AdminDashboardService> logger)
     {
         _db = db;
         _adminDeviceService = adminDeviceService;
         _configuration = configuration;
+        _systemHealthService = systemHealthService;
         _logger = logger;
     }
 
@@ -974,76 +977,35 @@ public class AdminDashboardService : IAdminDashboardService
 
     public async Task<AdminSystemHealthDto> GetSystemHealthAsync(CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
-
-        bool dbHealthy;
-        try
-        {
-            dbHealthy = await _db.Database.CanConnectAsync(cancellationToken);
-        }
-        catch
-        {
-            dbHealthy = false;
-        }
-
-        var isStorageConfigured = !string.IsNullOrWhiteSpace(_configuration?["CloudflareR2:BucketName"] ?? _configuration?["Cloudflare:BucketName"]);
-        var isPaymentConfigured = !string.IsNullOrWhiteSpace(_configuration?["Razorpay:KeyId"]);
-        var isWhatsAppConfigured = !string.IsNullOrWhiteSpace(_configuration?["WhatsApp:ApiKey"]);
-
-        var subsystems = new List<AdminSubsystemHealthItem>
-        {
-            new AdminSubsystemHealthItem
-            {
-                Key = "website_api",
-                Name = "Website & API",
-                Status = "Operational",
-                Description = "ASP.NET Core API running normally"
-            },
-            new AdminSubsystemHealthItem
-            {
-                Key = "database",
-                Name = "Database",
-                Status = dbHealthy ? "Operational" : "Unavailable",
-                Description = dbHealthy ? "Active database connection verified" : "Database connection failed"
-            },
-            new AdminSubsystemHealthItem
-            {
-                Key = "payment_provider",
-                Name = "Payment Provider",
-                Status = isPaymentConfigured ? "Operational" : "Standby / Not Configured",
-                Description = isPaymentConfigured ? "Payment gateway credentials verified" : "Payment gateway credentials pending configuration"
-            },
-            new AdminSubsystemHealthItem
-            {
-                Key = "whatsapp_provider",
-                Name = "WhatsApp Provider",
-                Status = isWhatsAppConfigured ? "Operational" : "Standby / Not Configured",
-                Description = isWhatsAppConfigured ? "Messaging gateway verified" : "Messaging gateway pending configuration"
-            },
-            new AdminSubsystemHealthItem
-            {
-                Key = "storage",
-                Name = "Storage",
-                Status = isStorageConfigured ? "Operational" : "Standby / Not Configured",
-                Description = isStorageConfigured ? "Media storage bucket verified" : "Media storage bucket pending configuration"
-            },
-            new AdminSubsystemHealthItem
-            {
-                Key = "background_jobs",
-                Name = "Background Jobs",
-                Status = "Operational",
-                Description = "Background schedule runners and telemetry interceptors active"
-            }
-        };
-
-        var overallStatus = dbHealthy ? "Operational" : "Degraded";
+        var unified = await _systemHealthService.GetUnifiedHealthAsync(cancellationToken);
 
         return new AdminSystemHealthDto
         {
-            OverallStatus = overallStatus,
-            LastCheckedUtc = now,
-            FormattedLastChecked = now.ToString("dd MMM yyyy, hh:mm tt", CultureInfo.InvariantCulture),
-            Subsystems = subsystems
+            OverallStatus = unified.OverallStatus,
+            TotalComponents = unified.TotalComponents,
+            OperationalCount = unified.OperationalCount,
+            DegradedCount = unified.DegradedCount,
+            ErrorCount = unified.ErrorCount,
+            NotConfiguredCount = unified.NotConfiguredCount,
+            StandbyCount = unified.StandbyCount,
+            LastCheckedUtc = unified.LastCheckedUtc,
+            FormattedLastChecked = unified.FormattedLastChecked,
+            Subsystems = unified.Components.Select(c => new AdminSubsystemHealthItem
+            {
+                Key = c.Key,
+                Name = c.Name,
+                Category = c.Category,
+                Status = c.Status,
+                Description = c.Diagnostics.TryGetValue("Mode", out var mode) ? mode : (c.ErrorMessage ?? c.Status),
+                LatencyMs = c.LatencyMs,
+                LastSuccessfulCheckUtc = c.LastSuccessfulCheckUtc,
+                ErrorMessage = c.ErrorMessage,
+                AffectedSystems = c.AffectedSystems,
+                Diagnostics = c.Diagnostics,
+                TraceId = c.TraceId,
+                ActionUrl = c.ActionUrl,
+                ActionLabel = c.ActionLabel
+            }).ToList()
         };
     }
 

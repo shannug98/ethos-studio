@@ -44,12 +44,4 @@ public interface IAdminPaymentService
         Guid transactionId,
         Guid adminUserId,
         CancellationToken cancellationToken);
-
-    Task<AdminTrainerPayoutResponse> GetTrainerPayoutsAsync(CancellationToken cancellationToken);
-
-    Task ProcessTrainerPayoutAsync(
-        Guid trainerId,
-        Guid adminUserId,
-        AdminProcessTrainerPayoutRequest request,
-        CancellationToken cancellationToken);
 }

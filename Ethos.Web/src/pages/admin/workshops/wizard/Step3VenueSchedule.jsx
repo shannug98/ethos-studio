@@ -1423,7 +1423,6 @@ export default function Step3VenueSchedule({ form, onChange, trainers = [], erro
                           <div style={{ marginBottom: "14px" }}>
                             <label className="form-label" style={{ fontSize: "11px", marginBottom: "6px", display: "flex", justifyContent: "space-between" }}>
                               <span>Session Instructors (Faculty Pool) <span className="req">*</span></span>
-                              <span style={{ fontSize: "10px", color: "#64748b" }}>First selected is Lead Instructor</span>
                             </label>
                             {availableSessionTrainers.length === 0 ? (
                               <div style={{ padding: "8px 12px", borderRadius: "6px", background: "#fef3c7", border: "1px solid #fde68a", color: "#92400e", fontSize: "11px" }}>
@@ -1437,7 +1436,6 @@ export default function Step3VenueSchedule({ form, onChange, trainers = [], erro
                                     ? sess.trainerProfileIds
                                     : (sess.trainerProfileId ? [sess.trainerProfileId] : []);
                                   const isSelected = curTrainerIds.some((tid) => String(tid) === String(id));
-                                  const isLead = curTrainerIds.length > 0 && String(curTrainerIds[0]) === String(id);
 
                                   return (
                                     <div
@@ -1453,10 +1451,10 @@ export default function Step3VenueSchedule({ form, onChange, trainers = [], erro
                                         fontSize: "12px",
                                         fontWeight: 600,
                                         border: isSelected
-                                          ? (isLead ? "1.5px solid #FF5500" : "1.5px solid #3b82f6")
+                                          ? "1.5px solid #3b82f6"
                                           : "1px solid #cbd5e1",
                                         background: isSelected
-                                          ? (isLead ? "rgba(255, 85, 0, 0.08)" : "rgba(59, 130, 246, 0.08)")
+                                          ? "rgba(59, 130, 246, 0.08)"
                                           : "#ffffff",
                                         color: isSelected ? "#0f172a" : "#64748b",
                                         cursor: "pointer",
@@ -1478,50 +1476,8 @@ export default function Step3VenueSchedule({ form, onChange, trainers = [], erro
                                       }}
                                     >
                                       <span>{t.fullName || t.name}</span>
-                                      {isLead && (
-                                        <span
-                                          style={{
-                                            fontSize: "9px",
-                                            fontWeight: 700,
-                                            padding: "1px 6px",
-                                            borderRadius: "10px",
-                                            background: "#FF5500",
-                                            color: "#ffffff",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.04em",
-                                          }}
-                                        >
-                                          Lead
-                                        </span>
-                                      )}
-                                      {isSelected && !isLead && (
-                                        <>
-                                          <span style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 700 }}>✓</span>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const reordered = [id, ...curTrainerIds.filter((tid) => String(tid) !== String(id))];
-                                              handleUpdateSessionFields(globalIdx, {
-                                                trainerProfileIds: reordered,
-                                                trainerProfileId: id,
-                                              });
-                                            }}
-                                            style={{
-                                              background: "none",
-                                              border: "none",
-                                              color: "#3b82f6",
-                                              fontSize: "10px",
-                                              fontWeight: 700,
-                                              cursor: "pointer",
-                                              padding: "0 2px",
-                                              textDecoration: "underline",
-                                            }}
-                                            title="Set as session lead instructor"
-                                          >
-                                            Make Lead
-                                          </button>
-                                        </>
+                                      {isSelected && (
+                                        <span style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 700 }}>✓</span>
                                       )}
                                     </div>
                                   );

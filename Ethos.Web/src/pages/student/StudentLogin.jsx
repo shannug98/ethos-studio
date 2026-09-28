@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/authApi";
+import { trackLoginStarted, trackLoginCompleted } from "../../services/analytics";
 import "./StudentLogin.css";
 
 const OTP_LENGTH = 6;
@@ -60,6 +61,7 @@ export default function StudentLogin() {
     }
 
     setLoading(true);
+    trackLoginStarted({ portal: "student" });
 
     try {
       const result = await authApi.requestOtp(phone, "STUDENT_LOGIN");
@@ -105,6 +107,7 @@ export default function StudentLogin() {
 
     try {
       await loginWithOtp(phone, otp, "STUDENT_LOGIN");
+      trackLoginCompleted({ portal: "student" });
 
       const returnUrl = searchParams.get("returnUrl");
       const isSafeReturnUrl =

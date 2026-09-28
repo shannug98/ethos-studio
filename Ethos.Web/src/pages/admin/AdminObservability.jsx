@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/adminApi";
+import SystemHealthDiagnosticDrawer from "../../components/admin/common/SystemHealthDiagnosticDrawer";
 import "./AdminObservability.css";
 
 export default function AdminObservability() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
   const [activeTab, setActiveTab] = useState("explorer"); // explorer, logs, performance, health
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedHealthComp, setSelectedHealthComp] = useState(null);
 
   // Trace Explorer State
   const initialTraceId = params?.traceId || searchParams.get("traceId") || "";
@@ -464,44 +467,107 @@ export default function AdminObservability() {
       {/* TAB 4: DEEP HEALTH CHECKS */}
       {activeTab === "health" && (
         <div className="tab-content">
+          <div className="health-tab-header">
+            <div>
+              <h3>Point-to-Point System Health Diagnostics</h3>
+              <p className="card-sub">
+                Live verification across infrastructure, databases, third-party gateways, background workers, and security subsystems.
+              </p>
+            </div>
+            <div className="health-tab-actions">
+              {healthData?.overallStatus && (
+                <span className={`health-overall-pill ${healthData.overallStatus.toLowerCase().replace(/\s+/g, "-")}`}>
+                  ● {healthData.overallStatus}
+                </span>
+              )}
+              <button className="btn-refresh" onClick={fetchHealth} disabled={healthLoading}>
+                {healthLoading ? "Verifying Subsystems..." : "🔄 Run Health Check"}
+              </button>
+            </div>
+          </div>
+
           {healthLoading ? (
-            <p>Pinging live subsystems...</p>
+            <div className="health-loading-state">
+              <span className="spinner">⏳</span> Pinging live subsystems and querying worker heartbeats...
+            </div>
+          ) : healthData?.components && healthData.components.length > 0 ? (
+            <div className="health-grid">
+              {healthData.components.map((comp) => {
+                const status = comp.status || "Standby";
+                const statusClass = status.toLowerCase().replace(/\s+/g, "-");
+                return (
+                  <div
+                    key={comp.key}
+                    className={`health-card ${statusClass} clickable`}
+                    onClick={() => setSelectedHealthComp(comp)}
+                    title="Click to view full diagnostic trace and affected systems"
+                  >
+                    <div className={`health-badge ${statusClass}`}>{status}</div>
+                    <div className="health-cat-chip">{comp.category || "Subsystem"}</div>
+                    <h4>{comp.name}</h4>
+                    <div className="health-lat">
+                      Latency: <strong>{comp.latencyMs != null ? `${comp.latencyMs}ms` : "—"}</strong>
+                    </div>
+                    {comp.errorMessage ? (
+                      <div className="health-err-preview" title={comp.errorMessage}>
+                        ⚠️ {comp.errorMessage}
+                      </div>
+                    ) : (
+                      <div className="health-det">
+                        {comp.affectedSystems && comp.affectedSystems.length > 0
+                          ? `Protects: ${comp.affectedSystems.slice(0, 2).join(", ")}${comp.affectedSystems.length > 2 ? ` +${comp.affectedSystems.length - 2} more` : ""}`
+                          : "Subsystem online and within SLA"}
+                      </div>
+                    )}
+                    <div className="health-inspect-btn">
+                      Inspect Diagnostics →
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : healthData ? (
             <div className="health-grid">
-              <div className={`health-card ${healthData.database.status.toLowerCase()}`}>
-                <div className="health-badge">{healthData.database.status}</div>
-                <h4>{healthData.database.name}</h4>
-                <div className="health-lat">Latency: {healthData.database.latencyMs}ms</div>
-                <div className="health-det">{healthData.database.details}</div>
-              </div>
-
-              <div className={`health-card ${healthData.storage.status.toLowerCase()}`}>
-                <div className="health-badge">{healthData.storage.status}</div>
-                <h4>{healthData.storage.name}</h4>
-                <div className="health-lat">Latency: {healthData.storage.latencyMs}ms</div>
-                <div className="health-det">{healthData.storage.details}</div>
-              </div>
-
-              <div className={`health-card ${healthData.authentication.status.toLowerCase()}`}>
-                <div className="health-badge">{healthData.authentication.status}</div>
-                <h4>{healthData.authentication.name}</h4>
-                <div className="health-lat">Latency: {healthData.authentication.latencyMs}ms</div>
-                <div className="health-det">{healthData.authentication.details}</div>
-              </div>
-
-              <div className={`health-card ${healthData.payments.status.toLowerCase()}`}>
-                <div className="health-badge">{healthData.payments.status}</div>
-                <h4>{healthData.payments.name}</h4>
-                <div className="health-lat">Latency: {healthData.payments.latencyMs}ms</div>
-                <div className="health-det">{healthData.payments.details}</div>
-              </div>
-
-              <div className="health-card not-monitored">
-                <div className="health-badge notmonitored">NotMonitored</div>
-                <h4>{healthData.messaging.name}</h4>
-                <div className="health-lat">—</div>
-                <div className="health-det">{healthData.messaging.details}</div>
-              </div>
+              {healthData.database && (
+                <div className={`health-card ${healthData.database.status?.toLowerCase() || 'standby'}`}>
+                  <div className="health-badge">{healthData.database.status}</div>
+                  <h4>{healthData.database.name}</h4>
+                  <div className="health-lat">Latency: {healthData.database.latencyMs}ms</div>
+                  <div className="health-det">{healthData.database.details}</div>
+                </div>
+              )}
+              {healthData.storage && (
+                <div className={`health-card ${healthData.storage.status?.toLowerCase() || 'standby'}`}>
+                  <div className="health-badge">{healthData.storage.status}</div>
+                  <h4>{healthData.storage.name}</h4>
+                  <div className="health-lat">Latency: {healthData.storage.latencyMs}ms</div>
+                  <div className="health-det">{healthData.storage.details}</div>
+                </div>
+              )}
+              {healthData.authentication && (
+                <div className={`health-card ${healthData.authentication.status?.toLowerCase() || 'standby'}`}>
+                  <div className="health-badge">{healthData.authentication.status}</div>
+                  <h4>{healthData.authentication.name}</h4>
+                  <div className="health-lat">Latency: {healthData.authentication.latencyMs}ms</div>
+                  <div className="health-det">{healthData.authentication.details}</div>
+                </div>
+              )}
+              {healthData.payments && (
+                <div className={`health-card ${healthData.payments.status?.toLowerCase() || 'standby'}`}>
+                  <div className="health-badge">{healthData.payments.status}</div>
+                  <h4>{healthData.payments.name}</h4>
+                  <div className="health-lat">Latency: {healthData.payments.latencyMs}ms</div>
+                  <div className="health-det">{healthData.payments.details}</div>
+                </div>
+              )}
+              {healthData.messaging && (
+                <div className="health-card not-monitored">
+                  <div className="health-badge notmonitored">NotMonitored</div>
+                  <h4>{healthData.messaging.name}</h4>
+                  <div className="health-lat">—</div>
+                  <div className="health-det">{healthData.messaging.details}</div>
+                </div>
+              )}
             </div>
           ) : null}
         </div>
@@ -543,6 +609,14 @@ export default function AdminObservability() {
           </div>
         </div>
       )}
+
+      {/* System Health Diagnostic Drawer */}
+      <SystemHealthDiagnosticDrawer
+        isOpen={Boolean(selectedHealthComp)}
+        component={selectedHealthComp}
+        onClose={() => setSelectedHealthComp(null)}
+        onNavigate={(url) => navigate(url)}
+      />
     </div>
   );
 }

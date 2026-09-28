@@ -238,6 +238,8 @@ public class AdminTrainerListResponse
     public string? ProfilePhotoUrl { get; set; }
     public string? PrimaryDanceStyle { get; set; }
     public string? SecondaryDanceStyles { get; set; }
+    public int? ExperienceYears { get; set; }
+    public string? Bio { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -652,15 +654,30 @@ public class AdminUpcomingWorkshopDto
 
 public class AdminSubsystemHealthItem
 {
-    public string Key { get; set; } = null!; // website_api, database, payment_provider, whatsapp_provider, storage, background_jobs
-    public string Name { get; set; } = null!; // Website & API, Database, Payment Provider, WhatsApp Provider, Storage, Background Jobs
-    public string Status { get; set; } = "Operational"; // Operational, Degraded, Unavailable, Not configured
+    public string Key { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string Category { get; set; } = "Core";
+    public string Status { get; set; } = "Operational"; // Operational, Degraded, Error, Not Configured, Standby
     public string? Description { get; set; }
+    public long LatencyMs { get; set; }
+    public DateTime? LastSuccessfulCheckUtc { get; set; }
+    public string? ErrorMessage { get; set; }
+    public List<string> AffectedSystems { get; set; } = new();
+    public Dictionary<string, string> Diagnostics { get; set; } = new();
+    public string? TraceId { get; set; }
+    public string? ActionUrl { get; set; }
+    public string? ActionLabel { get; set; }
 }
 
 public class AdminSystemHealthDto
 {
-    public string OverallStatus { get; set; } = "Operational"; // Operational, Degraded, Unavailable
+    public string OverallStatus { get; set; } = "Operational";
+    public int TotalComponents { get; set; }
+    public int OperationalCount { get; set; }
+    public int DegradedCount { get; set; }
+    public int ErrorCount { get; set; }
+    public int NotConfiguredCount { get; set; }
+    public int StandbyCount { get; set; }
     public DateTime LastCheckedUtc { get; set; } = DateTime.UtcNow;
     public string FormattedLastChecked { get; set; } = null!;
     public List<AdminSubsystemHealthItem> Subsystems { get; set; } = new();
@@ -1165,51 +1182,6 @@ public class AdminReceiptTransactionDetails
     public bool IsGatewayVerified { get; set; }
     public bool IsReconciled { get; set; }
     public string DisplayStatus { get; set; } = "Paid";
-}
-
-public class AdminTrainerPayoutResponse
-{
-    public AdminTrainerPayoutSummary Summary { get; set; } = new();
-    public List<AdminTrainerPayoutItem> Payouts { get; set; } = new();
-}
-
-public class AdminTrainerPayoutSummary
-{
-    public int TotalTrainers { get; set; }
-    public decimal TotalGrossRevenue { get; set; }
-    public decimal TotalTrainerPayouts { get; set; }
-    public decimal TotalStudioRetention { get; set; }
-}
-
-public class AdminTrainerPayoutItem
-{
-    public Guid TrainerId { get; set; }
-    public Guid UserId { get; set; }
-    public string TrainerCode { get; set; } = null!;
-    public string FullName { get; set; } = null!;
-    public string Phone { get; set; } = null!;
-    public string TierCode { get; set; } = null!;
-    public string TierName { get; set; } = null!;
-    public decimal TrainerSharePercentage { get; set; }
-    public decimal StudioSharePercentage { get; set; }
-    public int TotalWorkshops { get; set; }
-    public int TotalBookings { get; set; }
-    public decimal GrossRevenue { get; set; }
-    public decimal TrainerPayoutAmount { get; set; }
-    public decimal StudioRetentionAmount { get; set; }
-    public string Status { get; set; } = "CALCULATED"; // "CALCULATED", "APPROVED", "PROCESSING", "PROCESSED"
-    public string? PayoutReference { get; set; }
-    public DateTime? ProcessedAt { get; set; }
-    public string? ProcessedByAdmin { get; set; }
-    public bool HasConfiguredCommission { get; set; } = true;
-    public string? Notes { get; set; }
-}
-
-public class AdminProcessTrainerPayoutRequest
-{
-    public decimal Amount { get; set; }
-    public string PayoutReference { get; set; } = null!;
-    public string? Notes { get; set; }
 }
 
 public sealed class AdminDailyActivityResponse

@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { createSlug } from "../../utils/createSlug";
 import { workshopsApi } from "../../services/workshopsApi";
 import "../../styles/workshops.css";
+import "../../styles/workshop-card-meta.css";
+import WorkshopCardMedia from "../workshop/WorkshopCardMedia";
 
 import { handleMediaImgError, ETHOS_MEDIA_FALLBACK_SVG } from "../../utils/mediaUrl";
-import TrainerAvatar from "../common/TrainerAvatar";
 
 function formatWorkshopTime(startTime, endTime) {
   const formatSingle = (timeStr) => {
@@ -27,6 +28,22 @@ function formatWorkshopTime(startTime, endTime) {
 }
 
 function getWorkshopEndDateTime(w) {
+  if (Array.isArray(w.sessions) && w.sessions.length > 0) {
+    const times = w.sessions
+      .map((s) => {
+        const dStr = s.sessionDate || s.date || w.workshopDate;
+        if (!dStr) return null;
+        const datePart = dStr.split("T")[0];
+        const timePart = s.endTime || w.endTime || "23:59:59";
+        const d = new Date(`${datePart}T${timePart}`);
+        return isNaN(d.getTime()) ? null : d.getTime();
+      })
+      .filter((t) => t != null);
+    if (times.length > 0) {
+      return new Date(Math.max(...times));
+    }
+  }
+
   if (w.endUtc) {
     const d = new Date(w.endUtc);
     if (!isNaN(d.getTime())) return d;
@@ -39,6 +56,22 @@ function getWorkshopEndDateTime(w) {
 }
 
 function getWorkshopStartDateTime(w) {
+  if (Array.isArray(w.sessions) && w.sessions.length > 0) {
+    const times = w.sessions
+      .map((s) => {
+        const dStr = s.sessionDate || s.date || w.workshopDate;
+        if (!dStr) return null;
+        const datePart = dStr.split("T")[0];
+        const timePart = s.startTime || w.startTime || "00:00:00";
+        const d = new Date(`${datePart}T${timePart}`);
+        return isNaN(d.getTime()) ? null : d.getTime();
+      })
+      .filter((t) => t != null);
+    if (times.length > 0) {
+      return new Date(Math.min(...times));
+    }
+  }
+
   if (w.startUtc) {
     const d = new Date(w.startUtc);
     if (!isNaN(d.getTime())) return d;
@@ -67,6 +100,22 @@ function Workshops() {
             const d = new Date(w.workshopDate);
             const startDateTime = getWorkshopStartDateTime(w);
             const endDateTime = getWorkshopEndDateTime(w);
+            let resolvedPrice = null;
+            if (Array.isArray(w.passTypes) && w.passTypes.length > 0) {
+              const validPassPrices = w.passTypes
+                .map((p) => Number(p.currentPrice ?? p.price))
+                .filter((pr) => !isNaN(pr) && pr > 0);
+              if (validPassPrices.length > 0) {
+                resolvedPrice = Math.min(...validPassPrices);
+              }
+            }
+            if (resolvedPrice == null) {
+              const rawPrice = Number(w.startingPrice ?? w.currentPrice ?? w.price);
+              if (!isNaN(rawPrice) && rawPrice > 0) {
+                resolvedPrice = rawPrice;
+              }
+            }
+
             return {
               id: w.id,
               image: w.imageUrl || ETHOS_MEDIA_FALLBACK_SVG,
@@ -80,13 +129,10 @@ function Workshops() {
               endDateTime,
               style: (w.danceStyle || "WORKSHOP").toUpperCase(),
               title: w.title,
-              trainerName: w.trainerName ? w.trainerName.trim() : "Ethos Faculty",
-              trainer: w.trainerName ? `With ${w.trainerName.trim()}` : "With Ethos Faculty",
-              trainerPhotoUrl: w.trainerPhotoUrl,
-              trainerDanceStyles: w.trainerDanceStyles,
+              isEthosOriginal: w.isEthosOriginal === true,
               level: (w.level || "ALL LEVELS").toUpperCase(),
               venue: w.venue || "Ethos Dance Studio",
-              price: w.currentPrice || w.startingPrice || w.price || 599,
+              price: resolvedPrice,
               description: w.description || "Join this transformative movement session with Ethos.",
             };
           });
@@ -113,10 +159,17 @@ function Workshops() {
     .sort((a, b) => a.startDateTime - b.startDateTime);
 
   // STRICT REQUIREMENT: Only the top 4 upcoming workshops appear on homepage:
-  // 1 immediate next workshop (big featured card) + next 3 in a single row below.
+  // 1 immediate next workshop (big featured card) + next 3 in a fixed 3-slot row below.
   const displayPool = upcomingWorkshops.slice(0, 4);
   const featured = displayPool[0] || null;
   const upcomingList = displayPool.slice(1, 4);
+
+  // FIXED 3-SLOT LAYOUT UNDERNEATH MAIN FEATURED WORKSHOP
+  const smallSlots = [
+    upcomingList[0] || null,
+    upcomingList[1] || null,
+    upcomingList[2] || null,
+  ];
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -214,7 +267,7 @@ function Workshops() {
           </button>
         </div>
       ) : (
-        <>
+        <div className="workshops__container">
           {/* MAIN UPCOMING WORKSHOP (BIG FEATURED CARD) */}
           {featured && (
             <div
@@ -223,111 +276,89 @@ function Workshops() {
               onClick={() => navigate(`/workshops/${createSlug(featured.title || featured.name || featured.id)}`)}
               style={{ cursor: "pointer" }}
             >
-              <div className="workshops__featured-image">
-                <img src={featured.image} alt={featured.title} onError={(e) => handleMediaImgError(e)} />
-                <div className="workshops__featured-overlay" />
+              <WorkshopCardMedia
+                image={featured.image}
+                title={featured.title}
+                isEthosOriginal={featured.isEthosOriginal}
+                date={featured.date}
+                time={featured.time}
+                venue={featured.venue}
+                level={featured.level}
+                aspectRatio="16/9"
+                showArrow={true}
+                className="workshops__featured-media"
+              />
 
-                <div className="workshops__featured-content">
-                  <span className="workshops__featured-style">{featured.style}</span>
-                  <h3>{featured.title}</h3>
-
-                  <div className="workshops__featured-meta">
-                    <div className="hp-meta-pill hp-meta-date">
-                      <span className="hp-meta-icon">📅</span>
-                      <span className="hp-meta-text">{featured.date}</span>
-                      {featured.time && <span className="hp-meta-sub">({featured.time})</span>}
-                    </div>
-
-                    <div className="hp-meta-pill hp-meta-trainer">
-                      <TrainerAvatar
-                        trainer={featured.trainerPhotoUrl}
-                        name={featured.trainerName}
-                        size="xs"
-                        className="hp-meta-avatar"
-                      />
-                      <span className="hp-meta-text">{featured.trainer}</span>
-                    </div>
-
-                    <div className="hp-meta-pill hp-meta-level">
-                      <span>{featured.level}</span>
-                      {featured.venue && <span className="hp-meta-sub">· {featured.venue}</span>}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  className="workshops__featured-arrow"
-                  type="button"
-                  aria-label="View workshop"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/workshops/${createSlug(featured.title || featured.name || featured.id)}`);
-                  }}
-                >
-                  ↗
-                </button>
+              {/* Below Image: Dance Style + Workshop Name */}
+              <div className="workshop-card-content-below workshops__featured-below">
+                <span className="workshop-card-style-eyebrow">{featured.style}</span>
+                <h3 className="workshop-card-heading workshops__featured-title">{featured.title}</h3>
               </div>
             </div>
           )}
 
-          {/* NEXT UPCOMING WORKSHOPS (MAX 3 IN ONE ROW) */}
-          {upcomingList.length > 0 && (
-            <div className="workshops__list">
-              {upcomingList.map((workshop, index) => (
-                <article
-                  className="workshop-card workshops-reveal"
-                  key={workshop.id}
+          {/* THREE FIXED SMALL WORKSHOP SLOTS UNDERNEATH */}
+          <div className="workshops__list">
+            {smallSlots.map((workshop, index) => {
+              if (workshop) {
+                return (
+                  <article
+                    className="workshop-card workshops-reveal"
+                    key={workshop.id}
+                    style={{
+                      "--workshop-delay": `${index * 120}ms`,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => navigate(`/workshops/${createSlug(workshop.title || workshop.name || workshop.id)}`)}
+                  >
+                    <WorkshopCardMedia
+                      image={workshop.image}
+                      title={workshop.title}
+                      isEthosOriginal={workshop.isEthosOriginal}
+                      date={workshop.date}
+                      time={workshop.time}
+                      venue={workshop.venue}
+                      level={workshop.level}
+                      aspectRatio="3/4"
+                      showArrow={true}
+                    />
+
+                    {/* BELOW IMAGE: Dance Style + Workshop/Session Name */}
+                    <div className="workshop-card-content-below">
+                      <span className="workshop-card-style-eyebrow">{workshop.style}</span>
+                      <h3 className="workshop-card-heading" title={workshop.title}>
+                        {workshop.title}
+                      </h3>
+                    </div>
+                  </article>
+                );
+              }
+
+              return (
+                <div
+                  className="workshop-card workshop-card--empty workshops-reveal"
+                  key={`empty-slot-${index}`}
                   style={{
                     "--workshop-delay": `${index * 120}ms`,
-                    cursor: "pointer",
                   }}
-                  onClick={() => navigate(`/workshops/${createSlug(workshop.title || workshop.name || workshop.id)}`)}
+                  aria-hidden="true"
                 >
-                  <div className="workshop-card__image">
-                    <img src={workshop.image} alt={workshop.title} onError={(e) => handleMediaImgError(e)} />
-                    <div className="workshop-card__overlay" />
-                    <span className="workshop-card__arrow">↗</span>
-                  </div>
-
-                  <div className="workshop-card__content">
-                    {/* Top Row: Prominent Date and Level Badge */}
-                    <div className="workshop-card__top">
-                      <div className="workshop-card__date-badge">
-                        <span className="workshop-card__date-icon">📅</span>
-                        <span className="workshop-card__date-text">{workshop.date}</span>
+                  <div className="workshop-card-media workshop-card-media--empty">
+                    <div className="workshop-empty-slot-content">
+                      <div className="workshop-empty-slot-icon">
+                        <span>✦</span>
                       </div>
-                      <span className="workshop-card__level-badge">{workshop.level}</span>
-                    </div>
-
-                    <span className="workshop-card__style">{workshop.style}</span>
-                    <h3 className="workshop-card__title" title={workshop.title}>{workshop.title}</h3>
-
-                    {workshop.time && (
-                      <div className="workshop-card__time-row">
-                        <span className="workshop-card__time-icon">🕒</span>
-                        <span className="workshop-card__time-text">{workshop.time}</span>
-                      </div>
-                    )}
-
-                    {/* Prominent Trainer Row with High Visibility Text & Avatar */}
-                    <div className="homepage-workshop-trainer-row">
-                      <TrainerAvatar
-                        trainer={workshop.trainerPhotoUrl}
-                        name={workshop.trainerName}
-                        size="sm"
-                        className="hp-trainer-avatar"
-                      />
-                      <div className="hp-trainer-info">
-                        <span className="hp-trainer-label">INSTRUCTOR</span>
-                        <span className="hp-trainer-text">{workshop.trainer}</span>
-                      </div>
+                      <span className="workshop-empty-slot-label">COMING SOON</span>
                     </div>
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </>
+                  <div className="workshop-card-content-below workshop-card-content-below--empty">
+                    <span className="workshop-empty-slot-subtext">Stay tuned for new releases</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* BOTTOM CTA */}

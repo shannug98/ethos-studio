@@ -187,9 +187,10 @@ public class TrainerService : ITrainerService
                         f.WorkshopBooking.Status == Domain.Enums.WorkshopBookingStatus.Attended)
             .ToListAsync(ct);
 
+        var ratedFeedbacks = feedbacks.Where(f => f.Rating.HasValue).ToList();
         decimal? avgRating =
-            feedbacks.Count > 0
-                ? (decimal)Math.Round(feedbacks.Average(f => f.Rating), 2)
+            ratedFeedbacks.Count > 0
+                ? (decimal)Math.Round(ratedFeedbacks.Average(f => (double)f.Rating!.Value), 2)
                 : null;
 
         var totalApprovedCapacity = workshops
@@ -444,7 +445,7 @@ public class TrainerService : ITrainerService
         {
             Id = x.Id,
             StudentName = "Student",
-            Rating = x.Rating,
+            Rating = x.Rating ?? 0,
             Comment = null,
             SubmittedAt = x.SubmittedAt
         }).ToList();
@@ -513,10 +514,11 @@ public class TrainerService : ITrainerService
                         x.WorkshopBooking.Status == Domain.Enums.WorkshopBookingStatus.Attended)
             .ToListAsync(ct);
 
-        var overallRating = feedback.Count == 0
+        var ratedFeedbacks = feedback.Where(x => x.Rating.HasValue).ToList();
+        var overallRating = ratedFeedbacks.Count == 0
             ? (decimal?)null
             : Math.Round(
-                (decimal)feedback.Average(x => x.Rating),
+                (decimal)ratedFeedbacks.Average(x => (double)x.Rating!.Value),
                 2);
 
         int totalCap = workshops.Sum(x => x.Capacity);
@@ -536,8 +538,9 @@ public class TrainerService : ITrainerService
             .Where(x => (x.SubmittedAt >= monthStart && x.SubmittedAt < nextMonthStart) || monthlyWorkshopIds.Contains(x.WorkshopId))
             .ToList();
 
-        decimal? monthlyRating = monthlyFeedbacks.Count > 0
-            ? Math.Round((decimal)monthlyFeedbacks.Average(x => x.Rating), 2)
+        var ratedMonthlyFeedbacks = monthlyFeedbacks.Where(x => x.Rating.HasValue).ToList();
+        decimal? monthlyRating = ratedMonthlyFeedbacks.Count > 0
+            ? Math.Round((decimal)ratedMonthlyFeedbacks.Average(x => (double)x.Rating!.Value), 2)
             : null;
 
         int monthlyCap = monthlyWorkshops.Sum(x => x.Capacity);
@@ -701,6 +704,148 @@ public class TrainerService : ITrainerService
                 ProcessedAt = x.ReviewedAt
             })
             .ToListAsync(ct);
+    }
+
+    public async Task<TrainerPublicProfileResponse?> GetPublicProfileAsync(
+        string slug,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return null;
+
+        var normalizedSlug = slug.Trim().ToLowerInvariant();
+
+        var trainers = await _db.TrainerProfiles
+            .AsNoTracking()
+            .Where(t => t.Status == Domain.Enums.TrainerStatus.Active)
+            .ToListAsync(ct);
+
+        var trainer = trainers.FirstOrDefault(t =>
+        {
+            var cleanFullName = Slugify(t.FullName);
+            var cleanCode = (t.TrainerCode ?? string.Empty).Trim().ToLowerInvariant();
+            return cleanFullName == normalizedSlug ||
+                   cleanCode == normalizedSlug ||
+                   (Guid.TryParse(normalizedSlug, out var id) && t.Id == id);
+        });
+
+        if (trainer == null)
+            return null;
+
+        var trainerId = trainer.Id;
+        var nowUtc = DateTime.UtcNow;
+
+        var approvedWorkshops = await _db.Workshops
+            .AsNoTracking()
+            .Include(w => w.WorkshopTrainers)
+            .Include(w => w.Sessions)
+                .ThenInclude(s => s.SessionTrainers)
+            .Where(w => w.Status == Domain.Enums.WorkshopStatus.Approved && w.PublicVisibility)
+            .Where(w => w.TrainerProfileId == trainerId ||
+                        w.WorkshopTrainers.Any(wt => wt.TrainerProfileId == trainerId) ||
+                        w.Sessions.Any(s => s.TrainerProfileId == trainerId || s.SessionTrainers.Any(st => st.TrainerProfileId == trainerId)))
+            .ToListAsync(ct);
+
+        // Filter past / completed workshops strictly for Recent at Ethos (max 10, newest first)
+        var pastWorkshops = approvedWorkshops
+            .Where(w =>
+            {
+                var endDateTime = DateTime.SpecifyKind(w.WorkshopDate.Date.Add(w.EndTime), DateTimeKind.Utc);
+                return endDateTime <= nowUtc;
+            })
+            .OrderByDescending(w => w.WorkshopDate)
+            .Take(10)
+            .Select(w => new TrainerPublicWorkshopCardDto
+            {
+                Id = w.Id,
+                Title = w.Title,
+                Slug = Slugify(w.Title),
+                PosterUrl = w.ImageUrl ?? w.LandscapeImageUrl,
+                DanceStyle = w.DanceStyle,
+                WorkshopDate = w.WorkshopDate,
+                City = w.City,
+                IsCompleted = true
+            })
+            .ToList();
+
+        // Filter upcoming workshops
+        var upcomingWorkshops = approvedWorkshops
+            .Where(w =>
+            {
+                var endDateTime = DateTime.SpecifyKind(w.WorkshopDate.Date.Add(w.EndTime), DateTimeKind.Utc);
+                return endDateTime > nowUtc;
+            })
+            .OrderBy(w => w.WorkshopDate)
+            .Select(w => new TrainerPublicWorkshopCardDto
+            {
+                Id = w.Id,
+                Title = w.Title,
+                Slug = Slugify(w.Title),
+                PosterUrl = w.ImageUrl ?? w.LandscapeImageUrl,
+                DanceStyle = w.DanceStyle,
+                WorkshopDate = w.WorkshopDate,
+                City = w.City,
+                IsCompleted = false
+            })
+            .ToList();
+
+        // Flat list of all dance styles for public presentation
+        var allStyles = new List<string>();
+        if (!string.IsNullOrWhiteSpace(trainer.PrimaryDanceStyle))
+        {
+            allStyles.Add(trainer.PrimaryDanceStyle.Trim());
+        }
+        if (!string.IsNullOrWhiteSpace(trainer.SecondaryDanceStyles))
+        {
+            var secondary = trainer.SecondaryDanceStyles
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s) && !allStyles.Contains(s, StringComparer.OrdinalIgnoreCase));
+            allStyles.AddRange(secondary);
+        }
+
+        return new TrainerPublicProfileResponse
+        {
+            Id = trainer.Id,
+            Slug = Slugify(trainer.FullName),
+            FullName = trainer.FullName,
+            City = trainer.City,
+            ProfilePhotoUrl = trainer.ProfilePhotoUrl,
+            PrimaryDanceStyle = trainer.PrimaryDanceStyle,
+            SecondaryDanceStyles = trainer.SecondaryDanceStyles,
+            DanceStyles = allStyles,
+            ExperienceYears = trainer.ExperienceYears,
+            CurrentStudio = trainer.CurrentStudio,
+            Bio = trainer.Bio,
+            InstagramUrl = trainer.InstagramUrl,
+            YouTubeUrl = trainer.YouTubeUrl,
+            RecentWorkshops = pastWorkshops,
+            UpcomingWorkshops = upcomingWorkshops
+        };
+    }
+
+    private static string Slugify(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Trim().ToLowerInvariant();
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in normalized)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                sb.Append(c);
+            }
+            else if (c == ' ' || c == '-' || c == '_')
+            {
+                if (sb.Length > 0 && sb[^1] != '-')
+                {
+                    sb.Append('-');
+                }
+            }
+        }
+        return sb.ToString().Trim('-');
     }
 
     private static TrainerResponse Map(

@@ -61,4 +61,8 @@ public interface ITrainerService
     Task<List<TrainerUpgradeRequestResponse>> GetUpgradeRequestsAsync(
         Guid userId,
         CancellationToken ct);
+
+    Task<TrainerPublicProfileResponse?> GetPublicProfileAsync(
+        string slug,
+        CancellationToken ct);
 }

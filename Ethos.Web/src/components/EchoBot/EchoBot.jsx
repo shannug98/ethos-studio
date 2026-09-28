@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { apiClient } from "../../services/apiClient";
 import { workshopsApi } from "../../services/workshopsApi";
 import { findBasicEchoAnswer } from "./echoKnowledge";
@@ -16,7 +16,9 @@ const starterSuggestions = [
 
 export default function EchoBot() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [botState, setBotState] = useState("closed"); // "closed" | "preview" | "chat"
+
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -212,8 +214,20 @@ export default function EchoBot() {
     });
   };
 
+  // Hide EchoBot entirely during checkout and payment flows for an unobstructed payment process
+  if (location.pathname.includes("/checkout")) {
+    return null;
+  }
+
+  const isWorkshopDetails =
+    location.pathname.startsWith("/workshops/") && !location.pathname.includes("/checkout");
+
   return (
-    <div className={`echo-widget ${botState === "chat" ? "echo-widget-open" : ""}`}>
+    <div
+      className={`echo-widget ${botState === "chat" ? "echo-widget-open" : ""} ${
+        isWorkshopDetails ? "echo-widget--elevated-mobile" : ""
+      }`}
+    >
       {botState === "chat" && (
         <section className="echo-panel" aria-label="ECHO AI Assistant">
           {/* HEADER */}

@@ -1,0 +1,308 @@
+/* ==========================================================================
+   System Health Diagnostic Drawer CSS
+   ========================================================================== */
+
+.health-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.health-drawer-panel {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.15);
+  animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  color: #0f172a;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Header */
+.health-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.health-drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-drawer-category {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.health-drawer-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+}
+
+.health-drawer-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.health-drawer-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Body */
+.health-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Status Banner */
+.health-status-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.health-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-status-indicator {
+  font-size: 16px;
+}
+
+.health-status-pill {
+  font-size: 12.5px;
+  font-weight: 750;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-pill-operational {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-pill-degraded {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-pill-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.status-pill-standby {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.status-pill-not-configured {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.health-latency-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475467;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #d0d5dd;
+  margin-left: auto;
+}
+
+.health-error-callout {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-left: 4px solid #e11d48;
+  border-radius: 6px;
+  color: #9f1239;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.health-error-callout strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #881337;
+}
+
+.health-trace-id-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.health-trace-id-row code {
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fecdd3;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+/* Sections */
+.health-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.health-section-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.health-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.health-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.health-meta-label {
+  color: #64748b;
+}
+
+.health-meta-val {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Affected Systems */
+.health-affected-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.health-affected-list li {
+  font-size: 13.5px;
+  color: #475467;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #6366f1;
+}
+
+/* Diagnostics Table */
+.health-diag-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.health-diag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.health-diag-row:nth-child(even) {
+  background: #fcfcfd;
+}
+
+.health-diag-row:last-child {
+  border-bottom: none;
+}
+
+.health-diag-key {
+  color: #475467;
+  font-weight: 500;
+}
+
+.health-diag-value {
+  font-weight: 650;
+  color: #0f172a;
+  font-family: monospace;
+  font-size: 12.5px;
+}
+
+/* Footer */
+.health-drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

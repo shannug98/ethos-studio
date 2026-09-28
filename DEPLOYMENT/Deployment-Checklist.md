@@ -90,11 +90,11 @@ This document details the exact stage-by-stage deployment sequence from the froz
   - Set custom domain: `media.ethosdancestudio.com`
   - Configure production CORS.
   - Create production-only R2 API Token.
-- [ ] **Azure App Service (PRODUCTION)**:
-  - Create Azure Resource Group: `rg-ethos-prod`
-  - Create App Service Plan: `asp-ethos-prod` (Linux, P1v2 or P2v2 recommended for SLA/autoscale)
-  - Create Web App: `ethos-prod-api-app` (.NET 10 LTS on Linux)
-  - Bind custom domain: `api.ethosdancestudio.com` + SSL certificate.
+- [ ] **Linux VPS & Nginx (PRODUCTION)**:
+  - Provision Ubuntu 22.04 / 24.04 LTS VPS with ASP.NET Core Runtime 8.0/10.0.
+  - Setup Systemd service `/etc/systemd/system/ethos-api.service` listening on `localhost:5252`.
+  - Configure Nginx reverse proxy for `api.ethosdancestudio.com` -> `http://127.0.0.1:5252`.
+  - Issue Let's Encrypt SSL certificate via `certbot --nginx -d api.ethosdancestudio.com`.
 - [ ] **Razorpay (PRODUCTION LIVE Mode)**:
   - Switch Razorpay Dashboard to **LIVE Mode**.
   - Generate LIVE API Keys: `rzp_live_*` and Live Secret.
@@ -106,26 +106,24 @@ This document details the exact stage-by-stage deployment sequence from the froz
 ---
 
 ## Stage 6: PRODUCTION Configuration, Migration & Deployment
-- [ ] Configure Environment Variables in Azure Portal for `ethos-prod-api-app` (see `PRODUCTION/Environment-Variables-PROD.md`).
+- [ ] Configure Environment Variables in systemd service `/etc/systemd/system/ethos-api.service` (see `PRODUCTION/Environment-Variables-PROD.md`).
 - [ ] Run `dotnet ef database update` against `ethos-prod-db` to build production schema.
-- [ ] Run initial admin seed with secure production administrator credentials.
-- [ ] Deploy backend Release artifact to `ethos-prod-api-app`.
-- [ ] Build frontend with `VITE_API_BASE_URL=https://api.ethosdancestudio.com` and `VITE_RAZORPAY_KEY_ID=rzp_live_*`.
-- [ ] Deploy frontend to Netlify / production CDN.
+- [ ] Deploy backend Release artifact to `/var/www/ethos-api`.
+- [ ] Connect Git repository to Netlify for automatic CI/CD builds with environment variables `VITE_API_BASE_URL=https://api.ethosdancestudio.com` and `VITE_RAZORPAY_KEY_ID=rzp_live_*`.
 - [ ] Configure DNS records:
   - `ethosdancestudio.com` -> Netlify
   - `www.ethosdancestudio.com` -> Netlify
-  - `api.ethosdancestudio.com` -> Azure App Service
+  - `api.ethosdancestudio.com` -> Linux VPS (A Record)
   - `media.ethosdancestudio.com` -> Cloudflare R2
 
 ---
 
 ## Stage 7: Production Smoke Test & Official Release Tagging
-- [ ] Verify `https://ethosdancestudio.com` loads over HTTPS with strict CSP headers.
-- [ ] Verify `https://api.ethosdancestudio.com/health` returns healthy.
-- [ ] Verify Swagger at `https://api.ethosdancestudio.com/swagger` returns 404.
+- [ ] Verify `https://ethosdancestudio.com` loads over HTTPS with clean SPA routing.
+- [ ] Verify `https://api.ethosdancestudio.com/health` returns HTTP 200 Healthy.
+- [ ] Verify Swagger at `https://api.ethosdancestudio.com/swagger` is secured.
 - [ ] Perform live end-to-end admin login and workshop verification.
-- [ ] Conduct one minimal live test transaction (e.g. ₹1 / minimal pass) to verify end-to-end payment fulfillment and WhatsApp delivery in production.
+- [ ] Conduct one minimal live test transaction to verify end-to-end payment fulfillment and WhatsApp delivery in production.
 - [ ] **Git Tagging & Release**:
   - Run `git tag -a v1.0.0 -m "Release v1.0.0 - Production Launch"`
   - Run `git push origin v1.0.0`

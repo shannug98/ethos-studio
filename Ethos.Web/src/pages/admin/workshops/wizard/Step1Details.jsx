@@ -212,24 +212,22 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
               <div className="selected-trainers-cards-list">
                 {selectedTrainers.map((t, idx) => {
                   const id = t.trainerId || t.id || t.trainerProfileId;
-                  const isLead = idx === 0;
                   const displayName = getTrainerDisplayName(t);
                   return (
                     <div
                       key={id}
-                      className={`selected-trainer-card ${isLead ? "lead-card" : "faculty-card"}`}
+                      className="selected-trainer-card faculty-card"
                     >
                       <div className="selected-trainer-left">
                         <TrainerAvatar
                           trainer={t}
                           size="md"
-                          bordered={isLead}
                         />
                         <div className="selected-trainer-info-col">
                           <div className="selected-trainer-header-row">
                             <span className="selected-trainer-name">{displayName}</span>
-                            <span className={`selected-trainer-role-badge ${isLead ? "lead-badge" : "faculty-badge"}`}>
-                              {isLead ? "★ Lead Trainer" : "Faculty"}
+                            <span className="selected-trainer-role-badge faculty-badge">
+                              Faculty
                             </span>
                           </div>
                           <span className="selected-trainer-sub">
@@ -240,16 +238,6 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                       </div>
 
                       <div className="selected-trainer-actions">
-                        {!isLead && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleMakeLead(id, e)}
-                            className="trainer-make-lead-btn"
-                            title="Designate as Lead Trainer"
-                          >
-                            Make Lead
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={(e) => handleRemoveTrainer(id, e)}
@@ -330,7 +318,6 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                       const id = t.trainerId || t.id || t.trainerProfileId;
                       const eligible = isTrainerEligible(t);
                       const isSelected = selectedTrainerIds.includes(id);
-                      const isLead = selectedTrainerIds[0] === id;
                       const displayName = getTrainerDisplayName(t);
 
                       return (
@@ -356,11 +343,6 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
                             <div className="trainer-item-details">
                               <div className="trainer-item-name-row">
                                 <span className="trainer-item-name">{displayName}</span>
-                                {isLead && (
-                                  <span className="trainer-badge-lead-tag">
-                                    ★ Lead
-                                  </span>
-                                )}
                                 {eligible ? (
                                   <span className="trainer-badge-active">Active</span>
                                 ) : (
@@ -605,6 +587,25 @@ export default function Step1Details({ form, onChange, trainers, loadingTrainers
               <span className="slider-toggle round"></span>
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Ethos Original Toggle */}
+      <div style={{ marginBottom: "20px", padding: "16px 20px", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "10px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: 750, color: "#172033", marginBottom: "3px" }}>✦ Ethos Original</div>
+            <div style={{ fontSize: "12px", color: "#64748B" }}>Mark this as an official Ethos Original production. Shows an OG badge on cards and the detail page.</div>
+          </div>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 650, color: form.isEthosOriginal ? "#FF5500" : "#94A3B8", cursor: "pointer", userSelect: "none", flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={form.isEthosOriginal === true}
+              onChange={(e) => onChange("isEthosOriginal", e.target.checked)}
+              style={{ accentColor: "#FF5500", width: "18px", height: "18px", cursor: "pointer" }}
+            />
+            <span>{form.isEthosOriginal ? "ON" : "OFF"}</span>
+          </label>
         </div>
       </div>
 

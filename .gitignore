@@ -3,6 +3,9 @@ bin/
 obj/
 dist/
 node_modules/
+publish_output/
+publish_clean/
+temp_zip_staging/
 
 # IDE & OS
 .vs/
@@ -14,7 +17,7 @@ node_modules/
 Thumbs.db
 
 # Storage & Uploads
-App_Data/uploads/
+App_Data/
 *.log
 
 # Secrets & Local Env
@@ -24,6 +27,11 @@ secrets.json
 .env.*.local
 *.zip
 *.pdf
+
+# Temporary scratch screenshots & test artifacts
+Ethos.Web/*.png
+Ethos.Web/*.jpg
+Ethos.Web/scratch_*.*
 
 # Temporary historical audit & manifest reports
 assets_reference_audit.json

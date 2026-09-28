@@ -20,37 +20,33 @@ const defaultTrainers = [
     id: 1,
     image: null,
     role: "Co-Founder & Lead Choreographer",
-    name: "Sujith Kumar",
-    bio: "A movement-driven choreographer focused on creating powerful performances, developing dancers and helping every student find confidence through movement.",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com",
+    name: "Sreekanth Chirkya",
+    bio: "Sreekanth Chirkya is a trained dancer, choreographer and dance educator with a strong foundation in Hip-Hop, Tollywood and Bollywood dance styles. In 2018–19, he served as the General Secretary of LIVEWIRE, the collegiate dance crew of VNR VJIET.",
+    instagram: "https://www.instagram.com/sreekanth_chirkya",
   },
   {
     id: 2,
     image: null,
     role: "Co-Founder & Executive Director",
-    name: "Tejaswini",
-    bio: "Bringing together creative direction, performance and community, with a focus on creating an environment where dancers can learn, grow and belong.",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com",
+    name: "Arjun Manikanta",
+    bio: "With 10 years of experience in dance and fitness training, Arjun leads choreography, studio operations, workshops, events, and creative initiatives at Ethos Dance Studio. His work spans Tollywood, Bollywood, Hip-Hop, performance choreography, and dance fitness, with a focus on building engaging dance experiences and growing the Ethos community.",
+    instagram: "https://www.instagram.com/i_arjunmani",
   },
   {
     id: 3,
     image: null,
-    role: "Assistant Choreographer",
-    name: "Rahul Roy",
-    bio: "Focused on technical precision, musical timing and mentoring intermediate dancers to elevate their routine execution.",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com",
+    role: "Kuchipudi and Karakattam Dancer & Instructor",
+    name: "Chethana",
+    bio: "A certified Kuchipudi and Karakattam dancer with extensive stage performance experience. Winner of the “Projecting the Diversity of India” Biodiversity Event of Hyderabad for her Karakattam performance. Former Cultural Head at KL University and currently a Dance Instructor at Ethos Dance Studio.",
+    instagram: "https://www.instagram.com/chethana_balineni/",
   },
   {
     id: 4,
     image: null,
-    role: "Urban & Foundations Instructor",
-    name: "Priya Sharma",
-    bio: "Passionate about building solid movement foundations, groove culture, and welcoming absolute beginners onto the dance floor.",
-    instagram: "https://instagram.com",
-    youtube: "https://youtube.com",
+    role: "Assistant Choreographer & Instructor",
+    name: "Rockey",
+    bio: "Rakesh Maharajj (Rockey) is a passionate choreographer and dance instructor at Ethos Dance Studio, bringing energy, precision, and artistry to every movement. He creates impactful choreography through his unique style and creative expression.",
+    instagram: "https://www.instagram.com/rakesh_maharajj",
   },
 ];
 
@@ -229,16 +225,7 @@ function Trainers() {
                         <span>↗</span>
                       </a>
 
-                      <a
-                        href={trainer.youtube}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="trainer-card__social"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        YouTube
-                        <span>↗</span>
-                      </a>
+                     
                     </div>
                   </div>
                 </div>

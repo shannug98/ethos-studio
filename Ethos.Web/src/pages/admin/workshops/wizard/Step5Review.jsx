@@ -207,7 +207,7 @@ export default function Step5Review({
             <div className="checklist-items">
               <div className={`checklist-item ${validationChecklist.details ? "valid" : "invalid"}`}>
                 {validationChecklist.details ? <Check size={16} /> : <AlertCircle size={16} />}
-                <span>Workshop details & lead trainer complete</span>
+                <span>Workshop details &amp; faculty complete</span>
               </div>
               <div className={`checklist-item ${validationChecklist.portrait ? "valid" : "invalid"}`}>
                 {validationChecklist.portrait ? <Check size={16} /> : <AlertCircle size={16} />}
@@ -261,11 +261,6 @@ export default function Step5Review({
                 {selectedTrainers.map((t, idx) => (
                   <div key={t.id || idx} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "4px 8px", borderRadius: "6px", background: "#1e293b", border: "1px solid #334155", fontSize: "12px" }}>
                     <span style={{ fontWeight: 600, color: "#f8fafc" }}>{t.fullName || t.name}</span>
-                    {idx === 0 && (
-                      <span style={{ fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", background: "#FF5500", color: "#fff", textTransform: "uppercase" }}>
-                        Lead
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>

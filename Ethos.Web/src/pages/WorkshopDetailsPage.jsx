@@ -3,14 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   Calendar, Clock, MapPin, Share2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   ShieldCheck, HelpCircle, FileText, CheckCircle2, AlertCircle, ArrowLeft,
-  Users, Sparkles, Check
+  Users, Check, Sparkles
 } from "lucide-react";
 import { workshopsApi } from "../services/workshopsApi";
 import { createSlug } from "../utils/createSlug";
 import { getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName, DEFAULT_AVATAR_PLACEHOLDER, ETHOS_MEDIA_FALLBACK_SVG } from "../utils/mediaUrl";
 import TrainerAvatar from "../components/common/TrainerAvatar";
-import { getPassAvailability, getWorkshopTimingDisplay, getChronologicalGroupedSessions, getWorkshopBannerImage } from "../utils/workshopPresentation";
+import { getWorkshopTimingDisplay, getChronologicalGroupedSessions, getWorkshopBannerImage, getPassScopeLabel } from "../utils/workshopPresentation";
+import { trackWorkshopView } from "../services/analytics";
 import SelectTicketsModal from "../components/workshop/SelectTicketsModal";
+import WorkshopCardMedia from "../components/workshop/WorkshopCardMedia";
+import FacultyProfileCard from "../components/workshop/FacultyProfileCard";
+import "../styles/workshop-card-meta.css";
 import "./WorkshopDetailsPage.css";
 
 const fallbackImage = ETHOS_MEDIA_FALLBACK_SVG;
@@ -71,6 +75,7 @@ export default function WorkshopDetailsPage() {
   const [selectedPassTypeId, setSelectedPassTypeId] = useState(null);
   const [copiedToast, setCopiedToast] = useState(false);
   const [otherWorkshops, setOtherWorkshops] = useState([]);
+  const [allApprovedWorkshops, setAllApprovedWorkshops] = useState([]);
   const moreWorkshopsTrackRef = useRef(null);
 
   const handleScrollMore = (direction) => {
@@ -82,9 +87,16 @@ export default function WorkshopDetailsPage() {
     }
   };
 
-  // Accordion state: Primary sections (passes, schedule, about) open by default
+  const handleBack = () => {
+    if (window.history?.state?.idx > 0 || window.history?.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/workshops");
+    }
+  };
+
+  // Accordion state: Primary sections (schedule, about) open by default
   const [openSections, setOpenSections] = useState({
-    passes: true,
     schedule: true,
     about: true,
     support: false,
@@ -146,6 +158,9 @@ export default function WorkshopDetailsPage() {
           apiList = Array.isArray(response)
             ? response
             : response?.items || response?.data || [];
+          if (isMounted) {
+            setAllApprovedWorkshops(apiList);
+          }
         } catch (e) {
           console.warn("Could not fetch API workshops:", e);
         }
@@ -196,6 +211,14 @@ export default function WorkshopDetailsPage() {
             tiers: []
           });
           setLoading(false);
+
+          // Track product analytics event
+          if (matched.id) {
+            trackWorkshopView(matched.id, {
+              title: matched.title || matched.workshopName || "",
+              price: String(matched.startingPrice || matched.price || 0),
+            });
+          }
         }
 
         // Background update for enriched details and live dynamic pricing
@@ -240,6 +263,7 @@ export default function WorkshopDetailsPage() {
         apiList = Array.isArray(response)
           ? response
           : response?.items || response?.data || [];
+        setAllApprovedWorkshops(apiList);
       } catch (e) {
         console.warn("Could not fetch API workshops:", e);
       }
@@ -353,6 +377,7 @@ export default function WorkshopDetailsPage() {
         workshop,
         pricing,
         ...checkoutData,
+        checkoutAttemptId: crypto.randomUUID(),
       },
     });
   };
@@ -422,6 +447,16 @@ export default function WorkshopDetailsPage() {
     : pricing?.currentPrice || workshop?.price || 299;
   const displayPrice = hasPasses ? minPassPrice : (pricing?.currentPrice || workshop?.price || 299);
 
+  const getPassSummaryLabel = () => {
+    if (!hasPasses) return null;
+    if (workshop.passTypes.length === 1) {
+      const scope = getPassScopeLabel(workshop.passTypes[0].sessionsIncluded);
+      return scope.toLowerCase().includes("pass") ? scope : `${scope} Pass`;
+    }
+    const uniqueScopes = [...new Set(workshop.passTypes.map((p) => getPassScopeLabel(p.sessionsIncluded)))];
+    return `${workshop.passTypes.length} Pass Options • ${uniqueScopes.join(" • ")}`;
+  };
+
   const uniqueDates = hasSessions
     ? Array.from(new Set(workshop.sessions.map((s) => s.sessionDate ? s.sessionDate.split("T")[0] : ""))).filter(Boolean).sort()
     : [];
@@ -476,28 +511,6 @@ export default function WorkshopDetailsPage() {
 
   return (
     <div className="workshop-details-page">
-      {/* MOBILE TOP BAR (IMAGE 1) */}
-      <div className="mobile-details-top-bar">
-        <button 
-          type="button" 
-          className="mobile-details-back-btn"
-          onClick={() => navigate("/workshops")}
-          aria-label="Back to Workshops"
-        >
-          <ArrowLeft size={16} />
-          <span className="mobile-details-top-title">{workshop.title}</span>
-        </button>
-        <button 
-          type="button" 
-          className="mobile-details-share-btn"
-          onClick={handleShare}
-          aria-label="Share Workshop"
-        >
-          <Share2 size={15} />
-          <span>Share</span>
-        </button>
-      </div>
-
       {/* AMBIENT HERO BANNER */}
       {(() => {
         const rawCover = workshop.landscapeImageUrl || workshop.imageUrl;
@@ -516,9 +529,10 @@ export default function WorkshopDetailsPage() {
               <button 
                 type="button" 
                 className="workshop-back-btn"
-                onClick={() => navigate("/workshops")}
+                onClick={handleBack}
+                aria-label="Go back"
               >
-                <ArrowLeft size={16} /> Back to Workshops
+                <ArrowLeft size={15} /> Back
               </button>
 
               <div className="workshop-hero-card">
@@ -553,110 +567,39 @@ export default function WorkshopDetailsPage() {
               <h1 className="workshop-title">{workshop.title}</h1>
 
               <div className="workshop-tags-bar">
-                <span className="badge-featured">✦ ETHOS ORIGINAL</span>
+                {workshop.isEthosOriginal && (
+                  <span className="badge-featured">✦ ETHOS ORIGINAL</span>
+                )}
                 <span className="badge-tag">{workshop.danceStyle || "MUSIC"}</span>
                 <span className="badge-tag">{workshop.level || "ALL LEVELS"}</span>
-                <span className="badge-tag">FAMILY FRIENDLY</span>
               </div>
             </div>
 
-            {/* TRAINER LINEUP */}
-            {hasMultipleTrainers ? (
-              <div className="details-trainers-section">
-                <div className="trainers-section-label">
-                  <Users size={15} /> TRAINER LINEUP
-                </div>
-                <div className="trainers-cards-row">
-                  {workshop.trainers.map((tr) => {
-                    const photo = getTrainerPhotoUrl(tr);
-                    const displayName = getTrainerDisplayName(tr);
-                    return (
-                      <div key={tr.trainerProfileId || tr.id} className="trainer-chip-card">
-                        <TrainerAvatar
-                          trainer={tr}
-                          size={40}
-                        />
-                        <div className="trainer-chip-meta">
-                          <strong className="trainer-chip-name">{displayName}</strong>
-                          {tr.danceStyles && <span className="trainer-chip-styles">{tr.danceStyles}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+            {/* FACULTY SECTION */}
+            <div className="details-trainers-section">
+              <div className="trainers-section-label">
+                <Users size={15} /> FACULTY
               </div>
-            ) : (
-              <div className="workshop-host-info">
-                <span>Hosted By <strong>{getTrainerDisplayName(workshop.trainerName || workshop.trainers?.[0])}</strong></span>
+              <div className="trainers-cards-row">
+                {(Array.isArray(workshop.trainers) && workshop.trainers.length > 0
+                  ? workshop.trainers
+                  : [{
+                      trainerProfileId: workshop.trainerProfileId,
+                      name: workshop.trainerName,
+                      danceStyles: workshop.danceStyle,
+                    }]
+                ).map((tr) => (
+                  <FacultyProfileCard
+                    key={tr.trainerProfileId || tr.id || tr.name}
+                    trainer={tr}
+                    allWorkshops={allApprovedWorkshops}
+                    currentWorkshopId={workshop.id}
+                  />
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* ACCORDION 1: PASS TYPES & TICKETS (IF PASSES CONFIGURED) */}
-            {hasPasses && (
-              <div className="workshop-accordion-item passes-accordion">
-                <button 
-                  type="button" 
-                  className="accordion-trigger"
-                  onClick={() => toggleSection("passes")}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Sparkles size={16} color="#df806c" /> PASS OPTIONS & ADMISSION
-                  </span>
-                  {openSections.passes ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </button>
-                {openSections.passes && (
-                  <div className="accordion-content passes-accordion-content">
-                    <div className="details-passes-grid">
-                      {workshop.passTypes.filter((p) => p.isActive).map((pass) => {
-                        const { isSoldOut, remainingSeats } = getPassAvailability(pass);
-                        return (
-                          <div key={pass.id} className="details-pass-card">
-                            <div className="details-pass-header">
-                              <h4 className="details-pass-name">{pass.name}</h4>
-                              <span className="details-pass-price">₹{Number(pass.currentPrice ?? pass.price).toLocaleString("en-IN")}</span>
-                            </div>
-                            <div className="details-pass-body">
-                              {pass.isOverallPass ? (
-                                <span className="details-pass-badge overall">✦ All-Access (All Sessions)</span>
-                              ) : (
-                                <span className="details-pass-badge finite">
-                                  {pass.sessionsIncluded} {pass.sessionsIncluded === 1 ? "Session Included" : "Sessions Included"}
-                                </span>
-                              )}
-                              {pass.description && <p className="details-pass-desc">{pass.description}</p>}
-                              {pass.currentTierNumber != null && (
-                                <span style={{ fontSize: "11px", color: "#FF5500", fontWeight: 600, display: "block", marginTop: "4px" }}>
-                                  Tier {pass.currentTierNumber} • {pass.ticketsRemainingInCurrentTier != null ? `${pass.ticketsRemainingInCurrentTier} left at this price` : "Active"}
-                                  {pass.nextTierPrice != null && ` (Next: ₹${pass.nextTierPrice})`}
-                                </span>
-                              )}
-                              {!isSoldOut && remainingSeats != null && remainingSeats > 0 && remainingSeats <= 10 && (
-                                <span style={{ fontSize: "11px", color: "#f59e0b", fontWeight: 600 }}>
-                                  Only {remainingSeats} {remainingSeats === 1 ? "seat" : "seats"} remaining
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              className="details-select-pass-btn"
-                              disabled={isCompleted || isBookingClosed || isSoldOut}
-                              onClick={() => {
-                                setSelectedPassTypeId(pass.id);
-                                setIsTicketModalOpen(true);
-                              }}
-                            >
-                              {isSoldOut ? "Sold Out" : "Select Pass ›"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ACCORDION 2: SCHEDULE & SESSIONS (IF SESSIONS CONFIGURED) */}
+            {/* ACCORDION: SCHEDULE & SESSIONS (IF SESSIONS CONFIGURED) */}
             {hasSessions && (
               <div className="workshop-accordion-item schedule-accordion">
                 <button 
@@ -758,8 +701,8 @@ export default function WorkshopDetailsPage() {
                 <div className="accordion-content">
                   <p>Need help with your booking or venue directions?</p>
                   <div className="support-links">
-                    <a href="https://wa.me/918466021834" target="_blank" rel="noopener noreferrer" className="support-chip">
-                      💬 WhatsApp Support (+91 8466021834)
+                    <a href="https://wa.me/918341701113" target="_blank" rel="noopener noreferrer" className="support-chip">
+                      💬 WhatsApp Support (+91 83417 01113)
                     </a>
                     <a href="mailto:ethosdancestudio@gmail.com" className="support-chip">
                       ✉️ Email: ethosdancestudio@gmail.com
@@ -829,11 +772,11 @@ export default function WorkshopDetailsPage() {
                 </button>
               </div>
 
-              {/* DYNAMIC 4-TIER PROGRESS DISPLAY OR MULTI-PASS CALLOUT */}
+              {/* DYNAMIC 4-TIER PROGRESS DISPLAY OR PASS CALLOUT */}
               {hasPasses ? (
                 <div className="passes-summary-sidebar-banner">
                   <Sparkles size={16} className="pass-sparkle-icon" />
-                  <span>{workshop.passTypes.length} Pass Options • Multi-Session Access</span>
+                  <span>{getPassSummaryLabel()}</span>
                 </div>
               ) : (
                 <div className="tier-progress-card">
@@ -921,9 +864,12 @@ export default function WorkshopDetailsPage() {
                 <button
                   type="button"
                   className="primary-book-now-btn"
-                  onClick={() => setIsTicketModalOpen(true)}
+                  onClick={() => {
+                    setSelectedPassTypeId(null);
+                    setIsTicketModalOpen(true);
+                  }}
                 >
-                  {hasPasses ? "Select Pass & Book" : "Book Now"}
+                  {hasPasses ? "SELECT PASS & BOOK" : "Book Now"}
                 </button>
               )}
 
@@ -984,8 +930,25 @@ export default function WorkshopDetailsPage() {
             >
               {otherWorkshops.map((other) => {
                 const otherSlug = createSlug(other.title || other.name || other.id);
-                const safeOtherImg = getWorkshopBannerImage(other) || fallbackImage;
-                const otherPrice = other.startingPrice || other.price || 499;
+                const safeOtherImg = other.imageUrl || getWorkshopBannerImage(other) || fallbackImage;
+                const otherDate = other.workshopDate ? formatDate(other.workshopDate) : "";
+                const otherTime = other.startTime ? formatTime(other.startTime) : "";
+
+                let otherStartingPrice = null;
+                if (Array.isArray(other.passTypes) && other.passTypes.length > 0) {
+                  const validPassPrices = other.passTypes
+                    .map((p) => Number(p.currentPrice ?? p.price))
+                    .filter((pr) => !isNaN(pr) && pr > 0);
+                  if (validPassPrices.length > 0) {
+                    otherStartingPrice = Math.min(...validPassPrices);
+                  }
+                }
+                if (otherStartingPrice == null) {
+                  const rawPrice = Number(other.startingPrice ?? other.currentPrice ?? other.price);
+                  if (!isNaN(rawPrice) && rawPrice > 0) {
+                    otherStartingPrice = rawPrice;
+                  }
+                }
 
                 return (
                   <article 
@@ -996,45 +959,36 @@ export default function WorkshopDetailsPage() {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   >
-                    <div className="more-workshop-poster-wrap">
-                      <img 
-                        src={safeOtherImg} 
-                        alt={other.title} 
-                        className="more-workshop-poster"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = fallbackImage;
-                        }}
-                      />
-                      {other.danceStyle && (
-                        <span className="more-workshop-tag">{other.danceStyle}</span>
-                      )}
-                    </div>
+                    {/* ON/INSIDE IMAGE: Poster, OG (conditional), Date, Time, Location, Level */}
+                    <WorkshopCardMedia
+                      image={safeOtherImg}
+                      title={other.title}
+                      isEthosOriginal={other.isEthosOriginal === true}
+                      date={otherDate}
+                      time={otherTime}
+                      venue={other.venue || "Ethos Dance Studio"}
+                      level={other.level || "ALL LEVELS"}
+                      aspectRatio="3/4"
+                      showArrow={false}
+                    />
 
-                    <div className="more-workshop-details">
-                      <h3 className="more-workshop-name" title={other.title}>{other.title}</h3>
+                    {/* BELOW IMAGE: Dance Style + Workshop Name + Actions */}
+                    <div className="workshop-card-content-below more-workshop-details">
+                      <span className="workshop-card-style-eyebrow">{other.danceStyle || "WORKSHOP"}</span>
+                      <h3 className="workshop-card-heading more-workshop-name" title={other.title}>
+                        {other.title}
+                      </h3>
 
-                      <div className="more-workshop-info-box">
-                        <Calendar size={15} className="more-box-icon" />
-                        <div className="more-box-meta">
-                          <strong>{formatDate(other.workshopDate)}</strong>
-                          <span>{formatTime(other.startTime)}</span>
-                        </div>
-                      </div>
-
-                      <div className="more-workshop-info-box">
-                        <MapPin size={15} className="more-box-icon" />
-                        <div className="more-box-meta">
-                          <strong>{other.venue || "Ethos Main Studio"}</strong>
-                          <span>{other.area || other.city || "Hyderabad"}</span>
-                        </div>
-                      </div>
-
-                      <div className="more-workshop-card-footer">
+                      <div className="more-workshop-card-footer" style={{ marginTop: "14px" }}>
                         <div className="more-card-price">
-                          <span className="more-price-caption">Starting from</span>
-                          <span className="more-price-value">₹{otherPrice}</span>
+                          {otherStartingPrice != null ? (
+                            <>
+                              <span className="more-price-caption">Starting from</span>
+                              <span className="more-price-value">₹{otherStartingPrice}</span>
+                            </>
+                          ) : (
+                            <span className="more-price-caption" style={{ fontStyle: "italic", color: "#94a3b8" }}>Pricing TBA</span>
+                          )}
                         </div>
 
                         <div className="more-card-actions">
@@ -1080,9 +1034,12 @@ export default function WorkshopDetailsPage() {
           type="button"
           className="mobile-sticky-bar-btn"
           disabled={isCompleted || isBookingClosed}
-          onClick={() => setIsTicketModalOpen(true)}
+          onClick={() => {
+            setSelectedPassTypeId(null);
+            setIsTicketModalOpen(true);
+          }}
         >
-          {isCompleted ? "Completed" : isBookingClosed ? "Bookings Closed" : hasPasses ? "Select Pass & Book ›" : "Book Now ›"}
+          {isCompleted ? "Completed" : isBookingClosed ? "Bookings Closed" : hasPasses ? "SELECT PASS & BOOK ›" : "Book Now ›"}
         </button>
       </div>
 

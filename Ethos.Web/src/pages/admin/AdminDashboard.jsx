@@ -14,6 +14,7 @@ import {
   Tooltip,
 } from "recharts";
 import { getAdminUser, adminApi } from "../../services/adminApi";
+import SystemHealthDiagnosticDrawer from "../../components/admin/common/SystemHealthDiagnosticDrawer";
 import "./AdminDashboard.css";
 
 // Workshop Status Color Mapping per Visual Reference
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
   // 1. Data States (Zero & Empty Initial States - No Mock Data)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [healthDrawerComp, setHealthDrawerComp] = useState(null);
   const [trendRange, setTrendRange] = useState("last6months");
   const [revenuePeriod, setRevenuePeriod] = useState("thisMonth");
 
@@ -601,8 +603,8 @@ export default function AdminDashboard() {
                 <tbody>
                   {recentBookings.map((b) => (
                     <tr key={b.bookingId}>
-                      <td className="customer-name-cell">{b.customerNameMasked}</td>
-                      <td>{b.workshopTitle}</td>
+                      <td className="customer-name-cell" title={b.customerNameMasked}>{b.customerNameMasked}</td>
+                      <td className="workshop-cell" title={b.workshopTitle}>{b.workshopTitle}</td>
                       <td className="date-cell">{b.formattedDate}</td>
                       <td className="amount-cell">{b.formattedAmount}</td>
                       <td>
@@ -692,18 +694,56 @@ export default function AdminDashboard() {
           <div className="subsystems-list">
             {systemHealth.subsystems && systemHealth.subsystems.length > 0 ? (
               systemHealth.subsystems.map((sub) => {
-                const isOp = sub.status === "Operational";
+                const status = sub.status || "Standby";
+                const isOp = status === "Operational";
+                const isDeg = status === "Degraded";
+                const isErr = status === "Error";
+                const isNotConfig = status === "Not Configured";
+
+                let badgeClass = "subsystem-badge-standby";
+                let icon = "ℹ";
+                let iconClass = "subsystem-standby-icon";
+                if (isOp) {
+                  badgeClass = "subsystem-badge-operational";
+                  icon = "✓";
+                  iconClass = "subsystem-check-icon";
+                } else if (isDeg) {
+                  badgeClass = "subsystem-badge-degraded";
+                  icon = "⚠️";
+                  iconClass = "subsystem-warn-icon";
+                } else if (isErr) {
+                  badgeClass = "subsystem-badge-error";
+                  icon = "✕";
+                  iconClass = "subsystem-err-icon";
+                } else if (isNotConfig) {
+                  badgeClass = "subsystem-badge-notconfigured";
+                  icon = "⚪";
+                  iconClass = "subsystem-notconfig-icon";
+                }
+
                 return (
-                  <div key={sub.key} className="subsystem-row">
+                  <div
+                    key={sub.key}
+                    className="subsystem-row clickable-subsystem-row"
+                    onClick={() => setHealthDrawerComp(sub)}
+                    title="Click to view point-to-point diagnostic details"
+                  >
                     <div className="subsystem-name-group">
-                      <span className={isOp ? "subsystem-check-icon" : "subsystem-standby-icon"}>
-                        {isOp ? "✓" : "ℹ"}
+                      <span className={iconClass}>
+                        {icon}
                       </span>
                       <span className="subsystem-title">{sub.name}</span>
                     </div>
-                    <span className={isOp ? "subsystem-badge-operational" : "subsystem-badge-standby"}>
-                      {sub.status || "Standby"}
-                    </span>
+                    <div className="subsystem-status-group">
+                      {sub.latencyMs != null && (
+                        <span className="subsystem-latency">
+                          {sub.latencyMs}ms
+                        </span>
+                      )}
+                      <span className={badgeClass}>
+                        {status}
+                      </span>
+                    </div>
                   </div>
                 );
               })
@@ -885,6 +925,14 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Point-to-point diagnostic drawer */}
+      <SystemHealthDiagnosticDrawer
+        isOpen={Boolean(healthDrawerComp)}
+        component={healthDrawerComp}
+        onClose={() => setHealthDrawerComp(null)}
+        onNavigate={(url) => navigate(url)}
+      />
 
       {/* 6. BRANDED FOOTER */}
       <footer className="ethos-dashboard-footer">

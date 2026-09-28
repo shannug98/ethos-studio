@@ -356,11 +356,20 @@ public class AdminAuthService : IAdminAuthService
             .Distinct()
             .ToList();
 
+        var developerPhone = _configuration["AdminIdentity:DeveloperPhone"] ?? "8019013757";
+        var isDeveloper = string.Equals(normalizedPhone, developerPhone, StringComparison.OrdinalIgnoreCase);
+        var displayRole = isDeveloper ? "Developer" : null;
+
         var extraClaims = new List<Claim>
         {
             new("session_id", session.Id.ToString()),
             new("device_id", deviceResult.Device.Id.ToString())
         };
+
+        if (!string.IsNullOrEmpty(displayRole))
+        {
+            extraClaims.Add(new Claim("display_role", displayRole));
+        }
 
         var token = _jwtService.GenerateToken(user, roles, extraClaims);
 
@@ -374,7 +383,8 @@ public class AdminAuthService : IAdminAuthService
                 CustomerCode = user.CustomerCode,
                 FullName = user.FullName,
                 Phone = user.Phone,
-                Roles = roles
+                Roles = roles,
+                DisplayRole = displayRole
             },
             DeviceId = deviceResult.Device.Id,
             DeviceName = deviceResult.Device.DeviceName,

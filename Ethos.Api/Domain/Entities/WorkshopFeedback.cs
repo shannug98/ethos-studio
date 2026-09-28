@@ -1,3 +1,5 @@
+using Ethos.Api.Domain.Enums;
+
 namespace Ethos.Api.Domain.Entities;
 
 public class WorkshopFeedback
@@ -10,7 +12,13 @@ public class WorkshopFeedback
 
     public Guid? StudentProfileId { get; set; }
 
-    public int Rating { get; set; }
+    public Guid? FeedbackFormVersionId { get; set; }
+
+    public Guid? WorkshopFeedbackTokenId { get; set; }
+
+    public FeedbackAudienceType AudienceType { get; set; } = FeedbackAudienceType.Attended;
+
+    public int? Rating { get; set; }
 
     public int? TeachingRating { get; set; }
 
@@ -55,4 +63,10 @@ public class WorkshopFeedback
     public StudentProfile? StudentProfile { get; set; }
 
     public WorkshopBooking? WorkshopBooking { get; set; }
+
+    public FeedbackFormVersion? FeedbackFormVersion { get; set; }
+
+    public WorkshopFeedbackToken? WorkshopFeedbackToken { get; set; }
+
+    public ICollection<WorkshopFeedbackAnswer> Answers { get; set; } = new List<WorkshopFeedbackAnswer>();
 }

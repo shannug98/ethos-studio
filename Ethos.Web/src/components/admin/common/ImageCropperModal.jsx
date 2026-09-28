@@ -137,7 +137,59 @@ export default function ImageCropperModal({
     setOffset({ x: 0, y: 0 });
   };
 
-  // Clamps offset within boundaries so the image always covers 100% of the crop box
+  // Compute active ratio config first
+  const activePreset = useMemo(() => {
+    if (selectedRatio === "natural") {
+      const nw = naturalDimensions.width || 1200;
+      const nh = naturalDimensions.height || 800;
+      const natRatio = nw / nh;
+      return {
+        label: "Original / Natural",
+        ratio: natRatio,
+        cssAspect: `${nw} / ${nh}`,
+        width: Math.min(nw, 1920),
+        height: Math.round(Math.min(nw, 1920) / natRatio),
+        badge: `${nw} × ${nh} (Original Natural)`,
+      };
+    }
+    return RATIO_PRESETS[selectedRatio] || RATIO_PRESETS["16:9"];
+  }, [selectedRatio, naturalDimensions]);
+
+  // Crop box style calculation
+  const cropBoxStyle = useMemo(() => {
+    const isPortrait = activePreset.ratio < 1;
+    const isSquare = Math.abs(activePreset.ratio - 1) < 0.05;
+    return {
+      aspectRatio: activePreset.cssAspect,
+      maxHeight: isPortrait ? "360px" : isSquare ? "320px" : "280px",
+      maxWidth: isPortrait ? "300px" : isSquare ? "320px" : "480px",
+    };
+  }, [activePreset]);
+
+  // Compute base dimensions preserving exact natural aspect ratio without distortion
+  const baseDimensions = useMemo(() => {
+    if (!naturalDimensions.width || !naturalDimensions.height) {
+      return { width: 0, height: 0 };
+    }
+    const cropBox = containerRef.current?.getBoundingClientRect();
+    const boxW = cropBox?.width || (activePreset.ratio < 1 ? 270 : 400);
+    const boxH = cropBox?.height || (activePreset.ratio < 1 ? 360 : 225);
+
+    const imgAspect = naturalDimensions.width / naturalDimensions.height;
+    const boxAspect = boxW / boxH;
+
+    let baseW, baseH;
+    if (imgAspect > boxAspect) {
+      baseH = boxH;
+      baseW = boxH * imgAspect;
+    } else {
+      baseW = boxW;
+      baseH = boxW / imgAspect;
+    }
+    return { width: baseW, height: baseH };
+  }, [naturalDimensions, activePreset]);
+
+  // Clamps offset within boundaries so the image is cleanly movable
   const clampOffset = useCallback((x, y, zoomVal = zoom) => {
     if (!containerRef.current || !imgRef.current) return { x, y };
     const cropBox = containerRef.current.getBoundingClientRect();
@@ -170,7 +222,7 @@ export default function ImageCropperModal({
     };
   }, [zoom]);
 
-  // Zoom handler with 1.0 (cover scale) minimum boundary
+  // Zoom handler with 1.0 (cover scale) to 3.0 range
   const handleZoomChange = useCallback((newZoom) => {
     const clampedZoom = Math.min(Math.max(1.0, newZoom), 3.0);
     setZoom(clampedZoom);
@@ -219,35 +271,6 @@ export default function ImageCropperModal({
     setZoom(1);
     setOffset({ x: 0, y: 0 });
   };
-
-  // Compute active ratio config
-  const activePreset = useMemo(() => {
-    if (selectedRatio === "natural") {
-      const nw = naturalDimensions.width || 1200;
-      const nh = naturalDimensions.height || 800;
-      const natRatio = nw / nh;
-      return {
-        label: "Original / Natural",
-        ratio: natRatio,
-        cssAspect: `${nw} / ${nh}`,
-        width: Math.min(nw, 1920),
-        height: Math.round(Math.min(nw, 1920) / natRatio),
-        badge: `${nw} × ${nh} (Original Natural)`,
-      };
-    }
-    return RATIO_PRESETS[selectedRatio] || RATIO_PRESETS["16:9"];
-  }, [selectedRatio, naturalDimensions]);
-
-  // Crop box style calculation
-  const cropBoxStyle = useMemo(() => {
-    const isPortrait = activePreset.ratio < 1;
-    const isSquare = Math.abs(activePreset.ratio - 1) < 0.05;
-    return {
-      aspectRatio: activePreset.cssAspect,
-      maxHeight: isPortrait ? "360px" : isSquare ? "320px" : "280px",
-      maxWidth: isPortrait ? "300px" : isSquare ? "320px" : "480px",
-    };
-  }, [activePreset]);
 
   // Generate cropped output
   const handleApply = useCallback(() => {
@@ -391,7 +414,12 @@ export default function ImageCropperModal({
                 onLoad={handleImageLoad}
                 draggable={false}
                 style={{
+                  width: baseDimensions.width > 0 ? `${baseDimensions.width}px` : "100%",
+                  height: baseDimensions.height > 0 ? `${baseDimensions.height}px` : "auto",
+                  maxWidth: "none",
+                  maxHeight: "none",
                   transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                  transformOrigin: "center center",
                 }}
               />
               {/* Rule-of-thirds grid */}
@@ -423,10 +451,19 @@ export default function ImageCropperModal({
         {imageSrc && (
           <div className="cropper-controls-toolbar">
             <div className="cropper-zoom-controls">
-              <ZoomOut size={16} className="zoom-icon" />
+              <button
+                type="button"
+                className="zoom-btn"
+                onClick={() => handleZoomChange(zoom - 0.1)}
+                title="Zoom Out"
+                aria-label="Zoom Out"
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: "2px" }}
+              >
+                <ZoomOut size={16} className="zoom-icon" />
+              </button>
               <input
                 type="range"
-                min="1"
+                min="0.5"
                 max="3"
                 step="0.05"
                 value={zoom}
@@ -434,7 +471,16 @@ export default function ImageCropperModal({
                 className="cropper-zoom-slider"
                 aria-label="Image Zoom Slider"
               />
-              <ZoomIn size={16} className="zoom-icon" />
+              <button
+                type="button"
+                className="zoom-btn"
+                onClick={() => handleZoomChange(zoom + 0.1)}
+                title="Zoom In"
+                aria-label="Zoom In"
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: "2px" }}
+              >
+                <ZoomIn size={16} className="zoom-icon" />
+              </button>
               <span className="zoom-val">{Math.round(zoom * 100)}%</span>
             </div>
 

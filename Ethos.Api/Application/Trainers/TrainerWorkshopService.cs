@@ -382,7 +382,7 @@ public class TrainerWorkshopService : ITrainerWorkshopService
             {
                 Id = f.Id,
                 StudentName = "Student",
-                Rating = f.Rating,
+                Rating = f.Rating ?? 0,
                 Comment = null,
                 CreatedAt = f.SubmittedAt
             })

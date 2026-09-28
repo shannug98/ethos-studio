@@ -174,6 +174,7 @@ public class AdminAuthController : ControllerBase
         var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(x => x.Value).ToList();
         var deviceId = User.FindFirst("device_id")?.Value;
         var sessionId = User.FindFirst("session_id")?.Value;
+        var displayRole = User.FindFirst("display_role")?.Value;
 
         return Ok(new
         {
@@ -182,7 +183,8 @@ public class AdminAuthController : ControllerBase
             phone,
             roles,
             deviceId,
-            sessionId
+            sessionId,
+            displayRole
         });
     }
 

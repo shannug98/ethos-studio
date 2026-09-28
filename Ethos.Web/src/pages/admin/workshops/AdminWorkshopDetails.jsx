@@ -36,7 +36,7 @@ export default function AdminWorkshopDetails() {
           </div>
 
           <div className="spec-group">
-            <label>Lead Instructor / Trainer</label>
+            <label>Faculty / Trainers</label>
             <div className="spec-val">{workshop.TrainerName || workshop.trainerName || "Ethos Master"}</div>
           </div>
 

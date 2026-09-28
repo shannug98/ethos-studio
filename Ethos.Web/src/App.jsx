@@ -23,6 +23,7 @@ const Gallery = lazy(() => import("./pages/Gallery"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const GuestWorkshopFeedback = lazy(() => import("./pages/GuestWorkshopFeedback"));
+const TrainerPublicProfilePage = lazy(() => import("./pages/TrainerPublicProfilePage"));
 
 // Student Portal Layout & Shell (Eager layout/guard, lazy pages)
 import StudentLayout from "./components/student/StudentLayout";
@@ -67,6 +68,7 @@ import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminAudit = lazy(() => import("./pages/admin/AdminAudit"));
 const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const AdminObservability = lazy(() => import("./pages/admin/AdminObservability"));
@@ -143,6 +145,7 @@ function PublicLayout() {
 }
 
 import { getRouteTitle } from "./utils/routeTitles";
+import { trackPageView } from "./services/analytics";
 
 export function ScrollToTop() {
   const { pathname, state } = useLocation();
@@ -171,11 +174,23 @@ export function RouteTitleSync() {
   return null;
 }
 
+export function AnalyticsRouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track PageView on route changes
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
       <RouteTitleSync />
+      <AnalyticsRouteTracker />
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* PUBLIC WEBSITE ROUTES */}
@@ -188,6 +203,8 @@ function App() {
           <Route path="/events" element={FEATURE_FLAGS.EVENTS_COMING_SOON ? <EventsComingSoon /> : <Events />} />
           <Route path="/gallery" element={<Gallery />} />
 
+          <Route path="/trainers/:slug" element={<TrainerPublicProfilePage />} />
+          <Route path="/faculty/:slug" element={<TrainerPublicProfilePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/student/login" element={<Navigate to="/login" replace />} />
           <Route path="/trainer/login" element={<Navigate to="/login" replace />} />
@@ -414,6 +431,7 @@ function App() {
           <Route path="/admin_portal" element={<AdminLayout />}>
             <Route index element={<Navigate to="/admin_portal/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="dashboard/day/:date" element={<AdminDailyActivity />} />
             <Route path="dashboard/daily/:date" element={<AdminDailyDateRedirect />} />
             <Route path="telemetry/:date" element={<AdminDailyDateRedirect />} />

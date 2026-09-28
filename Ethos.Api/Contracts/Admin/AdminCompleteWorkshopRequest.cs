@@ -4,4 +4,5 @@ public class AdminCompleteWorkshopRequest
 {
     public bool ForceComplete { get; set; }
     public string? OverrideReason { get; set; }
+    public bool IsEthosOriginal { get; set; }
 }

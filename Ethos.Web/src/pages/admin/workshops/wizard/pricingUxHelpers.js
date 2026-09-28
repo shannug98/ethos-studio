@@ -152,3 +152,32 @@ export function getTierValidation(tiers, totalCapacity) {
   }
   return { valid: true, message: "All tiers are contiguous, positive, and monotonic non-decreasing." };
 }
+
+/**
+ * Derives the human-readable pass scope label from SessionsIncluded.
+ * This is the authoritative frontend display helper — keeps frontend aligned with backend GetPassCategory().
+ * null → All Workshops
+ * 1 → Solo
+ * 2 → Dual
+ * 3 → Trio
+ * N>3 → N-Session Bundle
+ */
+export function getPassScopeLabel(sessionsIncluded) {
+  if (sessionsIncluded == null) return 'All Workshops';
+  const n = Number(sessionsIncluded);
+  if (n === 1) return 'Solo';
+  if (n === 2) return 'Dual';
+  if (n === 3) return 'Trio';
+  return `${n}-Session Bundle`;
+}
+
+/**
+ * Derives the pass category key from sessionsIncluded.
+ * Mirrors backend WorkshopPassType.GetPassCategory().
+ */
+export function getPassCategoryKey(sessionsIncluded) {
+  if (sessionsIncluded == null) return 'ALL_ACCESS';
+  const n = Number(sessionsIncluded);
+  if (n === 1) return 'SINGLE';
+  return 'BUNDLE'; // 2, 3, or more
+}

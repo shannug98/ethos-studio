@@ -97,7 +97,7 @@ function FloatingActions() {
         aria-label="Ethos social links"
       >
         <a
-          href="https://www.instagram.com/"
+          href="https://www.instagram.com/ethos_dancestudio"
           target="_blank"
           rel="noreferrer"
           className="floating-social floating-social--instagram"
@@ -111,7 +111,7 @@ function FloatingActions() {
         </a>
 
         <a
-          href="https://www.youtube.com/"
+          href="https://youtube.com/@ethosdancestudio"
           target="_blank"
           rel="noreferrer"
           className="floating-social floating-social--youtube"

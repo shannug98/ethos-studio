@@ -1,14 +1,14 @@
 # Environment Variables — PRODUCTION Environment
 
 > **ENVIRONMENT**: **PRODUCTION (PROD)**  
-> **Target**: Azure App Service (`ethos-prod-api-app`) & Frontend Host (Netlify)  
-> **Format**: Azure App Service Application Settings syntax (`Category__Key`)
+> **Target**: Linux VPS (`/etc/systemd/system/ethos-api.service`) & Netlify Frontend CI/CD  
+> **Format**: Systemd Environment / Standard OS environment variable syntax (`Category__Key`)
 
 ---
 
-## 1. Backend Application Settings (`ethos-prod-api-app`)
+## 1. Backend Application Settings (VPS Systemd / Environment Variables)
 
-Configure these in Azure Portal under **Settings -> Configuration -> Application settings** for `ethos-prod-api-app`:
+Configure these in `/etc/systemd/system/ethos-api.service` under `[Service]` or `/etc/environment`:
 
 ```ini
 # Core Environment

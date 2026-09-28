@@ -4,7 +4,28 @@ import { adminApi } from "../../services/adminApi";
 import { getTrainerPhotoUrl, handleTrainerImgError, getTrainerDisplayName } from "../../utils/mediaUrl";
 import NumericInput from "../../components/common/NumericInput";
 import TrainerAvatar from "../../components/common/TrainerAvatar";
+import UniversalImageCropper from "../../components/common/UniversalImageCropper";
 import "./AdminTrainers.css";
+
+const PREDEFINED_DANCE_STYLES = [
+  "Urban Choreography",
+  "Hip Hop",
+  "Commercial",
+  "Contemporary",
+  "Heels",
+  "Waacking",
+  "Popping",
+  "House",
+  "Afro",
+  "Bollywood",
+  "Jazz",
+  "Dancehall",
+  "Foundations",
+  "Krump",
+  "Locking",
+  "K-Pop",
+  "Latin / Salsa",
+];
 
 export default function AdminTrainers() {
   const [trainers, setTrainers] = useState([]);
@@ -33,14 +54,20 @@ export default function AdminTrainers() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  // Device photo upload state
+  // Device photo upload & Universal Cropper state
   const photoInputRef = useRef(null);
+  const [cropperModal, setCropperModal] = useState({ open: false, initialImage: null });
   const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
 
-  const handlePhotoUpload = async (file) => {
+  // Dance styles state
+  const [selectedSecondaryStyles, setSelectedSecondaryStyles] = useState([]);
+  const [customStyleInput, setCustomStyleInput] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  const handleFileSelectedForCrop = (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setPhotoUploadError("Please select a valid image file (JPEG, PNG, WebP).");
@@ -50,9 +77,12 @@ export default function AdminTrainers() {
       setPhotoUploadError("File size exceeds 35 MB limit.");
       return;
     }
+    setPhotoUploadError("");
+    setCropperModal({ open: true, initialImage: file });
+  };
 
-    // Immediate local preview
-    const previewUrl = URL.createObjectURL(file);
+  const handleCroppedPhotoApplied = async ({ file, previewUrl }) => {
+    if (!file) return;
     setFormData((prev) => ({ ...prev, profilePhotoUrl: previewUrl }));
     setPhotoUploadError("");
 
@@ -77,6 +107,36 @@ export default function AdminTrainers() {
       // New trainer - hold file to upload immediately upon creation
       setPendingPhotoFile(file);
     }
+  };
+
+  const handleAddSecondaryStyle = (style) => {
+    const trimmed = (style || "").trim();
+    if (!trimmed) return;
+
+    if (selectedSecondaryStyles.length >= 10) {
+      setFormError("Maximum of 10 secondary dance styles allowed.");
+      return;
+    }
+
+    const cleanPrimary = (formData.primaryDanceStyle || "").trim().toLowerCase();
+    if (cleanPrimary === trimmed.toLowerCase()) {
+      setFormError(`"${trimmed}" is already selected as Primary Dance Style.`);
+      return;
+    }
+
+    if (selectedSecondaryStyles.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+      setFormError(`"${trimmed}" is already in the secondary styles list.`);
+      return;
+    }
+
+    setFormError("");
+    setSelectedSecondaryStyles((prev) => [...prev, trimmed]);
+    setCustomStyleInput("");
+    setShowCustomInput(false);
+  };
+
+  const handleRemoveSecondaryStyle = (indexToRemove) => {
+    setSelectedSecondaryStyles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Delete / Archive confirmation modal
@@ -111,6 +171,9 @@ export default function AdminTrainers() {
   const openCreateModal = () => {
     setEditingTrainer(null);
     setPendingPhotoFile(null);
+    setSelectedSecondaryStyles([]);
+    setCustomStyleInput("");
+    setShowCustomInput(false);
     setFormData({
       fullName: "",
       phone: "",
@@ -134,13 +197,20 @@ export default function AdminTrainers() {
   const openEditModal = (t) => {
     setEditingTrainer(t);
     setPendingPhotoFile(null);
+    const parsedSecondary = (t.secondaryDanceStyles || "")
+      .split(/[,;|]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setSelectedSecondaryStyles(parsedSecondary);
+    setCustomStyleInput("");
+    setShowCustomInput(false);
     setFormData({
       fullName: t.fullName || "",
       phone: t.phone || "",
       email: t.email || "",
       dateOfBirth: t.dateOfBirth ? t.dateOfBirth.slice(0, 10) : "",
       city: t.city || "Hyderabad",
-      experienceYears: t.experienceYears || 1,
+      experienceYears: t.experienceYears !== undefined && t.experienceYears !== null ? t.experienceYears : 1,
       primaryDanceStyle: t.primaryDanceStyle || "Urban Choreography",
       secondaryDanceStyles: t.secondaryDanceStyles || "",
       bio: t.bio || "",
@@ -173,6 +243,7 @@ export default function AdminTrainers() {
     try {
       if (editingTrainer) {
         const id = editingTrainer.trainerId || editingTrainer.id;
+        const secondaryString = selectedSecondaryStyles.join(", ") || null;
         await adminApi.updateTrainer(id, {
           fullName: formData.fullName.trim(),
           phone: cleanPhone,
@@ -180,7 +251,7 @@ export default function AdminTrainers() {
           city: formData.city.trim() || "Hyderabad",
           experienceYears: Number(formData.experienceYears) || 0,
           primaryDanceStyle: formData.primaryDanceStyle.trim(),
-          secondaryDanceStyles: formData.secondaryDanceStyles.trim() || null,
+          secondaryDanceStyles: secondaryString,
           bio: formData.bio.trim() || null,
           profilePhotoUrl: formData.profilePhotoUrl.trim() || null,
           isActive: formData.isActive,
@@ -188,6 +259,7 @@ export default function AdminTrainers() {
         });
         setFormSuccess("Trainer profile updated successfully!");
       } else {
+        const secondaryString = selectedSecondaryStyles.join(", ") || null;
         const initialPhotoUrl = pendingPhotoFile ? null : (formData.profilePhotoUrl.trim() || null);
         const created = await adminApi.createTrainer({
           fullName: formData.fullName.trim(),
@@ -196,7 +268,7 @@ export default function AdminTrainers() {
           city: formData.city.trim() || "Hyderabad",
           experienceYears: Number(formData.experienceYears) || 0,
           primaryDanceStyle: formData.primaryDanceStyle.trim(),
-          secondaryDanceStyles: formData.secondaryDanceStyles.trim() || null,
+          secondaryDanceStyles: secondaryString,
           bio: formData.bio.trim() || null,
           profilePhotoUrl: initialPhotoUrl,
           isActive: formData.isActive,
@@ -390,7 +462,7 @@ export default function AdminTrainers() {
                       {/* 4. Experience */}
                       <td className="td-experience">
                         <span className="exp-val">
-                          {t.experienceYears ? `${t.experienceYears} years` : "1+ years"}
+                          {t.experienceYears !== undefined && t.experienceYears !== null ? `${t.experienceYears} ${Number(t.experienceYears) === 1 ? "year" : "years"}` : "1+ years"}
                         </span>
                       </td>
 
@@ -556,30 +628,128 @@ export default function AdminTrainers() {
               </div>
 
               <div className="modal-form-grid-2">
+                {/* PRIMARY DANCE STYLE (EXACTLY 1) */}
                 <div className="form-field-group">
                   <label className="field-label">Primary Dance Style <span className="req">*</span></label>
-                  <input
-                    type="text"
+                  <select
                     className="field-input"
-                    placeholder="e.g. Urban Choreography, Hip Hop, Locking"
                     value={formData.primaryDanceStyle}
                     onChange={(e) => setFormData({ ...formData, primaryDanceStyle: e.target.value })}
                     required
-                  />
+                  >
+                    {PREDEFINED_DANCE_STYLES.map((style) => (
+                      <option key={style} value={style}>
+                        {style}
+                      </option>
+                    ))}
+                    {!PREDEFINED_DANCE_STYLES.includes(formData.primaryDanceStyle) && formData.primaryDanceStyle && (
+                      <option value={formData.primaryDanceStyle}>{formData.primaryDanceStyle} (Custom)</option>
+                    )}
+                  </select>
                 </div>
 
+                {/* SECONDARY DANCE STYLES (0-10) */}
                 <div className="form-field-group">
-                  <label className="field-label">Secondary Dance Styles</label>
-                  <input
-                    type="text"
-                    className="field-input"
-                    placeholder="e.g. Popping, House, Waacking"
-                    value={formData.secondaryDanceStyles}
-                    onChange={(e) => setFormData({ ...formData, secondaryDanceStyles: e.target.value })}
-                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label className="field-label" style={{ margin: 0 }}>Secondary Dance Styles</label>
+                    <span className="secondary-styles-counter">
+                      {selectedSecondaryStyles.length} / 10 styles
+                    </span>
+                  </div>
+
+                  <div className="secondary-styles-manager">
+                    {/* Chips */}
+                    <div className="secondary-styles-chips">
+                      {selectedSecondaryStyles.length === 0 ? (
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8", padding: "4px" }}>
+                          No secondary styles added yet.
+                        </span>
+                      ) : (
+                        selectedSecondaryStyles.map((style, idx) => (
+                          <span key={idx} className="secondary-style-chip">
+                            {style}
+                            <button
+                              type="button"
+                              className="chip-remove-btn"
+                              onClick={() => handleRemoveSecondaryStyle(idx)}
+                              title={`Remove ${style}`}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add Secondary Style Dropdown & Custom Option */}
+                    {selectedSecondaryStyles.length < 10 && (
+                      <div className="secondary-styles-add-row">
+                        <select
+                          className="secondary-styles-select"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value === "__CUSTOM__") {
+                              setShowCustomInput(true);
+                            } else if (e.target.value) {
+                              handleAddSecondaryStyle(e.target.value);
+                            }
+                          }}
+                        >
+                          <option value="">+ Add Dance Style...</option>
+                          {PREDEFINED_DANCE_STYLES.filter(
+                            (s) =>
+                              s.toLowerCase() !== (formData.primaryDanceStyle || "").toLowerCase() &&
+                              !selectedSecondaryStyles.some((sec) => sec.toLowerCase() === s.toLowerCase())
+                          ).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                          <option value="__CUSTOM__">+ Add Custom Style...</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {showCustomInput && (
+                      <div className="custom-style-input-wrap">
+                        <input
+                          type="text"
+                          className="custom-style-input"
+                          placeholder="Type custom dance style..."
+                          value={customStyleInput}
+                          onChange={(e) => setCustomStyleInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddSecondaryStyle(customStyleInput);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-add-custom-style"
+                          onClick={() => handleAddSecondaryStyle(customStyleInput)}
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          className="chip-remove-btn"
+                          style={{ fontSize: "14px", padding: "0 6px" }}
+                          onClick={() => {
+                            setShowCustomInput(false);
+                            setCustomStyleInput("");
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
+              {/* PROFILE PHOTO WITH UNIVERSAL CROPPER */}
               <div className="form-field-group">
                 <label className="field-label">Profile Photo</label>
 
@@ -594,7 +764,7 @@ export default function AdminTrainers() {
                       />
                     </div>
                     <div className="trainer-photo-preview-info">
-                      <div className="photo-status-badge">✓ Photo Uploaded</div>
+                      <div className="photo-status-badge">✓ Photo Set (3:4 Portrait)</div>
                       <div className="photo-actions-row">
                         <input
                           type="file"
@@ -603,8 +773,9 @@ export default function AdminTrainers() {
                           style={{ display: "none" }}
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
-                              handlePhotoUpload(e.target.files[0]);
+                              handleFileSelectedForCrop(e.target.files[0]);
                             }
+                            e.target.value = "";
                           }}
                         />
                         <button
@@ -614,7 +785,7 @@ export default function AdminTrainers() {
                           disabled={uploadingPhoto}
                         >
                           {uploadingPhoto ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-                          <span>Change Photo</span>
+                          <span>Crop / Change Photo</span>
                         </button>
                         <button
                           type="button"
@@ -640,8 +811,9 @@ export default function AdminTrainers() {
                       style={{ display: "none" }}
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
-                          handlePhotoUpload(e.target.files[0]);
+                          handleFileSelectedForCrop(e.target.files[0]);
                         }
+                        e.target.value = "";
                       }}
                     />
 
@@ -659,8 +831,8 @@ export default function AdminTrainers() {
                           <Upload size={18} />
                         </div>
                         <div className="photo-dropzone-texts">
-                          <span className="photo-dropzone-main">Upload Photo from Device</span>
-                          <span className="photo-dropzone-sub">Supports high-res JPEG, PNG, WebP up to 35 MB</span>
+                          <span className="photo-dropzone-main">Upload & Crop Photo</span>
+                          <span className="photo-dropzone-sub">3:4 Portrait standard. JPEG, PNG, WebP up to 35 MB</span>
                         </div>
                       </div>
                     )}
@@ -788,6 +960,16 @@ export default function AdminTrainers() {
           </div>
         </div>
       )}
+      {/* UNIVERSAL IMAGE CROPPER MODAL */}
+      <UniversalImageCropper
+        isOpen={cropperModal.open}
+        initialImage={cropperModal.initialImage}
+        preset="3:4"
+        allowedPresets={["3:4", "1:1"]}
+        destinationName="Trainer Photo"
+        onCrop={handleCroppedPhotoApplied}
+        onClose={() => setCropperModal({ open: false, initialImage: null })}
+      />
     </div>
   );
 }

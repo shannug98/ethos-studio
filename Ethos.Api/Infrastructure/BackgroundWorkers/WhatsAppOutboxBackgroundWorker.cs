@@ -12,16 +12,19 @@ public class WhatsAppOutboxBackgroundWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IOptions<Msg91Options> _options;
     private readonly ILogger<WhatsAppOutboxBackgroundWorker> _logger;
+    private readonly IWorkerLivenessTracker _livenessTracker;
     private readonly string _workerId;
 
     public WhatsAppOutboxBackgroundWorker(
         IServiceProvider serviceProvider,
         IOptions<Msg91Options> options,
-        ILogger<WhatsAppOutboxBackgroundWorker> logger)
+        ILogger<WhatsAppOutboxBackgroundWorker> logger,
+        IWorkerLivenessTracker livenessTracker)
     {
         _serviceProvider = serviceProvider;
         _options = options;
         _logger = logger;
+        _livenessTracker = livenessTracker;
         _workerId = $"worker-{Guid.NewGuid():N}"[..15];
     }
 
@@ -29,6 +32,7 @@ public class WhatsAppOutboxBackgroundWorker : BackgroundService
     {
         if (!_options.Value.Enabled)
         {
+            _livenessTracker.RecordHeartbeat("worker_whatsapp", "Standby / Disabled in configuration");
             _logger.LogInformation("[WhatsApp Outbox Worker] Disabled via configuration.");
             return;
         }
@@ -41,6 +45,7 @@ public class WhatsAppOutboxBackgroundWorker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            _livenessTracker.RecordHeartbeat("worker_whatsapp", "Active / Polling");
             try
             {
                 using var scope = _serviceProvider.CreateScope();

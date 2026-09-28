@@ -69,7 +69,8 @@ public class TrainerPerformanceService : ITrainerPerformanceService
             .ToListAsync(cancellationToken);
 
         var feedbackCount = feedbacks.Count;
-        decimal? avgRating = feedbackCount > 0 ? (decimal)Math.Round(feedbacks.Average(f => f.Rating), 2) : null;
+        var ratedFeedbacks = feedbacks.Where(f => f.Rating.HasValue).ToList();
+        decimal? avgRating = ratedFeedbacks.Count > 0 ? (decimal)Math.Round(ratedFeedbacks.Average(f => (double)f.Rating!.Value), 2) : null;
 
         int totalCapacity = workshops.Where(w => w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Completed).Sum(w => w.Capacity);
         decimal attendancePercentage = totalCapacity > 0
@@ -96,7 +97,8 @@ public class TrainerPerformanceService : ITrainerPerformanceService
             .ToList();
 
         var monthlyFeedbackCount = monthlyFeedbacks.Count;
-        decimal? monthlyAvgRating = monthlyFeedbackCount > 0 ? (decimal)Math.Round(monthlyFeedbacks.Average(f => f.Rating), 2) : null;
+        var ratedMonthlyFeedbacks = monthlyFeedbacks.Where(f => f.Rating.HasValue).ToList();
+        decimal? monthlyAvgRating = ratedMonthlyFeedbacks.Count > 0 ? (decimal)Math.Round(ratedMonthlyFeedbacks.Average(f => (double)f.Rating!.Value), 2) : null;
 
         int monthlyCapacity = monthlyWorkshops.Where(w => w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Completed).Sum(w => w.Capacity);
         decimal monthlyAttendancePercentage = monthlyCapacity > 0
@@ -211,8 +213,9 @@ public class TrainerPerformanceService : ITrainerPerformanceService
                 ? Math.Min(100m, Math.Round((decimal)mBookings.Count / mCap * 100m, 2))
                 : 0m;
 
-            decimal? mRating = mFeedbacks.Count > 0
-                ? (decimal)Math.Round(mFeedbacks.Average(f => f.Rating), 2)
+            var ratedMFeedbacks = mFeedbacks.Where(f => f.Rating.HasValue).ToList();
+            decimal? mRating = ratedMFeedbacks.Count > 0
+                ? (decimal)Math.Round(ratedMFeedbacks.Average(f => (double)f.Rating!.Value), 2)
                 : null;
 
             if (i == 0 || mWorkshops.Count > 0 || mFeedbacks.Count > 0 || mBookings.Count > 0)

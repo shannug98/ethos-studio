@@ -191,7 +191,7 @@ function Hero() {
           <span />
         </div>
 
-        <p className="ethos-hero__tagline">MOVE. LEARN. BELONG.</p>
+       {/*  <p className="ethos-hero__tagline">CREATE.</p> */}
 
         <p className="ethos-hero__description">
           A place to move with confidence, learn with passion and belong to

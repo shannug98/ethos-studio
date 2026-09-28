@@ -570,6 +570,7 @@ public class AdminWorkshopService : IAdminWorkshopService
         {
             Id = Guid.NewGuid(),
             TrainerProfileId = request.TrainerProfileId == Guid.Empty ? null : request.TrainerProfileId,
+            IsEthosOriginal = request.IsEthosOriginal,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
             DanceStyle = request.DanceStyle.Trim(),
@@ -811,9 +812,9 @@ public class AdminWorkshopService : IAdminWorkshopService
                 {
                     if (p.SessionsIncluded.HasValue)
                     {
-                        if (p.SessionsIncluded.Value < 2)
+                        if (p.SessionsIncluded.Value < 1)
                         {
-                            throw new ArgumentException($"Multi-session bundle ticket '{p.Name}' must have SessionsIncluded greater than or equal to 2.");
+                            throw new ArgumentException($"Ticket '{p.Name}' must have SessionsIncluded greater than or equal to 1.");
                         }
                         int sessionCount = request.Sessions?.Count ?? workshop.Sessions.Count;
                         if (sessionCount > 0 && p.SessionsIncluded.Value > sessionCount)
@@ -1016,6 +1017,7 @@ public class AdminWorkshopService : IAdminWorkshopService
             : dateUnspecified.AddDays(1) + request.EndTime;
 
         workshop.Title = request.Title.Trim();
+        workshop.IsEthosOriginal = request.IsEthosOriginal;
         workshop.Description = request.Description?.Trim();
         workshop.DanceStyle = request.DanceStyle.Trim();
         workshop.Level = request.Level.Trim();
@@ -1551,9 +1553,9 @@ public class AdminWorkshopService : IAdminWorkshopService
                 {
                     if (pReq.SessionsIncluded.HasValue)
                     {
-                        if (pReq.SessionsIncluded.Value < 2)
+                        if (pReq.SessionsIncluded.Value < 1)
                         {
-                            throw new ArgumentException($"Multi-session bundle ticket '{pReq.Name}' must have SessionsIncluded greater than or equal to 2.");
+                            throw new ArgumentException($"Ticket '{pReq.Name}' must have SessionsIncluded greater than or equal to 1.");
                         }
                         int totalSessions = workshop.Sessions.Count;
                         if (totalSessions > 0 && pReq.SessionsIncluded.Value > totalSessions)
@@ -3206,11 +3208,11 @@ public class AdminWorkshopService : IAdminWorkshopService
         var activeSessionIds = activeSessions.Select(s => s.Id).ToHashSet();
         foreach (var pass in activePasses)
         {
-            if (pass.SessionsIncluded == 1)
+            if (pass.WorkshopSessionId.HasValue)
             {
-                if (!pass.WorkshopSessionId.HasValue || !activeSessionIds.Contains(pass.WorkshopSessionId.Value))
+                if (!activeSessionIds.Contains(pass.WorkshopSessionId.Value))
                 {
-                    throw new InvalidOperationException($"Single-Session pass '{pass.Name}' must be bound to an active session in the workshop.");
+                    throw new InvalidOperationException($"Ticket '{pass.Name}' references a session that is not active in the workshop.");
                 }
             }
         }
@@ -3841,7 +3843,7 @@ public class AdminWorkshopService : IAdminWorkshopService
             return new AdminWorkshopFeedbackDto
             {
                 Id = f.Id,
-                Rating = f.Rating,
+                Rating = f.Rating ?? 0,
                 Comment = f.Comment,
                 StudentNameMasked = masked,
                 SubmittedAt = f.SubmittedAt,

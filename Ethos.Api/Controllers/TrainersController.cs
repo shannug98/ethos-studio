@@ -225,6 +225,18 @@ public class TrainersController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{slug}/public-profile")]
+    [HttpGet("public/{slug}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<TrainerPublicProfileResponse>> GetPublicProfile(
+        string slug,
+        CancellationToken cancellationToken)
+    {
+        var result = await _trainerService.GetPublicProfileAsync(slug, cancellationToken);
+        if (result == null) return NotFound(new { message = "Trainer profile not found or currently unavailable." });
+        return Ok(result);
+    }
+
     [HttpGet("me/tier")]
     [Authorize(Roles = "TRAINER")]
     public async Task<ActionResult<TrainerTierResponse>> GetTier(CancellationToken cancellationToken)

@@ -1,0 +1,448 @@
+/* ==========================================================================
+   ETHOS DANCE STUDIO — FACULTY PROFILE POPOVER & BOTTOM SHEET
+   ========================================================================== */
+
+/* INTERACTIVE FACULTY CHIP CARD */
+.faculty-chip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.faculty-chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 999px;
+  min-width: 170px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: inherit;
+  font-family: inherit;
+}
+
+.faculty-chip-btn:hover,
+.faculty-chip-btn:focus-visible,
+.faculty-chip-btn.is-active {
+  background: rgba(223, 128, 108, 0.12);
+  border-color: rgba(223, 128, 108, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.faculty-chip-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.faculty-chip-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.faculty-chip-styles {
+  font-size: 11px;
+  color: #df806c;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.faculty-chip-indicator {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  padding-left: 4px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.faculty-chip-btn:hover .faculty-chip-indicator,
+.faculty-chip-btn.is-active .faculty-chip-indicator {
+  color: #df806c;
+  transform: scale(1.15);
+}
+
+/* ==========================================================================
+   DESKTOP FLOATING POPOVER
+   ========================================================================== */
+.faculty-popover {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  z-index: 1000;
+  width: 360px;
+  background: #141316;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(223, 128, 108, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: facultyPopoverEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #f4f4f5;
+  user-select: none;
+}
+
+@keyframes facultyPopoverEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* POPOVER HEADER */
+.faculty-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.faculty-popover-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.faculty-popover-avatar-ring {
+  padding: 2px;
+  border-radius: 50%;
+  border: 1.5px solid #df806c;
+  background: rgba(223, 128, 108, 0.1);
+  display: inline-flex;
+}
+
+.faculty-popover-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.faculty-popover-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.faculty-popover-style-lead {
+  font-size: 12px;
+  font-weight: 600;
+  color: #df806c;
+}
+
+.faculty-popover-close-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+}
+
+.faculty-popover-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* SECTION TITLES */
+.faculty-popover-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(247, 238, 233, 0.55);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ABOUT SECTION */
+.faculty-popover-about {
+  margin-bottom: 14px;
+}
+
+.faculty-popover-about-text {
+  font-size: 12.5px;
+  color: #d4d4d8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ETHOS EXPERIENCE METRICS */
+.faculty-popover-experience {
+  margin-bottom: 14px;
+}
+
+.faculty-experience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.faculty-experience-stat {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.faculty-stat-num {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.faculty-stat-label {
+  font-size: 10px;
+  color: #a1a1aa;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* RECENT ETHOS WORKSHOPS HORIZONTAL CAROUSEL */
+.faculty-popover-recent {
+  margin-bottom: 14px;
+}
+
+.faculty-recent-carousel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.faculty-carousel-arrows {
+  display: flex;
+  gap: 4px;
+}
+
+.faculty-carousel-arrow-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d4d4d8;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.faculty-carousel-arrow-btn:hover {
+  background: #df806c;
+  color: #0c0b0e;
+  border-color: #df806c;
+}
+
+.faculty-recent-carousel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(223, 128, 108, 0.3) transparent;
+}
+
+.faculty-recent-carousel::-webkit-scrollbar {
+  height: 4px;
+}
+
+.faculty-recent-carousel::-webkit-scrollbar-thumb {
+  background: rgba(223, 128, 108, 0.3);
+  border-radius: 4px;
+}
+
+.faculty-recent-card {
+  flex: 0 0 110px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.faculty-recent-card:hover {
+  border-color: #df806c;
+  transform: translateY(-2px);
+  background: rgba(223, 128, 108, 0.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.faculty-recent-card-poster {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background: #27272a;
+  display: block;
+}
+
+.faculty-recent-card-body {
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.faculty-recent-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.faculty-recent-card-style {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #df806c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.faculty-recent-card-date {
+  font-size: 9px;
+  color: #a1a1aa;
+}
+
+/* VIEW FULL PROFILE FOOTER BUTTON */
+.faculty-popover-full-profile-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 14px;
+  background: rgba(223, 128, 108, 0.12);
+  border: 1px solid rgba(223, 128, 108, 0.35);
+  border-radius: 8px;
+  color: #df806c;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.faculty-popover-full-profile-btn:hover {
+  background: #df806c;
+  color: #0c0b0e;
+  box-shadow: 0 4px 12px rgba(223, 128, 108, 0.3);
+}
+
+/* SPECIALIZES IN */
+.faculty-popover-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.faculty-spec-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(223, 128, 108, 0.1);
+  border: 1px solid rgba(223, 128, 108, 0.25);
+  color: #df9b8d;
+}
+
+/* ==========================================================================
+   MOBILE BOTTOM SHEET
+   ========================================================================== */
+.faculty-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .faculty-popover {
+    display: none;
+  }
+
+  .faculty-mobile-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    align-items: flex-end;
+    animation: facultyBackdropFade 0.2s ease-out;
+  }
+
+  @keyframes facultyBackdropFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .faculty-bottom-sheet {
+    width: 100%;
+    max-height: 82vh;
+    overflow-y: auto;
+    background: #141316;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 22px 22px 0 0;
+    padding: 16px 20px 28px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+    color: #f4f4f5;
+    animation: facultySheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes facultySheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .faculty-sheet-drag-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    margin: 0 auto 16px;
+  }
+
+  .faculty-recent-title {
+    max-width: 200px;
+  }
+}

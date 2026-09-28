@@ -12,20 +12,24 @@ public class TelemetryBackgroundWorker : BackgroundService
     private readonly ITelemetryQueue _queue;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<TelemetryBackgroundWorker> _logger;
+    private readonly IWorkerLivenessTracker _livenessTracker;
 
     public TelemetryBackgroundWorker(
         ITelemetryQueue queue,
         IServiceProvider serviceProvider,
-        ILogger<TelemetryBackgroundWorker> logger)
+        ILogger<TelemetryBackgroundWorker> logger,
+        IWorkerLivenessTracker livenessTracker)
     {
         _queue = queue;
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _livenessTracker = livenessTracker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var batch = new List<ApiRequestLog>(64);
+        _livenessTracker.RecordHeartbeat("worker_telemetry", "Active / Ingestion Ready");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -42,6 +46,7 @@ public class TelemetryBackgroundWorker : BackgroundService
                 }
 
                 await PersistBatchAsync(batch, stoppingToken);
+                _livenessTracker.RecordHeartbeat("worker_telemetry", $"Active / Ingested batch of {batch.Count}", batch.Count);
                 batch.Clear();
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
