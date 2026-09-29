@@ -139,6 +139,7 @@ export default function AdminWorkshopWizard() {
   const currentStepRef = useRef(currentStep);
   currentStepRef.current = currentStep;
   const hasLoadedRef = useRef(false);
+  const isSavingDraftRef = useRef(false);
 
   // Photo upload Blobs for R2 upload
   const [portraitBlob, setPortraitBlob] = useState(null);
@@ -386,7 +387,8 @@ export default function AdminWorkshopWizard() {
   }, [effectiveId]);
 
   const performSaveDraft = async (manual = false) => {
-    if (isLockedOut || loadingWorkshop || showResumeModal) return;
+    if (isSavingDraftRef.current || isLockedOut || loadingWorkshop || showResumeModal || conflictModal) return;
+    isSavingDraftRef.current = true;
     setIsAutosaving(true);
     try {
       const payload = {
@@ -398,6 +400,11 @@ export default function AdminWorkshopWizard() {
         expectedVersion: draftVersionRef.current,
       };
       const res = await adminApi.saveWorkshopDraft(payload);
+
+      // Synchronously update refs to eliminate stale version closures and race conditions
+      draftIdRef.current = res.id;
+      draftVersionRef.current = res.version;
+
       setDraftId(res.id);
       setDraftVersion(res.version);
       try {
@@ -411,7 +418,11 @@ export default function AdminWorkshopWizard() {
         });
       }
     } catch (err) {
-      if (err.status === 409 || err.code === "CONCURRENCY_CONFLICT") {
+      if (err.status === 409 || err.code === "CONCURRENCY_CONFLICT" || (err.message && err.message.toLowerCase().includes("conflict"))) {
+        if (err.serverVersion != null) {
+          draftVersionRef.current = err.serverVersion;
+          setDraftVersion(err.serverVersion);
+        }
         setConflictModal({
           message: err.message || "This workshop draft was modified in another session or window.",
         });
@@ -423,6 +434,7 @@ export default function AdminWorkshopWizard() {
       }
     } finally {
       setIsAutosaving(false);
+      isSavingDraftRef.current = false;
     }
   };
 
@@ -434,14 +446,14 @@ export default function AdminWorkshopWizard() {
       }
       return;
     }
-    if (loadingWorkshop || showResumeModal || isLockedOut) return;
+    if (loadingWorkshop || showResumeModal || isLockedOut || conflictModal || isSavingDraftRef.current) return;
 
     const timer = setTimeout(() => {
       performSaveDraft(false);
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [form, loadingWorkshop, showResumeModal, isLockedOut]);
+  }, [form, loadingWorkshop, showResumeModal, isLockedOut, conflictModal]);
 
   const handleResumeDraft = () => {
     if (serverDraft && serverDraft.draftJson) {
@@ -451,6 +463,8 @@ export default function AdminWorkshopWizard() {
         if (parsed.currentStep && parsed.currentStep >= 1 && parsed.currentStep <= STEPS.length) {
           setCurrentStep(parsed.currentStep);
         }
+        draftIdRef.current = serverDraft.id;
+        draftVersionRef.current = serverDraft.version;
         setDraftId(serverDraft.id);
         setDraftVersion(serverDraft.version);
         setStatusBanner({
@@ -474,6 +488,8 @@ export default function AdminWorkshopWizard() {
     }
     sessionStorage.removeItem(DRAFT_STORAGE_KEY);
     setServerDraft(null);
+    draftIdRef.current = null;
+    draftVersionRef.current = 0;
     setDraftId(null);
     setDraftVersion(0);
     setShowResumeModal(false);
@@ -495,6 +511,8 @@ export default function AdminWorkshopWizard() {
         }),
         expectedVersion: newVersion,
       });
+      draftIdRef.current = res.id;
+      draftVersionRef.current = res.version;
       setDraftId(res.id);
       setDraftVersion(res.version);
       setConflictModal(null);
@@ -513,6 +531,8 @@ export default function AdminWorkshopWizard() {
       if (latest && latest.draftJson) {
         const parsed = JSON.parse(latest.draftJson);
         setForm((prev) => ({ ...prev, ...parsed }));
+        draftIdRef.current = latest.id;
+        draftVersionRef.current = latest.version;
         setDraftId(latest.id);
         setDraftVersion(latest.version);
       }

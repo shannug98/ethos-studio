@@ -10,7 +10,7 @@ public class Msg91Options
 
     public string? IntegratedNumber { get; set; }
 
-    public string BaseUrl { get; set; } = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
+    public string BaseUrl { get; set; } = "https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
 
     public string BookingConfirmedTemplateName { get; set; } = "ethos_booking_confirmed";
 

@@ -106,7 +106,7 @@ describe("Security Audit: Static File Mappings & Production R2 Guard", () => {
   const r2ServicePath = path.join(rootDir, "Ethos.Api", "Infrastructure", "Storage", "CloudflareR2StorageService.cs");
 
   test("Program.cs maps strictly /uploads/trainers and does not expose App_Data/uploads root", () => {
-    const content = fs.readFileSync(programCsPath, "utf-8");
+    const content = fs.readFileSync(programCsPath, "utf-8").replace(/\r\n/g, "\n");
     assert.ok(content.includes('RequestPath =\n            "/uploads/trainers"') || content.includes('RequestPath = "/uploads/trainers"'), "Must map /uploads/trainers");
     assert.ok(!content.includes('RequestPath = "/uploads"') && !content.includes('RequestPath =\n            "/uploads"'), "Must NOT expose root /uploads");
   });

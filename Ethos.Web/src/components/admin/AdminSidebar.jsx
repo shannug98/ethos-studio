@@ -212,6 +212,11 @@ export default function AdminSidebar({ collapsed, onToggleCollapse, attentionCou
                 `ethos-nav-link ${isActive ? "active" : ""}`
               }
               title={collapsed ? label : undefined}
+              onClick={() => {
+                if (typeof window !== "undefined" && window.innerWidth <= 768 && !collapsed && onToggleCollapse) {
+                  onToggleCollapse();
+                }
+              }}
             >
               <span className={`ethos-nav-icon-wrap ${accentClass}`}>
                 <Icon size={18} strokeWidth={2.2} />

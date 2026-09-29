@@ -9,6 +9,13 @@ namespace Ethos.Api.Tests.Notifications;
 
 public class Msg91ServiceHttpTests
 {
+    [Fact]
+    public void Msg91Options_DefaultBaseUrl_PointsToControlEndpoint()
+    {
+        var options = new Msg91Options();
+        Assert.Equal("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", options.BaseUrl);
+    }
+
     private class FakeHttpMessageHandler : HttpMessageHandler
     {
         public Func<HttpRequestMessage, HttpResponseMessage> Handler { get; set; } =
@@ -32,6 +39,8 @@ public class Msg91ServiceHttpTests
         {
             Handler = req =>
             {
+                Assert.Equal(HttpMethod.Post, req.Method);
+                Assert.Equal("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", req.RequestUri?.ToString());
                 Assert.Equal("test_secret_auth_key", req.Headers.GetValues("authkey").First());
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
@@ -64,6 +73,52 @@ public class Msg91ServiceHttpTests
         Assert.False(result.IsTimeout);
         Assert.False(result.IsTransientError);
         Assert.False(result.IsPermanentError);
+        Assert.NotNull(fakeHandler.LastRequest);
+        Assert.Equal("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", fakeHandler.LastRequest.RequestUri?.ToString());
+    }
+
+    [Fact]
+    public async Task SendTicketPdfAsync_WhenValidHttps_DispatchesToControlEndpointWithAuthKey()
+    {
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = req =>
+            {
+                Assert.Equal(HttpMethod.Post, req.Method);
+                Assert.Equal("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", req.RequestUri?.ToString());
+                Assert.Equal("test_secret_auth_key", req.Headers.GetValues("authkey").First());
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"status\":\"success\",\"request_id\":\"req_ticket_999\",\"message\":\"Message queued successfully\"}")
+                };
+            }
+        };
+
+        var options = Options.Create(new Msg91Options
+        {
+            Enabled = true,
+            AuthKey = "test_secret_auth_key",
+            IntegratedNumber = "919999988888"
+        });
+
+        var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
+
+        var data = new TicketPdfData(
+            AttendeeName: "Rahul",
+            WorkshopTitle: "Bollywood",
+            WorkshopDate: "25 Oct 2026",
+            WorkshopTime: "6 PM",
+            Location: "Ethos Dance Studio, Hyderabad",
+            BookingId: "BK-001",
+            PdfHttpsUrl: "https://media.ethosdancestudio.com/tickets/ticket.pdf",
+            FileName: "ticket.pdf");
+
+        var result = await service.SendTicketPdfAsync(data, "9876543210");
+
+        Assert.True(result.Success);
+        Assert.Equal("req_ticket_999", result.ProviderRequestId);
+        Assert.NotNull(fakeHandler.LastRequest);
+        Assert.Equal("https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/", fakeHandler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]

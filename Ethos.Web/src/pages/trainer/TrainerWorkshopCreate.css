@@ -208,9 +208,7 @@
 .workshop-form-grid input[type="date"],
 .workshop-form-grid input[type="time"],
 .trainer-workshop-form input[type="date"],
-.trainer-workshop-form input[type="time"],
-input[type="date"],
-input[type="time"] {
+.trainer-workshop-form input[type="time"] {
   color-scheme: dark !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
@@ -238,9 +236,7 @@ input[type="time"] {
 .workshop-form-grid input[type="date"]::-webkit-calendar-picker-indicator,
 .workshop-form-grid input[type="time"]::-webkit-calendar-picker-indicator,
 .trainer-workshop-form input[type="date"]::-webkit-calendar-picker-indicator,
-.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator,
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
+.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1) brightness(2) !important;
   opacity: 0.9 !important;
   cursor: pointer;
@@ -251,9 +247,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .workshop-form-grid input[type="date"]::-webkit-calendar-picker-indicator:hover,
 .workshop-form-grid input[type="time"]::-webkit-calendar-picker-indicator:hover,
 .trainer-workshop-form input[type="date"]::-webkit-calendar-picker-indicator:hover,
-.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator:hover,
-input[type="date"]::-webkit-calendar-picker-indicator:hover,
-input[type="time"]::-webkit-calendar-picker-indicator:hover {
+.trainer-workshop-form input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1 !important;
 }
 

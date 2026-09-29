@@ -435,3 +435,75 @@
 .admin-btn.danger:hover {
   background: #b42318;
 }
+
+/* =========================================================
+   MOBILE RESPONSIVENESS (320px - 768px)
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .admin-bookings-container {
+    padding: 12px 8px;
+  }
+
+  .bookings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .bookings-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .tab-btn {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .filter-select-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .filter-select-group select {
+    flex: 1;
+  }
+
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    min-width: 680px;
+  }
+
+  .modal-dialog {
+    width: 95% !important;
+    max-width: 95% !important;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 18px !important;
+  }
+}
+

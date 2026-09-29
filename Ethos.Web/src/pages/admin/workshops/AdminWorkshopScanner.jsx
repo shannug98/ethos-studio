@@ -64,20 +64,35 @@ export default function AdminWorkshopScanner() {
   );
 
   const html5QrCodeRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const isTransitioningRef = useRef(false);
 
   // Safe scanner unmount cleanup
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (html5QrCodeRef.current) {
+        const scanner = html5QrCodeRef.current;
+        html5QrCodeRef.current = null;
         try {
-          if (html5QrCodeRef.current.isScanning) {
-            html5QrCodeRef.current.stop().then(() => {
-              try { html5QrCodeRef.current?.clear(); } catch {}
-            }).catch(() => {
-              try { html5QrCodeRef.current?.clear(); } catch {}
-            });
+          if (scanner.isScanning) {
+            scanner
+              .stop()
+              .then(() => {
+                try {
+                  scanner.clear();
+                } catch {}
+              })
+              .catch(() => {
+                try {
+                  scanner.clear();
+                } catch {}
+              });
           } else {
-            try { html5QrCodeRef.current.clear(); } catch {}
+            try {
+              scanner.clear();
+            } catch {}
           }
         } catch {
           // Ignore cleanup errors on unmount
@@ -87,21 +102,27 @@ export default function AdminWorkshopScanner() {
   }, []);
 
   const stopCameraScanner = useCallback(async () => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
     if (html5QrCodeRef.current) {
+      const scanner = html5QrCodeRef.current;
+      html5QrCodeRef.current = null;
       try {
-        if (html5QrCodeRef.current.isScanning) {
-          await html5QrCodeRef.current.stop();
+        if (scanner.isScanning) {
+          await scanner.stop();
         }
         try {
-          html5QrCodeRef.current.clear();
+          scanner.clear();
         } catch {}
       } catch (err) {
         console.warn("Could not cleanly stop camera scanner:", err);
       }
-      html5QrCodeRef.current = null;
     }
-    setIsScanning(false);
-    setTorchOn(false);
+    if (isMountedRef.current) {
+      setIsScanning(false);
+      setTorchOn(false);
+    }
+    isTransitioningRef.current = false;
   }, []);
 
   const handleCheckInResult = useCallback(
@@ -179,7 +200,9 @@ export default function AdminWorkshopScanner() {
       } finally {
         // Debounce lock so scanner is ready for next scan without immediate duplicate trigger
         setTimeout(() => {
-          setIsProcessing(false);
+          if (isMountedRef.current) {
+            setIsProcessing(false);
+          }
         }, 1600);
       }
     },
@@ -187,19 +210,22 @@ export default function AdminWorkshopScanner() {
   );
 
   const startCameraScanner = async () => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
     setCameraError(null);
     setFeedback(null);
 
     try {
       // Ensure previous scanner is cleanly stopped
       if (html5QrCodeRef.current) {
-        if (html5QrCodeRef.current.isScanning) {
-          await html5QrCodeRef.current.stop();
-        }
-        try {
-          html5QrCodeRef.current.clear();
-        } catch {}
+        const prevScanner = html5QrCodeRef.current;
         html5QrCodeRef.current = null;
+        try {
+          if (prevScanner.isScanning) {
+            await prevScanner.stop();
+          }
+          prevScanner.clear();
+        } catch {}
       }
 
       const scanner = new Html5Qrcode("qr-camera-viewport", {
@@ -217,16 +243,12 @@ export default function AdminWorkshopScanner() {
         {
           fps: 20,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.95);
-            return { width: Math.max(260, edge), height: Math.max(260, edge) };
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const edge = Math.floor(minEdge * 0.75);
+            return { width: Math.max(180, edge), height: Math.max(180, edge) };
           },
           aspectRatio: 1.0,
           disableFlip: false,
-          videoConstraints: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: selectedCameraId ? undefined : "environment",
-          },
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true,
           },
@@ -239,55 +261,78 @@ export default function AdminWorkshopScanner() {
         }
       );
 
-      setIsScanning(true);
+      if (isMountedRef.current) {
+        setIsScanning(true);
 
-      // Enumerate available cameras once user has granted permissions
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          setAvailableCameras(devices);
-          if (!selectedCameraId) {
-            const backCam = devices.find(
-              (c) =>
-                c.label.toLowerCase().includes("back") ||
-                c.label.toLowerCase().includes("environment")
-            );
-            setSelectedCameraId(backCam ? backCam.id : devices[0].id);
+        // Ensure video element has playsInline and muted for iOS/mobile compatibility
+        try {
+          const videoEl = document.querySelector("#qr-camera-viewport video");
+          if (videoEl) {
+            videoEl.setAttribute("playsinline", "true");
+            videoEl.setAttribute("webkit-playsinline", "true");
+            videoEl.muted = true;
           }
+        } catch {}
+
+        // Enumerate available cameras once user has granted permissions
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setAvailableCameras(devices);
+            if (!selectedCameraId) {
+              const backCam = devices.find(
+                (c) =>
+                  c.label &&
+                  (c.label.toLowerCase().includes("back") ||
+                    c.label.toLowerCase().includes("rear") ||
+                    c.label.toLowerCase().includes("environment"))
+              );
+              if (backCam) {
+                setSelectedCameraId(backCam.id);
+              }
+            }
+          }
+        } catch {
+          // Device enumeration warning
         }
-      } catch {
-        // Device enumeration warning
       }
     } catch (err) {
-      setIsScanning(false);
-      console.error("Camera start error:", err);
-      let errorMsg = "Failed to access camera.";
-      const errStr = String(err?.name || err?.message || err).toLowerCase();
-      if (errStr.includes("notallowed") || errStr.includes("permission")) {
-        errorMsg =
-          "Camera permission was denied. Please allow camera access in your browser settings, or use manual ticket entry / photo upload below.";
-      } else if (errStr.includes("notfound") || errStr.includes("devicesnotfound")) {
-        errorMsg =
-          "No camera device was detected on your system. Please use manual ticket entry or upload a ticket photo below.";
-      } else if (
-        errStr.includes("notreadable") ||
-        errStr.includes("trackstart") ||
-        errStr.includes("in use")
-      ) {
-        errorMsg =
-          "Camera is already in use by another application or browser tab. Please close other camera apps and try again.";
-      } else if (typeof window !== "undefined" && window.isSecureContext === false) {
-        errorMsg =
-          "Camera access requires a secure HTTPS connection (or localhost). Please check your browser URL.";
-      } else {
-        errorMsg = `Camera error: ${err?.message || "Could not start video stream."}. You can use manual entry or file upload below.`;
+      if (isMountedRef.current) {
+        setIsScanning(false);
+        console.error("Camera start error:", err);
+        let errorMsg = "Failed to access camera.";
+        const errStr = String(err?.name || err?.message || err).toLowerCase();
+        if (errStr.includes("notallowed") || errStr.includes("permission")) {
+          errorMsg =
+            "Camera permission was denied. Please allow camera access in your browser settings, or use manual ticket entry / photo upload below.";
+        } else if (errStr.includes("notfound") || errStr.includes("devicesnotfound")) {
+          errorMsg =
+            "No camera device was detected on your system. Please use manual ticket entry or upload a ticket photo below.";
+        } else if (
+          errStr.includes("notreadable") ||
+          errStr.includes("trackstart") ||
+          errStr.includes("in use")
+        ) {
+          errorMsg =
+            "Camera is already in use by another application or browser tab. Please close other camera apps and try again.";
+        } else if (errStr.includes("overconstrained")) {
+          errorMsg =
+            "Camera resolution or facing constraint could not be satisfied. Please select another camera from the dropdown.";
+        } else if (typeof window !== "undefined" && window.isSecureContext === false) {
+          errorMsg =
+            "Camera access requires a secure HTTPS connection (or localhost). Please check your browser URL.";
+        } else {
+          errorMsg = `Camera error: ${err?.message || "Could not start video stream."}. You can use manual entry or file upload below.`;
+        }
+        setCameraError(errorMsg);
       }
-      setCameraError(errorMsg);
+    } finally {
+      isTransitioningRef.current = false;
     }
   };
 
   const handleSwitchCamera = async () => {
-    if (availableCameras.length <= 1) return;
+    if (availableCameras.length <= 1 || isTransitioningRef.current) return;
     const currentIndex = availableCameras.findIndex((c) => c.id === selectedCameraId);
     const nextIndex = (currentIndex + 1) % availableCameras.length;
     const nextCamera = availableCameras[nextIndex];
@@ -296,7 +341,9 @@ export default function AdminWorkshopScanner() {
     if (isScanning) {
       await stopCameraScanner();
       setTimeout(() => {
-        startCameraScanner();
+        if (isMountedRef.current) {
+          startCameraScanner();
+        }
       }, 300);
     }
   };

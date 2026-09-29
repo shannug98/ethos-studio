@@ -362,3 +362,53 @@
 .page-btn:not(:disabled):hover {
   background: #f9fafb;
 }
+
+/* =========================================================
+   MOBILE RESPONSIVENESS (320px - 768px)
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .admin-audit-page {
+    padding: 12px 8px;
+    gap: 16px;
+  }
+
+  .audit-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .audit-filter-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-group,
+  .filter-group.trace-filter-group {
+    min-width: 100%;
+  }
+
+  .audit-table-card {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .audit-table {
+    min-width: 680px;
+  }
+
+  .audit-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .metadata-pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+

@@ -330,25 +330,25 @@ button.admin-btn {
 }
 
 /* 6. Form Labels & Inputs */
-.admin-form-label,
-.form-label,
-label {
+.admin-layout .admin-form-label,
+.admin-layout .form-label,
+.admin-layout label {
   font-size: 12px !important;
   font-weight: 600 !important;
   color: #344054 !important;
 }
 
-.admin-form-input,
-.form-input,
-.input-field,
-.form-control,
-input[type="text"],
-input[type="search"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-select.select-field,
-select {
+.admin-layout .admin-form-input,
+.admin-layout .form-input,
+.admin-layout .input-field,
+.admin-layout .form-control,
+.admin-layout input[type="text"],
+.admin-layout input[type="search"],
+.admin-layout input[type="number"],
+.admin-layout input[type="email"],
+.admin-layout input[type="tel"],
+.admin-layout select.select-field,
+.admin-layout select {
   font-size: 13px !important;
   font-weight: 500 !important;
   color: #101828 !important;
@@ -443,4 +443,26 @@ select {
     gap: 8px;
   }
 }
+
+/* Universal Table & Pre/Code block containment across all screens */
+pre,
+code,
+.dev-console-logs,
+.system-health-diagnostics,
+.json-viewer,
+.metadata-pre {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  box-sizing: border-box !important;
+}
+
+.table-responsive,
+.admin-table-container,
+.table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
 

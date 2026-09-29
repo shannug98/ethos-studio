@@ -203,39 +203,57 @@
   text-transform: uppercase;
 }
 
-.form-input {
+.workshop-checkout-page .form-input,
+.workshop-checkout-page input[type="text"],
+.workshop-checkout-page input[type="email"],
+.workshop-checkout-page input[type="tel"] {
   width: 100%;
-  background: #1c1c21;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1c1c21 !important;
+  background-color: #1c1c21 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 10px;
   padding: 13px 15px;
   font-size: 14px;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+  caret-color: #df806c;
   box-sizing: border-box;
   outline: none;
   transition: all 0.2s ease;
 }
 
-.form-input::placeholder {
-  color: #71717a;
-  -webkit-text-fill-color: #71717a;
+.workshop-checkout-page .form-input::placeholder,
+.workshop-checkout-page input[type="text"]::placeholder,
+.workshop-checkout-page input[type="email"]::placeholder,
+.workshop-checkout-page input[type="tel"]::placeholder {
+  color: #71717a !important;
+  -webkit-text-fill-color: #71717a !important;
 }
 
 /* Fix browser autofill overrides (Chrome, Edge, Safari) */
-.form-input:-webkit-autofill,
-.form-input:-webkit-autofill:hover, 
-.form-input:-webkit-autofill:focus, 
-.form-input:-webkit-autofill:active {
+.workshop-checkout-page .form-input:-webkit-autofill,
+.workshop-checkout-page .form-input:-webkit-autofill:hover, 
+.workshop-checkout-page .form-input:-webkit-autofill:focus, 
+.workshop-checkout-page .form-input:-webkit-autofill:active,
+.workshop-checkout-page input[type="text"]:-webkit-autofill,
+.workshop-checkout-page input[type="email"]:-webkit-autofill,
+.workshop-checkout-page input[type="tel"]:-webkit-autofill {
   -webkit-text-fill-color: #ffffff !important;
   -webkit-box-shadow: 0 0 0 1000px #1c1c21 inset !important;
+  box-shadow: 0 0 0 1000px #1c1c21 inset !important;
+  background-color: #1c1c21 !important;
   transition: background-color 5000s ease-in-out 0s;
   color: #ffffff !important;
+  caret-color: #df806c;
 }
 
-.form-input:focus {
-  border-color: #df806c;
-  background: #232329;
+.workshop-checkout-page .form-input:focus,
+.workshop-checkout-page input[type="text"]:focus,
+.workshop-checkout-page input[type="email"]:focus,
+.workshop-checkout-page input[type="tel"]:focus {
+  border-color: #df806c !important;
+  background: #232329 !important;
+  background-color: #232329 !important;
   box-shadow: 0 0 0 3px rgba(223, 128, 108, 0.2);
 }
 

@@ -484,8 +484,42 @@
   }
 }
 
+@media (max-width: 768px) {
+  .admin-students-view {
+    padding: 14px 10px 48px;
+  }
+
+  .admin-students-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .admin-students-filters .search-form {
+    min-width: 100%;
+    flex-direction: column;
+  }
+
+  .admin-table-container {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 680px;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-students-stats-grid {
     grid-template-columns: 1fr;
   }
 }
+

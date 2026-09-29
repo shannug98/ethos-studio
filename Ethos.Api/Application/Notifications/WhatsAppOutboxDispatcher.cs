@@ -91,7 +91,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
                 .FromSqlInterpolated($@"
                     SELECT * FROM whatsapp_notifications
                     WHERE (""Status"" = {(int)WhatsAppNotificationStatus.Pending} OR
-                          (""Status"" = {(int)WhatsAppNotificationStatus.Failed} AND ""Attempts"" < {_options.MaxRetryAttempts} AND (""NextAttemptAt"" IS NULL OR ""NextAttemptAt"" <= {now})))
+                          (""Status"" = {(int)WhatsAppNotificationStatus.Failed} AND ""Attempts"" < {_options.MaxRetryAttempts} AND ""NextAttemptAt"" IS NOT NULL AND ""NextAttemptAt"" <= {now}))
                       AND (""LeaseExpiresAt"" IS NULL OR ""LeaseExpiresAt"" < {now})
                     ORDER BY ""CreatedAt""
                     LIMIT {batchSize}
@@ -126,7 +126,7 @@ public class WhatsAppOutboxDispatcher : IWhatsAppOutboxDispatcher
             candidateIds = await _dbContext.WhatsAppNotifications
                 .Where(x =>
                     (x.Status == WhatsAppNotificationStatus.Pending ||
-                     (x.Status == WhatsAppNotificationStatus.Failed && x.Attempts < _options.MaxRetryAttempts && (x.NextAttemptAt == null || x.NextAttemptAt <= now))) &&
+                     (x.Status == WhatsAppNotificationStatus.Failed && x.Attempts < _options.MaxRetryAttempts && x.NextAttemptAt != null && x.NextAttemptAt <= now)) &&
                     (x.LeaseExpiresAt == null || x.LeaseExpiresAt < now))
                 .OrderBy(x => x.CreatedAt)
                 .Select(x => x.Id)

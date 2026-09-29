@@ -145,22 +145,56 @@
   position: relative;
   width: 100%;
   height: 380px;
+  max-height: 55vh;
+  min-height: 280px;
   background: #090d16;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 12px 12px 0 0;
 }
 
-.qr-viewport-canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.qr-viewport-canvas video {
+.qr-viewport-canvas,
+#qr-camera-viewport {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover;
+  position: relative !important;
+  overflow: hidden !important;
+  border: none !important;
+  background: #090d16 !important;
+}
+
+#qr-camera-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+#qr-camera-viewport__scan_region {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  min-height: 100% !important;
+}
+
+/* Hide unneeded html5-qrcode internal UI elements and raw file buttons */
+#qr-camera-viewport__dashboard,
+#qr-camera-viewport__dashboard_section,
+#qr-camera-viewport__dashboard_section_swaplink,
+#qr-camera-viewport__dashboard_section_csr,
+#qr-camera-viewport__dashboard_section_fsr,
+#qr-camera-viewport__header_message,
+#qr-camera-viewport__status_span,
+#qr-camera-viewport__camera_selection,
+#qr-camera-viewport__filescan_input,
+#qr-camera-viewport img:not(.viewfinder-img),
+#qr-camera-viewport span:not(.scan-radar-dot) {
+  display: none !important;
 }
 
 /* Viewfinder Idle State */
@@ -1196,3 +1230,80 @@
 .scan-switch-workshop-btn:hover {
   background: #c2410c;
 }
+
+/* =========================================================
+   MOBILE RESPONSIVENESS (320px - 768px)
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .scanner-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .scanner-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .view-attendees-link-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .viewfinder-container {
+    height: 320px;
+    min-height: 240px;
+  }
+
+  .viewfinder-box {
+    width: 190px;
+    height: 190px;
+  }
+
+  .camera-action-footer {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+
+  .scanner-btn-primary,
+  .scanner-btn-danger {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  .camera-select-dropdown {
+    width: 100%;
+  }
+
+  .live-alert-details-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .viewfinder-container {
+    height: 280px;
+  }
+
+  .viewfinder-box {
+    width: 160px;
+    height: 160px;
+  }
+
+  .live-alert-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-entry-form {
+    flex-direction: column;
+  }
+
+  .manual-submit-btn {
+    width: 100%;
+  }
+}
+

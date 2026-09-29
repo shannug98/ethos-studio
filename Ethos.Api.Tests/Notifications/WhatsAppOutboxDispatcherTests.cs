@@ -890,4 +890,141 @@ public class WhatsAppOutboxDispatcherTests
         Assert.Equal(WhatsAppNotificationStatus.Failed, updated.Status);
         Assert.NotNull(updated.NextAttemptAt); // Scheduled for retry
     }
+
+    [Fact]
+    public async Task ProcessPendingBatchAsync_PermanentFailure_NextAttemptAtNull_IsNotReclaimedOnSubsequentPoll()
+    {
+        using var db = CreateInMemoryDbContext(nameof(ProcessPendingBatchAsync_PermanentFailure_NextAttemptAtNull_IsNotReclaimedOnSubsequentPoll));
+        var msg91 = new MockMsg91Service
+        {
+            BookingHandler = (_, _) => Msg91DispatchResult.Permanent(401, "HTTP 401 Unauthorized", "Auth failed")
+        };
+        var pdfService = new MockTicketPdfService();
+        var options = Options.Create(new Msg91Options { BatchSize = 10, MaxRetryAttempts = 3, WorkerPollingIntervalSeconds = 5 });
+        var config = CreateTestConfiguration();
+        var dispatcher = new WhatsAppOutboxDispatcher(db, msg91, pdfService, options, NullLogger<WhatsAppOutboxDispatcher>.Instance, config);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Permanent Failure Test",
+            WorkshopDate = DateTime.Today.AddDays(7),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            GuestName = "Permanent Failure User",
+            GuestPhone = "919876543210"
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var notification = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            NotificationType = WhatsAppNotificationType.BookingConfirmed,
+            RecipientPhone = "919876543210",
+            IdempotencyKey = $"perm_fail_test_{Guid.NewGuid():N}",
+            Status = WhatsAppNotificationStatus.Pending
+        };
+        db.WhatsAppNotifications.Add(notification);
+        await db.SaveChangesAsync();
+
+        // 1. First poll: Claims Pending item (Status=1). Fails permanently with 401.
+        var processedFirst = await dispatcher.ProcessPendingBatchAsync("worker-1");
+        Assert.Equal(1, processedFirst);
+
+        var afterFirst = await db.WhatsAppNotifications.FindAsync(notification.Id);
+        Assert.NotNull(afterFirst);
+        Assert.Equal(WhatsAppNotificationStatus.Failed, afterFirst.Status);
+        Assert.Equal(1, afterFirst.Attempts);
+        Assert.Null(afterFirst.NextAttemptAt); // Permanent failure has no next attempt
+
+        // 2. Second poll (immediate): Must NOT claim the permanent failure record
+        var processedSecond = await dispatcher.ProcessPendingBatchAsync("worker-1");
+        Assert.Equal(0, processedSecond);
+
+        var afterSecond = await db.WhatsAppNotifications.FindAsync(notification.Id);
+        Assert.NotNull(afterSecond);
+        Assert.Equal(1, afterSecond.Attempts); // Still 1 attempt, NOT reclaimed
+        Assert.Equal(WhatsAppNotificationStatus.Failed, afterSecond.Status);
+    }
+
+    [Fact]
+    public async Task ProcessPendingBatchAsync_TransientFailure_WithBackoff_IsOnlyClaimedAfterNextAttemptAt()
+    {
+        using var db = CreateInMemoryDbContext(nameof(ProcessPendingBatchAsync_TransientFailure_WithBackoff_IsOnlyClaimedAfterNextAttemptAt));
+        int callCount = 0;
+        var msg91 = new MockMsg91Service
+        {
+            BookingHandler = (_, _) =>
+            {
+                callCount++;
+                return Msg91DispatchResult.Accepted("msg_accepted", "req_accepted");
+            }
+        };
+        var pdfService = new MockTicketPdfService();
+        var options = Options.Create(new Msg91Options { BatchSize = 10, MaxRetryAttempts = 3, WorkerPollingIntervalSeconds = 5 });
+        var config = CreateTestConfiguration();
+        var dispatcher = new WhatsAppOutboxDispatcher(db, msg91, pdfService, options, NullLogger<WhatsAppOutboxDispatcher>.Instance, config);
+
+        var workshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Transient Backoff Test",
+            WorkshopDate = DateTime.Today.AddDays(7),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0)
+        };
+        db.Workshops.Add(workshop);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = workshop.Id,
+            GuestName = "Transient Backoff User",
+            GuestPhone = "919876543210"
+        };
+        db.WorkshopBookings.Add(booking);
+
+        // Record is Failed with a future NextAttemptAt (+10 minutes)
+        var notification = new WhatsAppNotification
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            NotificationType = WhatsAppNotificationType.BookingConfirmed,
+            RecipientPhone = "919876543210",
+            IdempotencyKey = $"transient_backoff_{Guid.NewGuid():N}",
+            Status = WhatsAppNotificationStatus.Failed,
+            Attempts = 1,
+            NextAttemptAt = DateTime.UtcNow.AddMinutes(10)
+        };
+        db.WhatsAppNotifications.Add(notification);
+        await db.SaveChangesAsync();
+
+        // 1. Poll while NextAttemptAt is in the future: Must NOT claim
+        var processedEarly = await dispatcher.ProcessPendingBatchAsync("worker-1");
+        Assert.Equal(0, processedEarly);
+        Assert.Equal(0, callCount);
+
+        // 2. Fast-forward NextAttemptAt to the past
+        notification.NextAttemptAt = DateTime.UtcNow.AddMinutes(-1);
+        await db.SaveChangesAsync();
+
+        // 3. Poll after NextAttemptAt has arrived: Must claim and process
+        var processedDue = await dispatcher.ProcessPendingBatchAsync("worker-1");
+        Assert.Equal(1, processedDue);
+        Assert.Equal(1, callCount);
+
+        var afterDue = await db.WhatsAppNotifications.FindAsync(notification.Id);
+        Assert.NotNull(afterDue);
+        Assert.Equal(WhatsAppNotificationStatus.Sent, afterDue.Status);
+        Assert.Equal(2, afterDue.Attempts);
+    }
 }
+
