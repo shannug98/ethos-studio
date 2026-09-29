@@ -1,8 +1,10 @@
 using Ethos.Api.Application.Storage;
+using Ethos.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Ethos.Api.Tests.Storage;
@@ -176,5 +178,73 @@ public class R2TrainerStorageTests
 
         Assert.Equal(1, fakeR2.DeleteCount);
         Assert.Equal(storageKey, fakeR2.LastDeletedKey);
+    }
+
+    [Fact]
+    public void GetPublicUrl_Production_ReturnsCleanCustomDomainUrlWithoutBucketName()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Production" };
+        var settings = Options.Create(new CloudflareR2Settings
+        {
+            BucketName = "ethos-production-media",
+            PublicDomain = "https://media.ethosdancestudio.com"
+        });
+        var service = new CloudflareR2StorageService(settings, NullLogger<CloudflareR2StorageService>.Instance, env);
+
+        var objectKey = "homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg";
+        var result = service.GetPublicUrl(objectKey);
+
+        Assert.Equal("https://media.ethosdancestudio.com/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg", result);
+    }
+
+    [Fact]
+    public void GetPublicUrl_Production_StripsAccidentalTrailingBucketFromPublicDomain()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Production" };
+        var settings = Options.Create(new CloudflareR2Settings
+        {
+            BucketName = "ethos-production-media",
+            PublicDomain = "https://media.ethosdancestudio.com/ethos-production-media"
+        });
+        var service = new CloudflareR2StorageService(settings, NullLogger<CloudflareR2StorageService>.Instance, env);
+
+        var objectKey = "homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg";
+        var result = service.GetPublicUrl(objectKey);
+
+        Assert.Equal("https://media.ethosdancestudio.com/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg", result);
+    }
+
+    [Fact]
+    public void GetPublicUrl_Production_StripsAccidentalLeadingBucketFromObjectKey()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Production" };
+        var settings = Options.Create(new CloudflareR2Settings
+        {
+            BucketName = "ethos-production-media",
+            PublicDomain = "https://media.ethosdancestudio.com"
+        });
+        var service = new CloudflareR2StorageService(settings, NullLogger<CloudflareR2StorageService>.Instance, env);
+
+        var objectKey = "ethos-production-media/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg";
+        var result = service.GetPublicUrl(objectKey);
+
+        Assert.Equal("https://media.ethosdancestudio.com/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg", result);
+    }
+
+    [Fact]
+    public void GetPublicUrl_Development_ReturnsLocalUploadsPath()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Development" };
+        var settings = Options.Create(new CloudflareR2Settings
+        {
+            BucketName = "ethos-production-media",
+            PublicDomain = "https://media.ethosdancestudio.com"
+        });
+        var service = new CloudflareR2StorageService(settings, NullLogger<CloudflareR2StorageService>.Instance, env);
+
+        var objectKey = "homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg";
+        var result = service.GetPublicUrl(objectKey);
+
+        Assert.Equal("/uploads/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg", result);
     }
 }

@@ -49,14 +49,6 @@ export function getMediaUrl(pathOrItem, explicitId) {
     }
   }
 
-  // If URL points to media.ethosdancestudio.com which is not yet live on DNS, fallback to API stream if ID is present
-  if (typeof path === "string" && path.includes("media.ethosdancestudio.com")) {
-    if (id) return `${API_BASE_URL}/api/media/content/${id}`;
-    const matchUuid = path.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-    if (matchUuid) return `${API_BASE_URL}/api/media/content/${matchUuid[0]}`;
-    return "";
-  }
-
   // Already an absolute URL (in production, preserves Cloudflare R2 public URL)
   if (typeof path === "string" && /^https?:\/\//i.test(path)) {
     return path;

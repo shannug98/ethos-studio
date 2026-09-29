@@ -453,15 +453,16 @@ test("FIX 10 — Multi-Session Authoritative Schedule Derivation", () => {
   assert.equal(sortedDesc[0].endTime, "20:00", "Latest end time must be 20:00");
 });
 
-test("FIX 11 — DNS Fallback Defense for media.ethosdancestudio.com", () => {
-  // Without ID, must return empty string to prevent browser ERR_NAME_NOT_RESOLVED
-  const unresolvableUrl = "https://media.ethosdancestudio.com/workshops/poster-1.jpg";
-  const resolved = getMediaUrl(unresolvableUrl);
-  assert.equal(resolved, "", "Must return empty string to trigger local asset fallback");
+test("FIX 11 — Live Custom Domain for media.ethosdancestudio.com passes through directly", () => {
+  // Absolute https://media.ethosdancestudio.com URL must pass through unchanged
+  const cdnUrl = "https://media.ethosdancestudio.com/homepagescrolling/images/2026/09/0959e4ed101c4329b4bd0421e3a3b00a.jpg";
+  const resolved = getMediaUrl(cdnUrl);
+  assert.equal(resolved, cdnUrl, "Must preserve absolute custom domain URL without bucket name or API rewriting");
 
-  // With ID, must route to backend API content endpoint
-  const resolvedWithId = getMediaUrl(unresolvableUrl, "media-item-123");
-  assert.ok(resolvedWithId.includes("/api/media/content/media-item-123"), "Must fallback to API streaming endpoint");
+  // Item object with publicUrl must also resolve directly
+  const itemObj = { publicUrl: cdnUrl, id: "media-item-123" };
+  const resolvedFromObj = getMediaUrl(itemObj);
+  assert.equal(resolvedFromObj, cdnUrl, "Must preserve publicUrl from media item object");
 });
 
 test("FIX 12 — Universal Media Preview Presentation Resolver & Cross-Placement Isolation", () => {

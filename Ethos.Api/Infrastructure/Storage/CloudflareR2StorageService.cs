@@ -227,7 +227,24 @@ public class CloudflareR2StorageService : ICloudflareR2StorageService
         if (!string.IsNullOrWhiteSpace(_settings.PublicDomain))
         {
             var domain = _settings.PublicDomain.TrimEnd('/');
-            return $"{domain}/{objectKey.TrimStart('/')}";
+
+            // Defensively strip redundant trailing bucket name if present in PublicDomain configuration
+            if (!string.IsNullOrWhiteSpace(_settings.BucketName) &&
+                domain.EndsWith($"/{_settings.BucketName}", StringComparison.OrdinalIgnoreCase))
+            {
+                domain = domain[..^(_settings.BucketName.Length + 1)];
+            }
+
+            var cleanKey = objectKey.TrimStart('/');
+
+            // Defensively strip redundant leading bucket name if present in objectKey
+            if (!string.IsNullOrWhiteSpace(_settings.BucketName) &&
+                cleanKey.StartsWith($"{_settings.BucketName}/", StringComparison.OrdinalIgnoreCase))
+            {
+                cleanKey = cleanKey[(_settings.BucketName.Length + 1)..];
+            }
+
+            return $"{domain}/{cleanKey}";
         }
 
         return $"https://{_settings.BucketName}.r2.cloudflarestorage.com/{objectKey.TrimStart('/')}";
