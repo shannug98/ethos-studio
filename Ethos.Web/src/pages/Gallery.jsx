@@ -135,6 +135,7 @@ function Gallery() {
 
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const featuredVideoRef = useRef(null);
 
   // Safely clamp featuredIndex if video list length changes
@@ -239,7 +240,7 @@ function Gallery() {
       featuredVideoRef.current.pause();
     }
     setIsPlaying(false);
-    setSelectedItem(item);
+    setSelectedItem(item.type ? item : { ...item, type: "video" });
   };
 
   const closeLightbox = () => {
@@ -367,13 +368,14 @@ function Gallery() {
                       }
                     }}
                   >
-                    {/* Media: Single-video rule strictly maintained */}
+                    {/* Media: Active video auto-streams; preview cards show poster or muted preview */}
                     {isActive ? (
                       isLightboxVideoOpen ? (
                         <img
-                          src={video.poster}
+                          src={video.poster || video.src}
                           alt={video.title}
                           className="gallery-carousel-media"
+                          onError={(e) => handleMediaImgError(e)}
                         />
                       ) : (
                         <video
@@ -383,7 +385,10 @@ function Gallery() {
                           src={video.src}
                           poster={video.poster}
                           playsInline
-                          preload="metadata"
+                          autoPlay
+                          loop
+                          muted={isMuted}
+                          preload="auto"
                           onPlay={() => setIsPlaying(true)}
                           onPause={() => setIsPlaying(false)}
                           onEnded={() => setIsPlaying(false)}
@@ -391,15 +396,26 @@ function Gallery() {
                         />
                       )
                     ) : (
-                      <img
-                        src={video.poster}
-                        alt={video.title}
-                        className="gallery-carousel-media"
-                        loading="lazy"
-                      />
+                      video.poster ? (
+                        <img
+                          src={video.poster}
+                          alt={video.title}
+                          className="gallery-carousel-media"
+                          loading="lazy"
+                          onError={(e) => handleMediaImgError(e)}
+                        />
+                      ) : (
+                        <video
+                          src={video.src}
+                          className="gallery-carousel-media"
+                          preload="metadata"
+                          muted
+                          playsInline
+                        />
+                      )
                     )}
 
-                    {/* Center Play Button Overlay for active video */}
+                    {/* Center Play Button Overlay for active video (if paused) */}
                     {isActive && !isLightboxVideoOpen && !isPlaying && (
                       <button
                         type="button"
@@ -416,6 +432,26 @@ function Gallery() {
                       <div className="gallery-card-preview-play">
                         <Play size={20} fill="rgba(255, 255, 255, 0.8)" style={{ marginLeft: "2px" }} />
                       </div>
+                    )}
+
+                    {/* Sound Toggle Button (active card only) */}
+                    {isActive && !isLightboxVideoOpen && (
+                      <button
+                        type="button"
+                        className="gallery-video-sound-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextMuted = !isMuted;
+                          setIsMuted(nextMuted);
+                          if (featuredVideoRef.current) {
+                            featuredVideoRef.current.muted = nextMuted;
+                          }
+                        }}
+                        title={isMuted ? "Unmute audio" : "Mute audio"}
+                        aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+                      >
+                        {isMuted ? "🔇" : "🔊"}
+                      </button>
                     )}
 
                     {/* Expand to Lightbox Modal (active card only) */}

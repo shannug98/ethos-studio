@@ -642,6 +642,46 @@
 
 
 /* =====================================================
+   HERO SOUND TOGGLE
+===================================================== */
+
+.ethos-hero__sound-toggle {
+  position: absolute;
+  right:
+    clamp(
+      25px,
+      5vw,
+      70px
+    );
+  bottom: 155px;
+  z-index: 5;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  font-size: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.ethos-hero__sound-toggle:hover {
+  background: #f31f3d;
+  border-color: #f31f3d;
+  transform: translateY(-3px);
+}
+
+
+/* =====================================================
    NAVIGATION
 ===================================================== */
 

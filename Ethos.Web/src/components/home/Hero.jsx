@@ -10,6 +10,7 @@ function Hero() {
   const [fetchError, setFetchError] = useState(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isHeroMuted, setIsHeroMuted] = useState(true);
   const navigate = useNavigate();
 
   const touchStartX = useRef(null);
@@ -87,12 +88,12 @@ function Hero() {
 
     if (currentSlide?.type === "video" && videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.muted = true; // Strictly muted autoplay
+      videoRef.current.muted = isHeroMuted;
       videoRef.current.play().catch(() => {});
     } else if (videoRef.current) {
       videoRef.current.pause();
     }
-  }, [activeSlide, slides]);
+  }, [activeSlide, slides, isHeroMuted]);
 
   const handleTouchStart = (event) => {
     touchStartX.current = event.touches[0].clientX;
@@ -156,11 +157,11 @@ function Hero() {
                     className="ethos-hero__video"
                     src={slide.src}
                     poster={slide.poster}
-                    muted
+                    muted={isHeroMuted}
                     loop
                     playsInline
                     autoPlay={isActive}
-                    preload="metadata"
+                    preload="auto"
                   />
                 )}
               </div>
@@ -221,6 +222,26 @@ function Hero() {
           </button>
         </div>
       </div>
+
+      {/* HERO SOUND TOGGLE (Visible when active slide is a video) */}
+      {slides[activeSlide]?.type === "video" && (
+        <button
+          type="button"
+          className="ethos-hero__sound-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            const nextMuted = !isHeroMuted;
+            setIsHeroMuted(nextMuted);
+            if (videoRef.current) {
+              videoRef.current.muted = nextMuted;
+            }
+          }}
+          title={isHeroMuted ? "Unmute audio" : "Mute audio"}
+          aria-label={isHeroMuted ? "Unmute audio" : "Mute audio"}
+        >
+          {isHeroMuted ? "🔇" : "🔊"}
+        </button>
+      )}
 
       {/* NAVIGATION CONTROLS (Only if multiple slides exist) */}
       {totalSlides > 1 && (
