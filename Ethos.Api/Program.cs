@@ -383,7 +383,11 @@ builder.Services.AddScoped<IVenueUrlResolverService, VenueUrlResolverService>();
 builder.Services.AddScoped<IAdminBookingService, AdminBookingService>();
 builder.Services.AddScoped<IAdminAttendanceService, AdminAttendanceService>();
 builder.Services.AddScoped<IPaymentRefundService, PaymentRefundService>();
-builder.Services.AddScoped<IRefundService, RefundService>();
+builder.Services.AddHttpClient<IRefundService, RefundService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddScoped<IRefundOutboxDispatcher, RefundOutboxDispatcher>();
 builder.Services.AddHostedService<RefundOutboxBackgroundWorker>();
 builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();

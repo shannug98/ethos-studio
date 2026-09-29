@@ -33,18 +33,14 @@ public class RefundService : IRefundService
         IAdminAuditService auditService,
         IWebHostEnvironment environment,
         ILogger<RefundService> logger,
-        HttpClient? httpClient = null)
+        HttpClient httpClient)
     {
         _dbContext = dbContext;
         _razorpaySettings = razorpaySettings.Value;
         _auditService = auditService;
         _environment = environment;
         _logger = logger;
-        _httpClient = httpClient ?? new HttpClient
-        {
-            BaseAddress = new Uri("https://api.razorpay.com/v1/"),
-            Timeout = TimeSpan.FromSeconds(15)
-        };
+        _httpClient = httpClient;
     }
 
     public async Task<RefundResult> RefundPaymentAsync(

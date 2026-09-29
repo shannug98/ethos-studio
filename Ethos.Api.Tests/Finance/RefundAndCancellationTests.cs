@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Ethos.Api.Application.Admin;
@@ -24,6 +29,22 @@ namespace Ethos.Api.Tests.Finance;
 
 public class RefundAndCancellationTests
 {
+    private class FakeHttpMessageHandler : HttpMessageHandler
+    {
+        public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> Handler { get; set; } =
+            (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+
+        public HttpRequestMessage? LastRequest { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            LastRequest = request;
+            return await Handler(request, cancellationToken);
+        }
+    }
+
     private class DummyWebHostEnvironment : IWebHostEnvironment
     {
         public string EnvironmentName { get; set; } = Environments.Development;
@@ -110,7 +131,8 @@ public class RefundAndCancellationTests
         var audit = new DummyAuditService();
         var env = new DummyWebHostEnvironment();
         var rzpOptions = Options.Create(new RazorpaySettings { KeyId = "rzp_test_placeholder", KeySecret = "secret" });
-        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance);
+        var httpClient = new HttpClient { BaseAddress = new Uri("https://api.razorpay.com/v1/") };
+        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance, httpClient);
 
         var adminId = Guid.NewGuid();
         var payment = new PaymentTransaction
@@ -227,7 +249,8 @@ public class RefundAndCancellationTests
         var audit = new DummyAuditService();
         var env = new DummyWebHostEnvironment();
         var rzpOptions = Options.Create(new RazorpaySettings { KeyId = "rzp_test_placeholder", KeySecret = "secret" });
-        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance);
+        var httpClient = new HttpClient { BaseAddress = new Uri("https://api.razorpay.com/v1/") };
+        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance, httpClient);
 
         var adminId = Guid.NewGuid();
         var payment = new PaymentTransaction
@@ -272,6 +295,261 @@ public class RefundAndCancellationTests
         // Only one PaymentRefund should exist in DB
         var totalRefunds = await db.PaymentRefunds.CountAsync(r => r.PaymentId == payment.Id);
         Assert.Equal(1, totalRefunds);
+    }
+
+    [Fact]
+    public async Task RefundPaymentAsync_LiveMode_SendsCorrectHttpRequest_AndUpdatesAllEntities()
+    {
+        using var db = CreateDbContext();
+        var audit = new DummyAuditService();
+        var env = new DummyWebHostEnvironment { EnvironmentName = Environments.Production };
+        var rzpOptions = Options.Create(new RazorpaySettings { KeyId = "rzp_live_testkey123", KeySecret = "live_secret_456" });
+
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = async (req, ct) =>
+            {
+                Assert.Equal(HttpMethod.Post, req.Method);
+                Assert.Equal("https://api.razorpay.com/v1/payments/pay_live_98765/refund", req.RequestUri?.ToString());
+                Assert.Equal("Basic", req.Headers.Authorization?.Scheme);
+
+                var authParam = req.Headers.Authorization?.Parameter;
+                Assert.NotNull(authParam);
+                var decodedAuth = Encoding.ASCII.GetString(Convert.FromBase64String(authParam));
+                Assert.Equal("rzp_live_testkey123:live_secret_456", decodedAuth);
+
+                var body = await req.Content!.ReadAsStringAsync(ct);
+                using var doc = JsonDocument.Parse(body);
+                Assert.Equal(150000, doc.RootElement.GetProperty("amount").GetInt64());
+                Assert.Equal(1, doc.RootElement.GetProperty("reverse_all").GetInt32());
+
+                var responseJson = "{\"id\":\"rfnd_live_123456\",\"entity\":\"refund\",\"amount\":150000,\"status\":\"processed\"}";
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+                };
+            }
+        };
+
+        var httpClient = new HttpClient(fakeHandler)
+        {
+            BaseAddress = new Uri("https://api.razorpay.com/v1/")
+        };
+        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance, httpClient);
+
+        var adminId = Guid.NewGuid();
+        var payment = new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Amount = 1500m,
+            Currency = "INR",
+            Status = PaymentStatus.Paid,
+            RazorpayPaymentId = "pay_live_98765",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.PaymentTransactions.Add(payment);
+
+        var role = new Role { Id = Guid.NewGuid(), Name = "STUDENT", Code = "STUDENT" };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Live Dancer",
+            Phone = "9876543210",
+            Email = "live@example.com",
+            CustomerCode = "C-002",
+            IsActive = true
+        };
+        user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, Role = role });
+        var student = new StudentProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            User = user
+        };
+        db.Roles.Add(role);
+        db.Users.Add(user);
+        db.StudentProfiles.Add(student);
+
+        var booking = new WorkshopBooking
+        {
+            Id = Guid.NewGuid(),
+            WorkshopId = Guid.NewGuid(),
+            StudentProfileId = student.Id,
+            PaymentTransactionId = payment.Id,
+            Quantity = 2,
+            TotalPrice = 1500m,
+            Status = WorkshopBookingStatus.Confirmed,
+            GuestPhone = "9876543210",
+            GuestName = "Live Dancer",
+            BookedAt = DateTime.UtcNow
+        };
+        db.WorkshopBookings.Add(booking);
+
+        var ticket1 = new WorkshopTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TK-LIVE-01",
+            QrTokenHash = "hash1",
+            WorkshopBookingId = booking.Id,
+            WorkshopId = booking.WorkshopId,
+            UserId = booking.StudentProfileId,
+            PaymentTransactionId = payment.Id,
+            AttendeeName = "Live Dancer",
+            AttendeePhone = "9876543210",
+            Status = TicketStatus.Issued
+        };
+        var ticket2 = new WorkshopTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TK-LIVE-02",
+            QrTokenHash = "hash2",
+            WorkshopBookingId = booking.Id,
+            WorkshopId = booking.WorkshopId,
+            UserId = booking.StudentProfileId,
+            PaymentTransactionId = payment.Id,
+            AttendeeName = "Friend Dancer",
+            AttendeePhone = "9876543210",
+            Status = TicketStatus.Issued
+        };
+        db.WorkshopTickets.AddRange(ticket1, ticket2);
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.RefundPaymentAsync(payment.Id, "Live refund customer request", adminId);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(RefundStatus.Processed, result.Status);
+        Assert.Equal("rfnd_live_123456", result.RazorpayRefundId);
+        Assert.Equal(150000, result.AmountPaise);
+
+        // Verify entities
+        var reloadedPayment = await db.PaymentTransactions.FindAsync(payment.Id);
+        Assert.Equal(PaymentStatus.Refunded, reloadedPayment!.Status);
+
+        var reloadedBooking = await db.WorkshopBookings.FindAsync(booking.Id);
+        Assert.Equal(WorkshopBookingStatus.Cancelled, reloadedBooking!.Status);
+        Assert.NotNull(reloadedBooking.CancelledAt);
+
+        var tickets = await db.WorkshopTickets.Where(t => t.WorkshopBookingId == booking.Id).ToListAsync();
+        Assert.All(tickets, t => Assert.Equal(TicketStatus.Refunded, t.Status));
+
+        // Verify WhatsApp outbox
+        var waNotification = await db.WhatsAppNotifications.FirstOrDefaultAsync(w => w.BookingId == booking.Id);
+        Assert.NotNull(waNotification);
+        Assert.Equal(WhatsAppNotificationType.BookingCancelled, waNotification!.NotificationType);
+        Assert.Equal("9876543210", waNotification.RecipientPhone);
+
+        // Verify audit log
+        Assert.Contains(audit.Logs, l => l.Action == "ADMIN_BOOKING_REFUNDED");
+    }
+
+    [Fact]
+    public async Task RefundPaymentAsync_LiveMode_GatewayReturns400_SetsRefundStatusFailed()
+    {
+        using var db = CreateDbContext();
+        var audit = new DummyAuditService();
+        var env = new DummyWebHostEnvironment { EnvironmentName = Environments.Production };
+        var rzpOptions = Options.Create(new RazorpaySettings { KeyId = "rzp_live_testkey123", KeySecret = "live_secret_456" });
+
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = (_, _) =>
+            {
+                var errorJson = "{\"error\":{\"code\":\"BAD_REQUEST_ERROR\",\"description\":\"The payment has already been refunded\"}}";
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(errorJson, Encoding.UTF8, "application/json")
+                });
+            }
+        };
+
+        var httpClient = new HttpClient(fakeHandler)
+        {
+            BaseAddress = new Uri("https://api.razorpay.com/v1/")
+        };
+        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance, httpClient);
+
+        var adminId = Guid.NewGuid();
+        var payment = new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Amount = 1200m,
+            Currency = "INR",
+            Status = PaymentStatus.Paid,
+            RazorpayPaymentId = "pay_live_failed_123",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.PaymentTransactions.Add(payment);
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.RefundPaymentAsync(payment.Id, "Refund test bad request", adminId);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(RefundStatus.Failed, result.Status);
+        Assert.Contains("400", result.FailureReason);
+
+        // Payment status must remain Paid (not refunded)
+        var reloadedPayment = await db.PaymentTransactions.FindAsync(payment.Id);
+        Assert.Equal(PaymentStatus.Paid, reloadedPayment!.Status);
+
+        // Audit log must record failure
+        Assert.Contains(audit.Logs, l => l.Action == "ADMIN_REFUND_FAILED");
+    }
+
+    [Fact]
+    public async Task RefundPaymentAsync_LiveMode_GatewayTimesOut_SetsReconciliationRequired()
+    {
+        using var db = CreateDbContext();
+        var audit = new DummyAuditService();
+        var env = new DummyWebHostEnvironment { EnvironmentName = Environments.Production };
+        var rzpOptions = Options.Create(new RazorpaySettings { KeyId = "rzp_live_testkey123", KeySecret = "live_secret_456" });
+
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = (_, _) => throw new OperationCanceledException("Gateway request timed out")
+        };
+
+        var httpClient = new HttpClient(fakeHandler)
+        {
+            BaseAddress = new Uri("https://api.razorpay.com/v1/")
+        };
+        var service = new RefundService(db, rzpOptions, audit, env, NullLogger<RefundService>.Instance, httpClient);
+
+        var adminId = Guid.NewGuid();
+        var payment = new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Amount = 2000m,
+            Currency = "INR",
+            Status = PaymentStatus.Paid,
+            RazorpayPaymentId = "pay_live_timeout_123",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.PaymentTransactions.Add(payment);
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.RefundPaymentAsync(payment.Id, "Refund test timeout", adminId);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(RefundStatus.ReconciliationRequired, result.Status);
+
+        // Payment status must remain Paid until reconciled
+        var reloadedPayment = await db.PaymentTransactions.FindAsync(payment.Id);
+        Assert.Equal(PaymentStatus.Paid, reloadedPayment!.Status);
+
+        // Audit log must record reconciliation required
+        Assert.Contains(audit.Logs, l => l.Action == "ADMIN_REFUND_RECONCILIATION_REQUIRED");
     }
 
     [Fact]
