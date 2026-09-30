@@ -52,6 +52,7 @@ public interface IAdminBookingService
         Guid bookingId,
         Guid adminUserId,
         string? overridePhone,
+        string? templateType,
         CancellationToken cancellationToken);
 
     Task<AdminModifyBookingSessionResponse> ModifyWorkshopBookingSessionAsync(

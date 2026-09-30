@@ -276,21 +276,22 @@ export default function AdminWorkshopBookingsAttendees() {
   };
 
   // Send WhatsApp Notification via Outbox
-  const handleSendWhatsApp = async () => {
+  const handleSendWhatsApp = async (templateType = "pdf") => {
     const bookingId = editBooking.bookingId || editBooking.id;
-    setSendingWa(true);
+    setSendingWa(templateType);
     setEditError(null);
     setEditSuccess(null);
 
     try {
-      const res = await adminApi.sendWhatsAppNotification(bookingId, editForm.phone.trim() || null);
-      setEditSuccess(res?.message || "Ticket pass queued for WhatsApp dispatch via outbox.");
-      setActionSuccess(res?.message || "Ticket pass queued for WhatsApp dispatch.");
+      const res = await adminApi.sendWhatsAppNotification(bookingId, editForm.phone.trim() || null, templateType);
+      const msg = res?.message || "WhatsApp message queued for dispatch via outbox.";
+      setEditSuccess(msg);
+      setActionSuccess(msg);
       setTimeout(() => setActionSuccess(null), 5000);
     } catch (err) {
       setEditError(err?.message || "Failed to queue WhatsApp notification.");
     } finally {
-      setSendingWa(false);
+      setSendingWa(null);
     }
   };
 
@@ -438,12 +439,12 @@ export default function AdminWorkshopBookingsAttendees() {
       header: "Booking Reference",
       key: "bookingReference",
       render: (row) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span className="font-mono font-bold" style={{ color: "#f97316" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}>
+          <span className="font-mono font-bold" style={{ color: "#ea580c" }}>
             {row.bookingReference || `BK-${(row.bookingId || row.id || "").toString().slice(0, 8).toUpperCase()}`}
           </span>
           {row.isGuest ? (
-            <span style={{ fontSize: "11px", padding: "1px 5px", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+            <span style={{ fontSize: "11px", padding: "1px 6px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", fontWeight: "600" }}>
               Guest
             </span>
           ) : null}
@@ -455,9 +456,9 @@ export default function AdminWorkshopBookingsAttendees() {
       key: "studentName",
       render: (row) => (
         <div>
-          <div className="font-bold">{row.studentName || "Workshop Attendee"}</div>
-          <div style={{ fontSize: "12px", color: "#94a3b8" }}>{row.studentPhone || "—"}</div>
-          {row.studentEmail ? <div style={{ fontSize: "11px", color: "#64748b" }}>{row.studentEmail}</div> : null}
+          <div className="font-bold" style={{ color: "#0f172a", fontSize: "13px" }}>{row.studentName || "Workshop Attendee"}</div>
+          <div style={{ fontSize: "12px", color: "#334155", fontWeight: "500" }}>{row.studentPhone || "—"}</div>
+          {row.studentEmail ? <div style={{ fontSize: "11px", color: "#475569" }}>{row.studentEmail}</div> : null}
         </div>
       ),
     },
@@ -466,9 +467,9 @@ export default function AdminWorkshopBookingsAttendees() {
       key: "passName",
       render: (row) => (
         <div>
-          <span className="font-medium" style={{ color: "#e2e8f0" }}>{row.passName || "Standard Admission"}</span>
+          <span className="font-semibold" style={{ color: "#0f172a", fontSize: "13px" }}>{row.passName || "Standard Admission"}</span>
           {row.sessionsIncludedCount ? (
-            <div style={{ fontSize: "11px", color: "#94a3b8" }}>{row.sessionsIncludedCount} Sessions Pass</div>
+            <div style={{ fontSize: "11px", color: "#475569", fontWeight: "500" }}>{row.sessionsIncludedCount} Sessions Pass</div>
           ) : null}
         </div>
       ),
@@ -489,11 +490,13 @@ export default function AdminWorkshopBookingsAttendees() {
               gap: "6px",
               padding: "4px 8px",
               borderRadius: "6px",
-              background: isExpanded ? "rgba(249, 115, 22, 0.15)" : "rgba(255, 255, 255, 0.05)",
-              border: `1px solid ${isExpanded ? "rgba(249, 115, 22, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
-              color: isExpanded ? "#f97316" : "#cbd5e1",
+              background: isExpanded ? "rgba(234, 88, 12, 0.12)" : "#f8fafc",
+              border: `1px solid ${isExpanded ? "rgba(234, 88, 12, 0.4)" : "#cbd5e1"}`,
+              color: isExpanded ? "#ea580c" : "#0f172a",
               fontSize: "12px",
+              fontWeight: "600",
               cursor: "pointer",
+              whiteSpace: "nowrap"
             }}
           >
             <span>👥 {count} {count === 1 ? "attendee" : "attendees"}</span>
@@ -508,7 +511,7 @@ export default function AdminWorkshopBookingsAttendees() {
       render: (row) => (
         <div>
           <AdminBadge variant={getStatusVariant(row.paymentStatus)}>{row.paymentStatus || "Paid"}</AdminBadge>
-          <div style={{ fontSize: "12px", fontWeight: "600", marginTop: "2px", color: "#f8fafc" }}>
+          <div style={{ fontSize: "12px", fontWeight: "700", marginTop: "2px", color: "#0f172a" }}>
             ₹{Number(row.totalPrice || row.amount || workshop?.Price || workshop?.price || 0).toLocaleString("en-IN")}
           </div>
         </div>
@@ -523,7 +526,7 @@ export default function AdminWorkshopBookingsAttendees() {
       header: "Booked Date",
       key: "bookedAt",
       render: (row) => (
-        <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+        <span style={{ fontSize: "12px", color: "#0f172a", fontWeight: "500", whiteSpace: "nowrap" }}>
           {row.bookedAt ? new Date(row.bookedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
         </span>
       ),
@@ -539,7 +542,7 @@ export default function AdminWorkshopBookingsAttendees() {
         const checkedInCount = tickets.filter((t) => t.checkedInAt).length;
         const allCheckedIn = checkedInCount === tickets.length && tickets.length > 0;
         return (
-          <div>
+          <div style={{ whiteSpace: "nowrap" }}>
             <AdminBadge variant={allCheckedIn ? "success" : checkedInCount > 0 ? "warning" : "neutral"}>
               {checkedInCount} / {tickets.length} Checked In
             </AdminBadge>
@@ -556,7 +559,7 @@ export default function AdminWorkshopBookingsAttendees() {
         const hasUncheckedIn = tickets.length > 0 ? tickets.some((t) => !t.checkedInAt) : row.attendanceStatus !== "Present";
 
         return (
-          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
             {/* Primary Check In action (Safeguard 1: selected/primary ticket only) */}
             <button
               type="button"
@@ -564,7 +567,7 @@ export default function AdminWorkshopBookingsAttendees() {
               title="Check in primary attendee"
               disabled={isCancelled || !hasUncheckedIn}
               onClick={() => handleBookingPrimaryCheckIn(row)}
-              style={{ padding: "4px 8px", fontSize: "12px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "4px", cursor: isCancelled || !hasUncheckedIn ? "not-allowed" : "pointer" }}
+              style={{ padding: "5px 9px", fontSize: "12px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "4px", fontWeight: "600", whiteSpace: "nowrap", cursor: isCancelled || !hasUncheckedIn ? "not-allowed" : "pointer" }}
             >
               ✓ Check In
             </button>
@@ -576,7 +579,7 @@ export default function AdminWorkshopBookingsAttendees() {
                 className="admin-btn-action"
                 title="Explicitly check in all attendees with confirmation"
                 onClick={() => setCheckInAllModal({ open: true, booking: row, processing: false })}
-                style={{ padding: "4px 6px", fontSize: "11px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "4px", cursor: "pointer" }}
+                style={{ padding: "5px 7px", fontSize: "11px", background: "rgba(59, 130, 246, 0.15)", color: "#2563eb", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "4px", fontWeight: "700", whiteSpace: "nowrap", cursor: "pointer" }}
               >
                 All
               </button>
@@ -588,7 +591,7 @@ export default function AdminWorkshopBookingsAttendees() {
               className="admin-btn-action"
               title="Edit customer details & session"
               onClick={() => handleOpenEditDrawer(row)}
-              style={{ padding: "4px 8px", fontSize: "12px", background: "rgba(255, 255, 255, 0.06)", color: "#e2e8f0", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "4px", cursor: "pointer" }}
+              style={{ padding: "5px 9px", fontSize: "12px", background: "#f1f5f9", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: "4px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer" }}
             >
               ✏️ Edit
             </button>
@@ -600,7 +603,7 @@ export default function AdminWorkshopBookingsAttendees() {
               title="Process booking refund via payment gateway"
               disabled={isCancelled || row.paymentStatus !== "Paid"}
               onClick={() => handleOpenRefundModal(row)}
-              style={{ padding: "4px 8px", fontSize: "12px", background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "4px", cursor: isCancelled || row.paymentStatus !== "Paid" ? "not-allowed" : "pointer" }}
+              style={{ padding: "5px 9px", fontSize: "12px", background: "rgba(239, 68, 68, 0.12)", color: "#dc2626", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "4px", fontWeight: "600", whiteSpace: "nowrap", cursor: isCancelled || row.paymentStatus !== "Paid" ? "not-allowed" : "pointer" }}
             >
               ↩️ Refund
             </button>
@@ -615,15 +618,15 @@ export default function AdminWorkshopBookingsAttendees() {
     {
       header: "Ticket #",
       key: "ticketNumber",
-      render: (row) => <span className="font-mono font-bold" style={{ color: "#f97316" }}>{row.ticketNumber}</span>,
+      render: (row) => <span className="font-mono font-bold" style={{ color: "#ea580c" }}>{row.ticketNumber}</span>,
     },
     {
       header: "Attendee Name",
       key: "attendeeName",
       render: (row) => (
         <div>
-          <div className="font-bold">{row.attendeeName}</div>
-          <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+          <div className="font-bold" style={{ color: "#0f172a", fontSize: "13px" }}>{row.attendeeName}</div>
+          <div style={{ fontSize: "11px", color: "#334155", fontWeight: "500" }}>
             {row.attendeePhoneMasked || "—"} {row.isGuest ? "(Guest)" : ""}
           </div>
         </div>
@@ -632,19 +635,19 @@ export default function AdminWorkshopBookingsAttendees() {
     {
       header: "Booking Ref",
       key: "bookingReference",
-      render: (row) => <span className="font-mono">{row.bookingReference}</span>,
+      render: (row) => <span className="font-mono font-semibold" style={{ color: "#0f172a" }}>{row.bookingReference}</span>,
     },
     {
       header: "Session / Pass",
       key: "sessionTitle",
       render: (row) => (
         <div>
-          <div style={{ fontWeight: 600, color: "#e2e8f0" }}>
+          <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "13px" }}>
             {row.sessionTitle || "Workshop Session"}
           </div>
-          <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+          <div style={{ fontSize: "11px", color: "#475569" }}>
             {row.passName ? (
-              <span style={{ color: "#38bdf8", marginRight: "6px" }}>{row.passName}</span>
+              <span style={{ color: "#ea580c", fontWeight: "600", marginRight: "6px" }}>{row.passName}</span>
             ) : null}
             {row.sessionDate ? `• ${new Date(row.sessionDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
           </div>
@@ -665,7 +668,7 @@ export default function AdminWorkshopBookingsAttendees() {
             {row.isCheckedIn ? "Checked In" : "Pending"}
           </AdminBadge>
           {row.isCheckedIn && row.formattedCheckedInAt ? (
-            <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
+            <div style={{ fontSize: "11px", color: "#475569", marginTop: "2px" }}>
               {row.formattedCheckedInAt} ({row.checkInMethod || "Scan"})
             </div>
           ) : null}
@@ -676,12 +679,12 @@ export default function AdminWorkshopBookingsAttendees() {
       header: "Actions",
       key: "actions",
       render: (row) => (
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
           {!row.isCheckedIn ? (
             <button
               type="button"
               onClick={() => handleCheckInSingleTicket(row.ticketId, row.attendeeName)}
-              style={{ padding: "4px 8px", fontSize: "12px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "4px", cursor: "pointer" }}
+              style={{ padding: "5px 9px", fontSize: "12px", background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "4px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer" }}
             >
               ✓ Check In
             </button>
@@ -689,7 +692,7 @@ export default function AdminWorkshopBookingsAttendees() {
             <button
               type="button"
               onClick={() => handleUndoTicketCheckIn(row.ticketId, row.attendeeName)}
-              style={{ padding: "4px 8px", fontSize: "12px", background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "4px", cursor: "pointer" }}
+              style={{ padding: "5px 9px", fontSize: "12px", background: "rgba(239, 68, 68, 0.12)", color: "#dc2626", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "4px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer" }}
             >
               Undo Check In
             </button>
@@ -1015,24 +1018,100 @@ export default function AdminWorkshopBookingsAttendees() {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <button
                 type="button"
                 className="admin-btn-primary"
                 onClick={handleSaveContact}
                 disabled={savingEdit}
-                style={{ flex: 1, padding: "9px", background: "#ea580c", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+                style={{ width: "100%", padding: "10px", background: "#ea580c", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "750", fontSize: "13px", cursor: "pointer" }}
               >
-                {savingEdit ? "Saving Changes..." : "Save Contact Info"}
+                {savingEdit ? "Saving Contact Changes..." : "💾 Save Contact Info"}
               </button>
+            </div>
+
+            {/* WhatsApp Notifications Section */}
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                <span style={{ fontSize: "15px" }}>💬</span>
+                <h5 style={{ margin: 0, fontSize: "13px", fontWeight: "700", color: "#0f172a" }}>WhatsApp Outbox Messages</h5>
+              </div>
+              <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#475569" }}>
+                Send or re-send official WhatsApp messages to <strong>{editForm.phone || "the customer"}</strong>:
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleSendWhatsApp("pdf")}
+                  disabled={!!sendingWa}
+                  style={{
+                    padding: "8px 10px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    color: "#0f172a",
+                    borderRadius: "6px",
+                    fontWeight: "600",
+                    fontSize: "12px",
+                    cursor: sendingWa ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+                  }}
+                >
+                  <span>📄</span>
+                  <span>{sendingWa === "pdf" ? "Queuing..." : "Send Ticket PDF"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSendWhatsApp("confirmed")}
+                  disabled={!!sendingWa}
+                  style={{
+                    padding: "8px 10px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    color: "#0f172a",
+                    borderRadius: "6px",
+                    fontWeight: "600",
+                    fontSize: "12px",
+                    cursor: sendingWa ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+                  }}
+                >
+                  <span>✅</span>
+                  <span>{sendingWa === "confirmed" ? "Queuing..." : "Send Confirmed"}</span>
+                </button>
+              </div>
 
               <button
                 type="button"
-                onClick={handleSendWhatsApp}
-                disabled={sendingWa}
-                style={{ padding: "9px 14px", background: "#ecfdf5", border: "1px solid #86efac", color: "#15803d", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}
+                onClick={() => handleSendWhatsApp("both")}
+                disabled={!!sendingWa}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  background: "#ecfdf5",
+                  border: "1px solid #86efac",
+                  color: "#15803d",
+                  borderRadius: "6px",
+                  fontWeight: "700",
+                  fontSize: "12px",
+                  cursor: sendingWa ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px"
+                }}
               >
-                {sendingWa ? "Queuing..." : "💬 Send WhatsApp"}
+                <span>📨</span>
+                <span>{sendingWa === "both" ? "Queuing Both Messages..." : "Send Both (Confirmed + PDF)"}</span>
               </button>
             </div>
 

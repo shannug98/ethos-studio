@@ -636,11 +636,11 @@ export default function WorkshopDetailsPage() {
                                     <h5 className="schedule-session-title">{sess.title}</h5>
                                     {sess.description && <p className="schedule-session-desc">{sess.description}</p>}
                                     <div className="schedule-session-trainer">
-                                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                      <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
                                         <TrainerAvatar
                                           trainer={trainerObj}
                                           name={getTrainerDisplayName(sess.trainerName || trainerObj)}
-                                          size={20}
+                                          size={22}
                                         />
                                         <span className="trainer-tag">
                                           Instructor: <strong>{getTrainerDisplayName(sess.trainerName || trainerObj)}</strong>
@@ -651,7 +651,7 @@ export default function WorkshopDetailsPage() {
                                       ) : sess.remainingSeats <= 0 ? (
                                         <span className="session-tag sold-out">Full</span>
                                       ) : (
-                                        <span className="session-tag open">{sess.remainingSeats} seats available</span>
+                                        <span className="session-tag open">• {sess.remainingSeats} seats left</span>
                                       )}
                                     </div>
                                   </div>

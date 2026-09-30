@@ -1326,6 +1326,7 @@ public class AdminUpdateBookingContactRequest
 public class AdminResendWhatsAppRequest
 {
     public string? Phone { get; set; }
+    public string? TemplateType { get; set; }
 }
 
 public class AdminWorkshopCancellationStatsDto

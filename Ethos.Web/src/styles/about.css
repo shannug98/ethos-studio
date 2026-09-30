@@ -723,6 +723,32 @@
     padding-top: 45px;
     margin-bottom: 90px;
   }
+
+  .about-value {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .about-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px 16px;
+    padding-top: 36px;
+  }
+
+  .about-stat {
+    padding-right: 0;
+  }
+
+  .about-stat + .about-stat {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .about-stat strong {
+    font-size: clamp(2.4rem, 8vw, 3.8rem);
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 420px) {

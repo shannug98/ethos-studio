@@ -155,17 +155,17 @@ public class AdminBookingService : IAdminBookingService
                 WorkshopId = b.WorkshopId,
                 WorkshopTitle = b.Workshop.Title,
                 StudentId = b.StudentProfileId,
-                StudentName = b.StudentProfile.User.FullName,
-                StudentPhone = b.StudentProfile.User.Phone,
-                StudentEmail = b.StudentProfile.User.Email,
+                StudentName = (b.StudentProfile != null && b.StudentProfile.User != null && !string.IsNullOrEmpty(b.StudentProfile.User.FullName)) ? b.StudentProfile.User.FullName : (b.GuestName ?? "Workshop Attendee"),
+                StudentPhone = (b.StudentProfile != null && b.StudentProfile.User != null && !string.IsNullOrEmpty(b.StudentProfile.User.Phone)) ? b.StudentProfile.User.Phone : (b.GuestPhone ?? ""),
+                StudentEmail = (b.GuestEmail != null && b.GuestEmail != "") ? b.GuestEmail : (b.StudentProfile != null && b.StudentProfile.User != null ? b.StudentProfile.User.Email : ""),
                 Status = b.Status.ToString(),
                 BookedAt = b.BookedAt,
                 PaymentTransactionId = b.PaymentTransactionId,
                 PaymentStatus = b.PaymentTransactionId.HasValue ? "Paid" : "Free/Pending",
-                CustomerCode = b.StudentProfile.User.CustomerCode ?? "GUEST",
+                CustomerCode = (b.StudentProfile != null && b.StudentProfile.User != null && b.StudentProfile.User.CustomerCode != null) ? b.StudentProfile.User.CustomerCode : "GUEST",
                 BookingReference = "BK-" + b.Id.ToString().Substring(0, 8).ToUpper(),
-                AttendeeType = (b.StudentProfile.User.CustomerCode != null && b.StudentProfile.User.CustomerCode.StartsWith("GUEST")) ? "Workshop Attendee" : "ETHOS Student",
-                IsGuest = b.StudentProfile.User.CustomerCode != null && b.StudentProfile.User.CustomerCode.StartsWith("GUEST"),
+                AttendeeType = (b.StudentProfile != null && b.StudentProfile.User != null && b.StudentProfile.User.CustomerCode != null && !b.StudentProfile.User.CustomerCode.StartsWith("GUEST")) ? "ETHOS Student" : "Workshop Attendee",
+                IsGuest = b.StudentProfile == null || b.StudentProfile.User == null || b.StudentProfile.User.CustomerCode == null || b.StudentProfile.User.CustomerCode.StartsWith("GUEST"),
                 AttendanceStatus = b.Status == WorkshopBookingStatus.Attended ? "Present" : (b.Status == WorkshopBookingStatus.NoShow ? "Absent" : (b.Status == WorkshopBookingStatus.Confirmed ? "Not marked" : b.Status.ToString())),
                 FeedbackStatus = "Pending",
                 PassName = b.PassName,
@@ -493,6 +493,7 @@ public class AdminBookingService : IAdminBookingService
         Guid bookingId,
         Guid adminUserId,
         string? overridePhone,
+        string? templateType,
         CancellationToken cancellationToken)
     {
         var booking = await _db.WorkshopBookings
@@ -516,21 +517,44 @@ public class AdminBookingService : IAdminBookingService
         if (string.IsNullOrWhiteSpace(recipientPhone))
             throw new InvalidOperationException("No valid recipient WhatsApp phone number available for resending.");
 
-        var resendKey = $"wapp_resend_{booking.Id}_{Guid.NewGuid():N}";
-        var outboxItem = new WhatsAppNotification
-        {
-            Id = Guid.NewGuid(),
-            BookingId = booking.Id,
-            WorkshopTicketId = ticket?.Id,
-            NotificationType = WhatsAppNotificationType.TicketPdf,
-            RecipientPhone = recipientPhone,
-            IdempotencyKey = resendKey,
-            Status = WhatsAppNotificationStatus.Pending,
-            Attempts = 0,
-            CreatedAt = DateTime.UtcNow
-        };
+        var normalizedType = (templateType ?? "pdf").Trim().ToLowerInvariant();
 
-        _db.WhatsAppNotifications.Add(outboxItem);
+        if (normalizedType == "confirmed" || normalizedType == "booking_confirmed" || normalizedType == "both")
+        {
+            var confKey = $"wapp_conf_{booking.Id}_{Guid.NewGuid():N}";
+            var confNotification = new WhatsAppNotification
+            {
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                WorkshopTicketId = ticket?.Id,
+                NotificationType = WhatsAppNotificationType.BookingConfirmed,
+                RecipientPhone = recipientPhone,
+                IdempotencyKey = confKey,
+                Status = WhatsAppNotificationStatus.Pending,
+                Attempts = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.WhatsAppNotifications.Add(confNotification);
+        }
+
+        if (normalizedType == "pdf" || normalizedType == "ticket_pdf" || normalizedType == "both")
+        {
+            var resendKey = $"wapp_resend_{booking.Id}_{Guid.NewGuid():N}";
+            var pdfNotification = new WhatsAppNotification
+            {
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                WorkshopTicketId = ticket?.Id,
+                NotificationType = WhatsAppNotificationType.TicketPdf,
+                RecipientPhone = recipientPhone,
+                IdempotencyKey = resendKey,
+                Status = WhatsAppNotificationStatus.Pending,
+                Attempts = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.WhatsAppNotifications.Add(pdfNotification);
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
 
         _auditService.AddAuditLog(
@@ -538,7 +562,7 @@ public class AdminBookingService : IAdminBookingService
             "WORKSHOP_TICKET_RESENT_WHATSAPP",
             "WorkshopBooking",
             booking.Id,
-            $"Enqueued ticket PDF WhatsApp resend to {recipientPhone} for booking {booking.Id}");
+            $"Enqueued {normalizedType} WhatsApp resend to {recipientPhone} for booking {booking.Id}");
 
         return recipientPhone;
     }

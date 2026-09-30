@@ -391,7 +391,7 @@ export default function AdminWorkshopBookings() {
           row.sessionsIncludedCount != null;
 
         return (
-          <div className="table-actions-cell flex gap-1.5" style={{ flexWrap: "wrap", alignItems: "center" }}>
+          <div className="table-actions-cell" style={{ display: "inline-flex", gap: "6px", flexWrap: "nowrap", whiteSpace: "nowrap", alignItems: "center" }}>
             {/* 1. Check In */}
             {isAttended ? (
               <span

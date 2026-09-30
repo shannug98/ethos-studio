@@ -865,15 +865,16 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
-  resendWhatsAppTicket: (bookingId) =>
+  resendWhatsAppTicket: (bookingId, templateType = "pdf") =>
     adminRequest(`/api/admin/bookings/workshops/${bookingId}/resend-whatsapp`, {
       method: "POST",
+      body: JSON.stringify({ templateType }),
     }),
 
-  sendWhatsAppNotification: (bookingId, phone = null) =>
+  sendWhatsAppNotification: (bookingId, phone = null, templateType = "pdf") =>
     adminRequest(`/api/admin/bookings/workshops/${bookingId}/send-whatsapp`, {
       method: "POST",
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, templateType }),
     }),
 
   refundWorkshopBooking: (bookingId, reason) =>

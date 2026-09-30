@@ -22,10 +22,6 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
 
-  // Resend state
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendStatus, setResendStatus] = useState("");
-
   const loadTickets = useCallback(async () => {
     if (!booking?.id) return;
     try {
@@ -81,7 +77,6 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
       setEditingGuest(false);
       setSaveError("");
       setSaveSuccess("");
-      setResendStatus("");
     }
     return () => {
       document.body.style.overflow = "unset";
@@ -101,7 +96,6 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
       setEditingGuest(false);
       setSaveError("");
       setSaveSuccess("");
-      setResendStatus("");
     }
   }, [activeIndex, currentTicket]);
 
@@ -166,20 +160,6 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
       setSaveError(err.response?.data?.message || err.message || "Failed to update attendee details.");
     } finally {
       setSaveLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (!currentTicket?.id) return;
-    try {
-      setResendLoading(true);
-      setResendStatus("");
-      await workshopsApi.resendTicketPass(booking.id, currentTicket.id);
-      setResendStatus(`Pass #${activeIndex + 1} resent via WhatsApp to registered contact.`);
-    } catch (err) {
-      setResendStatus(err.response?.data?.message || err.message || "Could not resend pass.");
-    } finally {
-      setResendLoading(false);
     }
   };
 
@@ -447,13 +427,15 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
           </div>
         </div>
 
-        {/* FEEDBACK & RESEND STATUS */}
-        {resendStatus && (
-          <div className="ticket-resend-feedback">
-            <AlertCircle size={14} />
-            <span>{resendStatus}</span>
+        {/* OFFICIAL ETHOS HELP / SUPPORT BANNER */}
+        <div className="workshop-support-banner">
+          <AlertCircle size={18} color="#FF5500" style={{ flexShrink: 0 }} />
+          <div style={{ fontSize: "12px", lineHeight: "1.5" }}>
+            Didn't receive your pass on WhatsApp? Contact ETHOS Support at{" "}
+            <strong><a href="tel:+918341701113" style={{ color: "#FF5500", textDecoration: "underline" }}>+91 8341701113</a></strong> or{" "}
+            <strong><a href="mailto:ethosdancestudio@gmail.com" style={{ color: "#FF5500", textDecoration: "underline" }}>ethosdancestudio@gmail.com</a></strong>
           </div>
-        )}
+        </div>
 
         {/* MODAL ACTIONS */}
         <div className="workshop-pass-actions">
@@ -462,17 +444,8 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
             className="pass-action-btn pass-action-print"
             onClick={handlePrint}
           >
-            <Printer size={16} />
+            <Printer size={20} />
             <span>PRINT / SAVE PASS</span>
-          </button>
-          <button
-            type="button"
-            className="pass-action-btn pass-action-resend"
-            onClick={handleResend}
-            disabled={resendLoading}
-          >
-            <Send size={16} />
-            <span>{resendLoading ? "RESENDING..." : "RESEND TO WHATSAPP"}</span>
           </button>
           <button
             type="button"

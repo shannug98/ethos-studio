@@ -223,8 +223,11 @@ public class AdminBookingsController : ControllerBase
 
         try
         {
-            var recipientPhone = await _bookingService.ResendWhatsAppTicketAsync(bookingId, AdminUserId, request?.Phone, cancellationToken);
-            return Ok(new { message = $"Ticket PDF queued and resent to {recipientPhone} via WhatsApp outbox." });
+            var recipientPhone = await _bookingService.ResendWhatsAppTicketAsync(bookingId, AdminUserId, request?.Phone, request?.TemplateType, cancellationToken);
+            var templateDesc = (request?.TemplateType?.ToLowerInvariant() == "confirmed" || request?.TemplateType?.ToLowerInvariant() == "booking_confirmed")
+                ? "Booking Confirmation"
+                : ((request?.TemplateType?.ToLowerInvariant() == "both") ? "Booking Confirmation & Ticket PDF" : "Ticket PDF");
+            return Ok(new { message = $"{templateDesc} queued and sent to {recipientPhone} via WhatsApp outbox." });
         }
         catch (Exception ex)
         {

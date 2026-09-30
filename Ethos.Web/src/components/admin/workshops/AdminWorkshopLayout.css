@@ -278,3 +278,65 @@
   font-size: 14px;
   margin-bottom: 20px;
 }
+
+/* Mobile & Tablet Responsive Sub-Portal */
+@media (max-width: 900px) {
+  .workshop-portal-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .workshop-sub-sidebar {
+    position: static;
+    padding: 12px;
+    gap: 12px;
+    border-radius: 10px;
+  }
+
+  .workshop-summary-card {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .workshop-banner-wrap {
+    width: 90px;
+    height: 70px;
+    flex-shrink: 0;
+  }
+
+  .workshop-card-body {
+    padding: 8px 12px;
+  }
+
+  .ws-title {
+    font-size: 14px;
+  }
+
+  .workshop-sub-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+
+  .sub-nav-item {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .sub-nav-item.active {
+    background: #ff5500;
+    color: #ffffff;
+    border-color: #ff5500;
+  }
+
+  .workshop-back-wrap {
+    display: none;
+  }
+}
