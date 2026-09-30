@@ -200,4 +200,102 @@ public class Msg91ServiceHttpTests
         Assert.True(result.Skipped);
         Assert.Null(fakeHandler.LastRequest);
     }
+
+    [Fact]
+    public async Task SendBookingConfirmedAsync_When401WithErrorsString_ExtractsSpecificErrorMessage()
+    {
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                Content = new StringContent("{\"hasError\":true,\"errors\":\"IP 187.126.115.8 not whitelisted for AuthKey\"}")
+            }
+        };
+
+        var options = Options.Create(new Msg91Options
+        {
+            Enabled = true,
+            AuthKey = "test_auth_key",
+            IntegratedNumber = "919999988888"
+        });
+
+        var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
+
+        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "Ethos Dance Studio, Hyderabad", "BK-001");
+        var result = await service.SendBookingConfirmedAsync(data, "9876543210");
+
+        Assert.False(result.Success);
+        Assert.True(result.IsPermanentError);
+        Assert.Equal(401, result.StatusCode);
+        Assert.Equal("IP 187.126.115.8 not whitelisted for AuthKey", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task SendTicketPdfAsync_When401WithErrorString_ExtractsSpecificErrorMessage()
+    {
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                Content = new StringContent("{\"status\":\"error\",\"error\":\"Invalid Authkey supplied\"}")
+            }
+        };
+
+        var options = Options.Create(new Msg91Options
+        {
+            Enabled = true,
+            AuthKey = "test_auth_key",
+            IntegratedNumber = "919999988888"
+        });
+
+        var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
+
+        var data = new TicketPdfData("Rahul", "Bollywood", "25 Oct", "6 PM", "Ethos Dance Studio, Hyderabad", "BK-001", "https://media.ethosdancestudio.com/ticket.pdf", "ticket.pdf");
+        var result = await service.SendTicketPdfAsync(data, "9876543210");
+
+        Assert.False(result.Success);
+        Assert.True(result.IsPermanentError);
+        Assert.Equal(401, result.StatusCode);
+        Assert.Equal("Invalid Authkey supplied", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task SendBookingConfirmedAsync_When400WithErrorsArray_ExtractsCombinedMessages()
+    {
+        var fakeHandler = new FakeHttpMessageHandler
+        {
+            Handler = _ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("{\"status\":\"error\",\"errors\":[{\"message\":\"Template parameter mismatch\"},{\"message\":\"Header document missing\"}]}")
+            }
+        };
+
+        var options = Options.Create(new Msg91Options
+        {
+            Enabled = true,
+            AuthKey = "test_auth_key",
+            IntegratedNumber = "919999988888"
+        });
+
+        var service = new Msg91WhatsAppService(new HttpClient(fakeHandler), options, NullLogger<Msg91WhatsAppService>.Instance);
+
+        var data = new BookingConfirmedData("Rahul", "Bollywood", "25 Oct", "6 PM", "Ethos Dance Studio, Hyderabad", "BK-001");
+        var result = await service.SendBookingConfirmedAsync(data, "9876543210");
+
+        Assert.False(result.Success);
+        Assert.True(result.IsPermanentError);
+        Assert.Equal(400, result.StatusCode);
+        Assert.Equal("Template parameter mismatch; Header document missing", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void SanitizeResponseBodyForLogging_MasksPhoneNumbersAndTruncates()
+    {
+        var raw = "Error occurred for recipient 919876543210 with status fail";
+        var sanitized = Msg91WhatsAppService.SanitizeResponseBodyForLogging(raw, 500);
+
+        Assert.DoesNotContain("919876543210", sanitized);
+        Assert.Contains("3210", sanitized);
+        Assert.Contains("********3210", sanitized);
+    }
 }

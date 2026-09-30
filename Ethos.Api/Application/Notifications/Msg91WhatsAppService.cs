@@ -483,10 +483,7 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
                 parsedMessageId = msgIdProp.GetString();
             }
 
-            if (root.TryGetProperty("message", out var msgProp))
-            {
-                parsedMessage = msgProp.GetString();
-            }
+            parsedMessage = ExtractErrorMessage(root);
 
             if (root.TryGetProperty("status", out var statusProp))
             {
@@ -497,10 +494,18 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
                     hasErrorStatus = true;
                 }
             }
+
+            if (root.TryGetProperty("hasError", out var hasErrorProp) && hasErrorProp.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                if (hasErrorProp.GetBoolean())
+                {
+                    hasErrorStatus = true;
+                }
+            }
         }
         catch (JsonException)
         {
-            _logger.LogWarning("[MSG91 WhatsApp] Provider response was not valid JSON: {Content}", responseContent.Length > 200 ? responseContent[..200] : responseContent);
+            parsedMessage = string.IsNullOrWhiteSpace(responseContent) ? null : SanitizeResponseBodyForLogging(responseContent, 200);
         }
 
         if (response.IsSuccessStatusCode && !hasErrorStatus)
@@ -513,13 +518,16 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
             return Msg91DispatchResult.Accepted(parsedMessageId, parsedRequestId, summary);
         }
 
+        var sanitizedBody = SanitizeResponseBodyForLogging(responseContent);
+
         if (statusCode >= 400 && statusCode < 500)
         {
             var err = parsedMessage ?? $"HTTP {statusCode} Bad Request";
             _logger.LogWarning(
-                "[MSG91 WhatsApp] Client error from MSG91 (HTTP {Code}): {Error}. Summary: {Summary}",
+                "[MSG91 WhatsApp] Client error from MSG91 (HTTP {Code}): {Error}. RawResponse: {RawResponse} | Summary: {Summary}",
                 statusCode,
                 err,
+                sanitizedBody,
                 summary);
 
             return Msg91DispatchResult.Permanent(statusCode, err, summary);
@@ -527,12 +535,99 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
 
         var serverErr = parsedMessage ?? $"HTTP {statusCode} Provider Server Error";
         _logger.LogError(
-            "[MSG91 WhatsApp] Transient server error from MSG91 (HTTP {Code}): {Error}. Summary: {Summary}",
+            "[MSG91 WhatsApp] Transient server error from MSG91 (HTTP {Code}): {Error}. RawResponse: {RawResponse} | Summary: {Summary}",
             statusCode,
             serverErr,
+            sanitizedBody,
             summary);
 
         return Msg91DispatchResult.Transient(statusCode, serverErr, summary);
+    }
+
+    public static string? ExtractErrorMessage(JsonElement root)
+    {
+        // 1. "message" (string or object/array)
+        if (root.TryGetProperty("message", out var msgProp))
+        {
+            if (msgProp.ValueKind == JsonValueKind.String)
+                return msgProp.GetString();
+            if (msgProp.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+                return msgProp.GetRawText();
+        }
+
+        // 2. "errors" (string, array of strings/objects, or dictionary)
+        if (root.TryGetProperty("errors", out var errorsProp))
+        {
+            if (errorsProp.ValueKind == JsonValueKind.String)
+                return errorsProp.GetString();
+            if (errorsProp.ValueKind == JsonValueKind.Array)
+            {
+                var items = new List<string>();
+                foreach (var item in errorsProp.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var s = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(s)) items.Add(s);
+                    }
+                    else if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        if (item.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+                            items.Add(m.GetString()!);
+                        else if (item.TryGetProperty("msg", out var msg) && msg.ValueKind == JsonValueKind.String)
+                            items.Add(msg.GetString()!);
+                        else
+                            items.Add(item.GetRawText());
+                    }
+                }
+                if (items.Count > 0) return string.Join("; ", items);
+            }
+            if (errorsProp.ValueKind == JsonValueKind.Object)
+                return errorsProp.GetRawText();
+        }
+
+        // 3. "error" (string or object)
+        if (root.TryGetProperty("error", out var errorProp))
+        {
+            if (errorProp.ValueKind == JsonValueKind.String)
+                return errorProp.GetString();
+            if (errorProp.ValueKind == JsonValueKind.Object)
+            {
+                if (errorProp.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+                    return m.GetString();
+                return errorProp.GetRawText();
+            }
+        }
+
+        // 4. "detail"
+        if (root.TryGetProperty("detail", out var detailProp) && detailProp.ValueKind == JsonValueKind.String)
+            return detailProp.GetString();
+
+        // 5. "description"
+        if (root.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
+            return descProp.GetString();
+
+        return null;
+    }
+
+    public static string SanitizeResponseBodyForLogging(string content, int maxLength = 500)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return "[EMPTY_BODY]";
+
+        // Mask phone numbers (10 to 12 digit sequences) to guarantee PII protection
+        var sanitized = Regex.Replace(content, @"\b(?:\+?91)?[6-9]\d{9}\b", m =>
+        {
+            var val = m.Value;
+            return val.Length > 4 ? $"{new string('*', val.Length - 4)}{val[^4..]}" : "****";
+        });
+
+        if (sanitized.Length > maxLength)
+        {
+            return $"{sanitized[..maxLength]}... [truncated, total {sanitized.Length} chars]";
+        }
+
+        return sanitized;
     }
 
     private static bool IsSecureHttpsUrl(string? url)
