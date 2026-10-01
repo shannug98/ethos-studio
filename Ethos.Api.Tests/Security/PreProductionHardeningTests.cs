@@ -565,4 +565,19 @@ public class PreProductionHardeningTests
 
         Assert.Throws<InvalidOperationException>(() => ProductionSecurityValidator.ValidateProductionSecrets(config));
     }
+
+    [Fact]
+    public void EthosApiCsproj_IncludesMediaInfoNativeAssetsForLinuxPublish()
+    {
+        var csprojPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Ethos.Api/Ethos.Api.csproj"));
+        Assert.True(File.Exists(csprojPath), $"Ethos.Api.csproj not found at {csprojPath}");
+
+        var content = File.ReadAllText(csprojPath);
+
+        Assert.Contains("Include=\"MediaInfo.Core.Native\" Version=\"26.1.0\" GeneratePathProperty=\"true\"", content);
+        Assert.Contains("libmediainfo.so", content);
+        Assert.Contains("libzen.so.0", content);
+        Assert.Contains("$(PkgMediaInfo_Core_Native)", content);
+    }
 }
+

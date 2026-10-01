@@ -19,6 +19,18 @@
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="MediaInfo.Wrapper.Core" Version="26.1.0" />
+    <PackageReference Include="MediaInfo.Core.Native" Version="26.1.0" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'ubuntu-x64' or '$(RuntimeIdentifier)' == 'linux'">
+    <None Include="$(PkgMediaInfo_Core_Native)\runtimes\ubuntu-x64\native\libmediainfo.so"
+          Link="libmediainfo.so"
+          CopyToPublishDirectory="Always"
+          Visible="false" />
+    <None Include="$(PkgMediaInfo_Core_Native)\runtimes\ubuntu-x64\native\libzen.so.0"
+          Link="libzen.so.0"
+          CopyToPublishDirectory="Always"
+          Visible="false" />
   </ItemGroup>
 
 </Project>
