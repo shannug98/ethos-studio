@@ -94,7 +94,7 @@ describe("Part 3: Admin Workshop Feedback Automation View", () => {
     // Full variables and preview
     assert.ok(content.includes("{{1}}") || content.includes("{{name}}"), "Must show attendee name parameter");
     assert.ok(content.includes("{{2}}") || content.includes("{{workshop_name}}"), "Must show workshop title parameter");
-    assert.ok(content.includes("feedback?token="), "Must show feedback link structure");
+    assert.ok(content.includes("feedback/workshop/") || content.includes("feedback?token="), "Must show feedback link structure");
     assert.ok(content.includes("Rahul"), "Must render realistic attendee sample");
     assert.ok(content.includes("Meta WhatsApp Policy Notice") || content.includes("Meta"), "Must include Meta policy notice");
   });

@@ -129,8 +129,20 @@ export function getCandidateUrls(endpoint, isDev = (typeof import.meta !== "unde
 }
 
 export async function adminRequest(endpoint, options = {}) {
+  let body = options.body;
+  if (
+    body !== undefined &&
+    body !== null &&
+    typeof body === "object" &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob) &&
+    !(body instanceof ArrayBuffer)
+  ) {
+    body = JSON.stringify(body);
+  }
+
   const headers = {
-    ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+    ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 
@@ -144,7 +156,7 @@ export async function adminRequest(endpoint, options = {}) {
     headers["X-Admin-Device-Credential"] = deviceCred;
   }
 
-  const isUpload = options.body instanceof FormData || endpoint.includes("/upload") || endpoint.includes("/replace");
+  const isUpload = body instanceof FormData || endpoint.includes("/upload") || endpoint.includes("/replace");
   const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
   const method = (options.method || "GET").toUpperCase();
   const isMutatingOrUpload = method !== "GET" || isUpload;
@@ -171,6 +183,7 @@ export async function adminRequest(endpoint, options = {}) {
     try {
       response = await fetch(url, {
         ...options,
+        body,
         signal,
         headers,
       });
@@ -819,7 +832,7 @@ export const adminApi = {
   saveWorkshopFeedbackVersion: (workshopId, payload) =>
     adminRequest(`/api/admin/workshops/${workshopId}/feedback/versions`, {
       method: "POST",
-      body: payload,
+      body: JSON.stringify(payload),
     }),
 
   activateWorkshopFeedbackVersion: (workshopId, versionId) =>
@@ -830,13 +843,13 @@ export const adminApi = {
   updateWorkshopFeedbackSetting: (workshopId, payload) =>
     adminRequest(`/api/admin/workshops/${workshopId}/feedback/setting`, {
       method: "PUT",
-      body: payload,
+      body: JSON.stringify(payload),
     }),
 
   resendWorkshopFeedback: (workshopId, payload) =>
     adminRequest(`/api/admin/workshops/${workshopId}/feedback/resend`, {
       method: "POST",
-      body: payload,
+      body: JSON.stringify(payload),
     }),
 
   getWorkshopFeedbackAnalytics: (workshopId) =>
@@ -845,13 +858,13 @@ export const adminApi = {
   overrideWorkshopTicket: (workshopId, ticketId, reason) =>
     adminRequest(`/api/admin/workshops/${workshopId}/tickets/${ticketId}/override`, {
       method: "POST",
-      body: { reason },
+      body: JSON.stringify({ reason }),
     }),
 
   undoWorkshopTicketCheckIn: (workshopId, ticketId, reason) =>
     adminRequest(`/api/admin/workshops/${workshopId}/tickets/${ticketId}/undo-check-in`, {
       method: "POST",
-      body: { reason },
+      body: JSON.stringify({ reason }),
     }),
 
   exportWorkshopAttendance: (workshopId) =>

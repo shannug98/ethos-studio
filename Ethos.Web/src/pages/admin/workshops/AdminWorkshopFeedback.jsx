@@ -3,12 +3,117 @@ import { useOutletContext } from "react-router-dom";
 import { adminApi } from "../../../services/adminApi";
 import "./AdminWorkshopFeedback.css";
 
+// Authoritative Default Feedback Question Sets
+const DEFAULT_ATTENDED_QUESTIONS = [
+  {
+    id: "def_att_1",
+    questionKey: "overall_rating",
+    promptText: "How was your overall experience?",
+    questionType: 1, // Rating1To5
+    targetAudience: 1, // Attended
+    choices: [],
+    isRequired: true,
+    sortOrder: 1,
+  },
+  {
+    id: "def_att_2",
+    questionKey: "teaching_rating",
+    promptText: "How would you rate the instructor's teaching & choreography?",
+    questionType: 1, // Rating1To5
+    targetAudience: 1, // Attended
+    choices: [],
+    isRequired: true,
+    sortOrder: 2,
+  },
+  {
+    id: "def_att_3",
+    questionKey: "venue_rating",
+    promptText: "How was the studio venue, floor, and sound system?",
+    questionType: 1, // Rating1To5
+    targetAudience: 1, // Attended
+    choices: [],
+    isRequired: true,
+    sortOrder: 3,
+  },
+  {
+    id: "def_att_4",
+    questionKey: "enjoy_most",
+    promptText: "What did you enjoy most about this workshop?",
+    questionType: 3, // Text
+    targetAudience: 1, // Attended
+    choices: [],
+    isRequired: false,
+    sortOrder: 4,
+  },
+  {
+    id: "def_att_5",
+    questionKey: "suggestions",
+    promptText: "Any suggestions to help us make the next workshop even better?",
+    questionType: 3, // Text
+    targetAudience: 1, // Attended
+    choices: [],
+    isRequired: false,
+    sortOrder: 5,
+  },
+];
+
+const DEFAULT_NOSHOW_QUESTIONS = [
+  {
+    id: "def_noshow_1",
+    questionKey: "noshow_reason",
+    promptText: "We missed you! What prevented you from attending?",
+    questionType: 2, // SingleChoice
+    targetAudience: 2, // NoShow
+    choices: [
+      "Schedule Conflict",
+      "Personal / Health Reason",
+      "Transportation / Travel",
+      "Other",
+    ],
+    isRequired: true,
+    sortOrder: 1,
+  },
+  {
+    id: "def_noshow_2",
+    questionKey: "booking_experience",
+    promptText: "How was your booking and communication experience?",
+    questionType: 1, // Rating1To5
+    targetAudience: 2, // NoShow
+    choices: [],
+    isRequired: true,
+    sortOrder: 2,
+  },
+  {
+    id: "def_noshow_3",
+    questionKey: "future_interest",
+    promptText: "Would you like to attend future Ethos workshops?",
+    questionType: 2, // SingleChoice
+    targetAudience: 2, // NoShow
+    choices: ["Yes, definitely", "Maybe / Depends on the topic", "No"],
+    isRequired: true,
+    sortOrder: 3,
+  },
+  {
+    id: "def_noshow_4",
+    questionKey: "noshow_feedback",
+    promptText: "Any other feedback or suggestions for the Ethos team?",
+    questionType: 3, // Text
+    targetAudience: 2, // NoShow
+    choices: [],
+    isRequired: false,
+    sortOrder: 4,
+  },
+];
+
 export default function AdminWorkshopFeedback() {
   const { workshop } = useOutletContext();
   const workshopId = workshop.Id || workshop.id;
 
   // Active Tab: "builder" | "automation" | "analytics" | "recipients"
   const [activeTab, setActiveTab] = useState("builder");
+
+  // Form Builder Sub-View: "Attended" | "NoShow"
+  const [formSubTab, setFormSubTab] = useState("Attended");
 
   // Config & Form State
   const [config, setConfig] = useState(null);
@@ -18,11 +123,14 @@ export default function AdminWorkshopFeedback() {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Editable Form Questions
-  const [questions, setQuestions] = useState([]);
-  const [previewAudience, setPreviewAudience] = useState("Attended"); // "Attended" | "NoShow"
+  // Audience-Segregated Questions
+  const [attendedQuestions, setAttendedQuestions] = useState(DEFAULT_ATTENDED_QUESTIONS);
+  const [noShowQuestions, setNoShowQuestions] = useState(DEFAULT_NOSHOW_QUESTIONS);
 
-  // Resend Feedback Modal
+  // Responses & Analytics Audience Filter: "All" | "Attended" | "NoShow"
+  const [analyticsAudienceFilter, setAnalyticsAudienceFilter] = useState("All");
+
+  // Resend Feedback Modal (Exceptional Recovery Tool)
   const [showResendModal, setShowResendModal] = useState(false);
   const [resendAudience, setResendAudience] = useState("All"); // "All" | "Attended" | "NoShow"
   const [resending, setResending] = useState(false);
@@ -31,6 +139,22 @@ export default function AdminWorkshopFeedback() {
   // Search filter for recipient ledger
   const [recipientSearch, setRecipientSearch] = useState("");
   const [copiedTokenBookingId, setCopiedTokenBookingId] = useState(null);
+
+  // Helper to normalize choices
+  const parseChoices = (q) => {
+    if (Array.isArray(q.choices) && q.choices.length > 0) return q.choices;
+    if (Array.isArray(q.Choices) && q.Choices.length > 0) return q.Choices;
+    const json = q.optionsJson || q.OptionsJson;
+    if (json) {
+      try {
+        const parsed = JSON.parse(json);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        return json.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+    }
+    return ["Option 1", "Option 2"];
+  };
 
   // Load Configuration & Analytics
   const loadConfig = useCallback(async () => {
@@ -44,21 +168,42 @@ export default function AdminWorkshopFeedback() {
       setConfig(configData);
       setAnalytics(analyticsData);
 
-      if (configData?.ActiveQuestions || configData?.activeQuestions) {
-        const rawQs = configData.ActiveQuestions || configData.activeQuestions;
-        setQuestions(
-          rawQs.map((q) => ({
+      const rawQs = configData?.ActiveQuestions || configData?.activeQuestions || [];
+      if (rawQs.length > 0) {
+        const attended = [];
+        const noshow = [];
+
+        rawQs.forEach((q) => {
+          const aud = Number(q.TargetAudience ?? q.targetAudience ?? 1);
+          const normalized = {
             id: q.Id || q.id,
             questionKey: q.QuestionKey || q.questionKey || "",
             promptText: q.PromptText || q.promptText || "",
-            questionType: q.QuestionType || q.questionType || 1,
-            targetAudience: q.TargetAudience || q.targetAudience || 3,
+            questionType: Number(q.QuestionType ?? q.questionType ?? 1),
+            targetAudience: aud,
             optionsJson: q.OptionsJson || q.optionsJson || "",
-            choices: q.Choices || q.choices || ["Option 1", "Option 2"],
-            isRequired: q.IsRequired ?? q.isRequired ?? true,
+            choices: parseChoices(q),
+            isRequired: Boolean(q.IsRequired ?? q.isRequired ?? true),
             sortOrder: q.SortOrder || q.sortOrder || 1,
-          }))
-        );
+          };
+
+          if (aud === 1) {
+            attended.push({ ...normalized, targetAudience: 1 });
+          } else if (aud === 2) {
+            noshow.push({ ...normalized, targetAudience: 2 });
+          } else if (aud === 3) {
+            // "Both" legacy questions: duplicate into both forms with specific audience
+            attended.push({ ...normalized, targetAudience: 1 });
+            noshow.push({ ...normalized, targetAudience: 2 });
+          }
+        });
+
+        // If either set is empty, supply default questions
+        setAttendedQuestions(attended.length > 0 ? attended : DEFAULT_ATTENDED_QUESTIONS);
+        setNoShowQuestions(noshow.length > 0 ? noshow : DEFAULT_NOSHOW_QUESTIONS);
+      } else {
+        setAttendedQuestions(DEFAULT_ATTENDED_QUESTIONS);
+        setNoShowQuestions(DEFAULT_NOSHOW_QUESTIONS);
       }
     } catch (err) {
       setError(err?.message || "Failed to load workshop feedback configuration.");
@@ -71,98 +216,120 @@ export default function AdminWorkshopFeedback() {
     loadConfig();
   }, [loadConfig]);
 
-  // Question Management Handlers
+  // Active Questions pointer based on formSubTab
+  const activeQuestions = formSubTab === "Attended" ? attendedQuestions : noShowQuestions;
+  const setActiveQuestions = formSubTab === "Attended" ? setAttendedQuestions : setNoShowQuestions;
+
+  // Question Management Handlers for Current Active Form View
   const handleAddQuestion = () => {
+    const audNum = formSubTab === "Attended" ? 1 : 2;
     const newQ = {
       id: "temp_" + Date.now(),
-      questionKey: `q_${questions.length + 1}_${Math.random().toString(36).substring(2, 6)}`,
-      promptText: "New Feedback Question",
+      questionKey: `q_${formSubTab.toLowerCase()}_${activeQuestions.length + 1}_${Math.random().toString(36).substring(2, 6)}`,
+      promptText: formSubTab === "Attended" ? "How was your experience with..." : "Tell us what could have helped...",
       questionType: 1, // Rating1To5
-      targetAudience: 3, // Both
+      targetAudience: audNum,
       optionsJson: "",
-      choices: ["Choice 1", "Choice 2"],
+      choices: ["Option 1", "Option 2"],
       isRequired: true,
-      sortOrder: questions.length + 1,
+      sortOrder: activeQuestions.length + 1,
     };
-    setQuestions([...questions, newQ]);
+    setActiveQuestions([...activeQuestions, newQ]);
   };
 
   const handleUpdateQuestion = (index, field, value) => {
-    const updated = [...questions];
+    const updated = [...activeQuestions];
     updated[index] = { ...updated[index], [field]: value };
-    setQuestions(updated);
+    setActiveQuestions(updated);
   };
 
   const handleDeleteQuestion = (index) => {
-    if (questions.length <= 1) {
-      alert("At least one feedback question is required.");
+    if (activeQuestions.length <= 1) {
+      alert(`At least one question is required for the ${formSubTab} Form.`);
       return;
     }
-    const updated = questions.filter((_, i) => i !== index);
-    setQuestions(updated);
+    const updated = activeQuestions.filter((_, i) => i !== index);
+    setActiveQuestions(updated);
   };
 
   const handleMoveQuestion = (index, direction) => {
     const targetIdx = index + direction;
-    if (targetIdx < 0 || targetIdx >= questions.length) return;
-    const updated = [...questions];
+    if (targetIdx < 0 || targetIdx >= activeQuestions.length) return;
+    const updated = [...activeQuestions];
     const temp = updated[index];
     updated[index] = updated[targetIdx];
     updated[targetIdx] = temp;
-    setQuestions(updated);
+    setActiveQuestions(updated);
   };
 
   const handleAddChoice = (qIndex) => {
-    const q = questions[qIndex];
+    const q = activeQuestions[qIndex];
     const newChoices = [...(q.choices || []), `Option ${(q.choices?.length || 0) + 1}`];
     handleUpdateQuestion(qIndex, "choices", newChoices);
   };
 
   const handleUpdateChoice = (qIndex, cIndex, text) => {
-    const q = questions[qIndex];
+    const q = activeQuestions[qIndex];
     const newChoices = [...(q.choices || [])];
     newChoices[cIndex] = text;
     handleUpdateQuestion(qIndex, "choices", newChoices);
   };
 
   const handleRemoveChoice = (qIndex, cIndex) => {
-    const q = questions[qIndex];
+    const q = activeQuestions[qIndex];
     const newChoices = (q.choices || []).filter((_, i) => i !== cIndex);
     handleUpdateQuestion(qIndex, "choices", newChoices);
   };
 
-  // Save Form Version
+  // Atomic Save Form Version (Combines Attended & No-Show questions)
   const handleSaveFormVersion = async () => {
     setSaving(true);
     setError(null);
     setSuccessMsg(null);
     try {
+      let sortOrderCounter = 1;
+
+      const formattedAttended = attendedQuestions.map((q) => ({
+        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
+        questionKey: q.questionKey || `att_q_${sortOrderCounter}`,
+        promptText: q.promptText.trim(),
+        questionType: Number(q.questionType),
+        targetAudience: 1, // Strictly Attended
+        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
+        choices: q.choices,
+        isRequired: Boolean(q.isRequired),
+        sortOrder: sortOrderCounter++,
+      }));
+
+      const formattedNoShow = noShowQuestions.map((q) => ({
+        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
+        questionKey: q.questionKey || `noshow_q_${sortOrderCounter}`,
+        promptText: q.promptText.trim(),
+        questionType: Number(q.questionType),
+        targetAudience: 2, // Strictly No-Show
+        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
+        choices: q.choices,
+        isRequired: Boolean(q.isRequired),
+        sortOrder: sortOrderCounter++,
+      }));
+
       const payload = {
-        questions: questions.map((q, idx) => ({
-          id: String(q.id).startsWith("temp_") ? null : q.id,
-          questionKey: q.questionKey || `q_${idx + 1}`,
-          promptText: q.promptText,
-          questionType: Number(q.questionType),
-          targetAudience: Number(q.targetAudience),
-          optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
-          choices: q.choices,
-          isRequired: Boolean(q.isRequired),
-          sortOrder: idx + 1,
-        })),
+        questions: [...formattedAttended, ...formattedNoShow],
       };
 
       const res = await adminApi.saveWorkshopFeedbackVersion(workshopId, payload);
       setConfig(res);
-      setSuccessMsg("Feedback form version saved successfully!");
+      setSuccessMsg("Attended & No-Show feedback forms saved successfully!");
       setTimeout(() => setSuccessMsg(null), 4000);
+      await loadConfig();
     } catch (err) {
-      setError(err?.message || "Failed to save feedback form version.");
+      setError(err?.message || "Failed to save feedback form versions.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Resend Feedback Handler
+  // Resend Feedback Handler (Recovery Tool)
   const handleResendFeedback = async () => {
     setResending(true);
     setResendResult(null);
@@ -186,17 +353,6 @@ export default function AdminWorkshopFeedback() {
     setTimeout(() => setCopiedTokenBookingId(null), 3000);
   };
 
-  // Filtered Questions for Mobile Preview based on previewAudience
-  const previewFilteredQuestions = useMemo(() => {
-    return questions.filter((q) => {
-      const aud = Number(q.targetAudience);
-      if (aud === 3) return true; // Both
-      if (previewAudience === "Attended" && aud === 1) return true;
-      if (previewAudience === "NoShow" && aud === 2) return true;
-      return false;
-    });
-  }, [questions, previewAudience]);
-
   // Filtered Recipients for Ledger
   const filteredRecipients = useMemo(() => {
     const list = config?.Recipients || config?.recipients || [];
@@ -210,9 +366,31 @@ export default function AdminWorkshopFeedback() {
     );
   }, [config, recipientSearch]);
 
+  // Filtered Analytics Submissions based on analyticsAudienceFilter
+  const filteredSubmissions = useMemo(() => {
+    const subs = analytics?.Submissions || [];
+    if (analyticsAudienceFilter === "All") return subs;
+    return subs.filter(
+      (s) => (s.AudienceType || "").toLowerCase() === analyticsAudienceFilter.toLowerCase()
+    );
+  }, [analytics, analyticsAudienceFilter]);
+
+  // Filtered Question Analytics based on analyticsAudienceFilter
+  const filteredQuestionAnalytics = useMemo(() => {
+    const qas = analytics?.QuestionAnalytics || [];
+    if (analyticsAudienceFilter === "All") return qas;
+    return qas.filter((qa) => {
+      const aud = Number(qa.TargetAudience);
+      if (analyticsAudienceFilter === "Attended") return aud === 1 || aud === 3;
+      if (analyticsAudienceFilter === "NoShow") return aud === 2 || aud === 3;
+      return true;
+    });
+  }, [analytics, analyticsAudienceFilter]);
+
   const metrics = config?.Metrics || config?.metrics || {};
-  const automation = config?.Automation || config?.automation || {};
   const isFeedbackEnabled = Boolean(config?.isFeedbackEnabled ?? config?.IsFeedbackEnabled ?? true);
+  const isLocked = Boolean(config?.IsLocked ?? config?.isLocked ?? false);
+  const activeVersionNumber = config?.ActiveVersionNumber ?? config?.activeVersionNumber ?? 1;
 
   return (
     <div className="workshop-feedback-page">
@@ -226,18 +404,17 @@ export default function AdminWorkshopFeedback() {
                 fontSize: "12px",
                 padding: "3px 10px",
                 borderRadius: "20px",
-                background: isFeedbackEnabled ? "#ecfdf5" : "#f1f5f9",
-                color: isFeedbackEnabled ? "#15803d" : "#64748b",
-                border: isFeedbackEnabled ? "1px solid #86efac" : "1px solid #cbd5e1",
+                background: isLocked ? "#eff6ff" : isFeedbackEnabled ? "#ecfdf5" : "#f1f5f9",
+                color: isLocked ? "#1d4ed8" : isFeedbackEnabled ? "#15803d" : "#64748b",
+                border: isLocked ? "1px solid #bfdbfe" : isFeedbackEnabled ? "1px solid #86efac" : "1px solid #cbd5e1",
                 fontWeight: "750",
               }}
             >
-              {isFeedbackEnabled ? "● Feedback Active" : "○ Disabled"}
+              {isLocked ? "🔒 Locked & Active" : isFeedbackEnabled ? "● Feedback Active (Editable)" : "○ Disabled"}
             </span>
           </h1>
           <p className="fb-subpage-subtitle">
-            Configure dynamic attendee feedback questionnaires, monitor star ratings &amp; reviews, and oversee
-            automated MSG91 WhatsApp post-workshop campaigns.
+            Dedicated dual-audience feedback management. Attended and No-Show participants automatically receive their tailored questionnaire via WhatsApp after the workshop finishes.
           </p>
         </div>
 
@@ -246,8 +423,9 @@ export default function AdminWorkshopFeedback() {
             type="button"
             className="fb-btn-secondary"
             onClick={() => setShowResendModal(true)}
+            title="Manual recovery tool in case an attendee needs a link resent"
           >
-            📲 Send / Resend WhatsApp
+            📲 Manual Resend
           </button>
           {activeTab === "builder" && (
             <button
@@ -256,9 +434,28 @@ export default function AdminWorkshopFeedback() {
               onClick={handleSaveFormVersion}
               disabled={saving}
             >
-              {saving ? "Saving Version..." : "💾 Save Form Version"}
+              {saving ? "Saving Forms..." : "💾 Save / Publish Forms"}
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Lifecycle Notice Banner */}
+      <div className="fb-lifecycle-banner">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "18px" }}>⚡</span>
+          <div>
+            <strong style={{ color: "#0f172a", fontSize: "13.5px" }}>
+              {isLocked
+                ? `Form Version v${activeVersionNumber} is Locked & Active for this Workshop.`
+                : `Draft Form (v${activeVersionNumber}) — Fully Editable before Workshop Starts.`}
+            </strong>
+            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+              {isLocked
+                ? "Workshop has commenced. Historical form structure is frozen. New edits will create a new published version without altering past submissions."
+                : "Forms automatically lock 15 minutes before the first session. Following workshop completion, the system automatically routes the Attended Form to checked-in attendees and the No-Show Form to absent registrants."}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -326,9 +523,9 @@ export default function AdminWorkshopFeedback() {
 
         <div className="fb-kpi-card kpi-attendees">
           <div className="fb-kpi-label">Eligible Attendees</div>
-          <div className="fb-kpi-value" style={{ fontSize: "16px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <div className="fb-kpi-value" style={{ fontSize: "15px", display: "flex", gap: "10px", alignItems: "center" }}>
             <span style={{ color: "#1d4ed8" }}>✓ {metrics.EligibleAttendedCount ?? metrics.eligibleAttendedCount ?? 0} Attended</span>
-            <span style={{ color: "#94a3b8" }}>|</span>
+            <span style={{ color: "#cbd5e1" }}>|</span>
             <span style={{ color: "#b91c1c" }}>✕ {metrics.EligibleNoShowCount ?? metrics.eligibleNoShowCount ?? 0} No-Show</span>
           </div>
         </div>
@@ -342,7 +539,9 @@ export default function AdminWorkshopFeedback() {
           onClick={() => setActiveTab("builder")}
         >
           📝 Feedback Form Builder
-          <span className="fb-tab-badge">{questions.length} questions</span>
+          <span className="fb-tab-badge">
+            {attendedQuestions.length + noShowQuestions.length} questions
+          </span>
         </button>
 
         <button
@@ -372,32 +571,84 @@ export default function AdminWorkshopFeedback() {
         </button>
       </div>
 
-      {/* TAB 1: FORM BUILDER & LIVE MOBILE PREVIEW */}
+      {/* TAB 1: DUAL-AUDIENCE FORM BUILDER & LIVE MOBILE PREVIEW */}
       {activeTab === "builder" && (
         <div className="fb-builder-layout">
-          {/* Left Column: Form Questions Editor */}
+          {/* Left Column: Dual Form Designer */}
           <div>
+            {/* Audience Form Selector Cards */}
+            <div className="fb-audience-selector-row">
+              <button
+                type="button"
+                className={`fb-audience-card ${formSubTab === "Attended" ? "selected-attended" : ""}`}
+                onClick={() => setFormSubTab("Attended")}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: "#1d4ed8" }}>
+                    🙋 ATTENDED FORM
+                  </div>
+                  <span className="fb-audience-count-pill attended">
+                    {attendedQuestions.length} Questions
+                  </span>
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748b" }}>
+                  Sent automatically to attendees who checked in at the studio.
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={`fb-audience-card ${formSubTab === "NoShow" ? "selected-noshow" : ""}`}
+                onClick={() => setFormSubTab("NoShow")}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: "#b91c1c" }}>
+                    🚫 NO-SHOW FORM
+                  </div>
+                  <span className="fb-audience-count-pill noshow">
+                    {noShowQuestions.length} Questions
+                  </span>
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748b" }}>
+                  Sent automatically to registered attendees who missed the workshop.
+                </div>
+              </button>
+            </div>
+
+            {/* Questions Editor for Selected Form */}
             <div className="fb-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <h3 className="fb-card-title">Attendee Experience Form Designer</h3>
+                  <h3 className="fb-card-title">
+                    {formSubTab === "Attended" ? "🙋 Attended Questionnaire Designer" : "🚫 No-Show Questionnaire Designer"}
+                  </h3>
                   <p className="fb-card-desc" style={{ margin: 0 }}>
-                    Configure the exact questionnaire participants interact with after clicking their unique WhatsApp feedback link.
+                    {formSubTab === "Attended"
+                      ? "Customize questions regarding teaching quality, choreography, studio venue, and overall experience."
+                      : "Customize questions exploring reasons for absence, booking satisfaction, and future workshop interest."}
                   </p>
                 </div>
                 <div style={{ fontSize: "12px", background: "#f1f5f9", padding: "4px 10px", borderRadius: "6px", color: "#475569", fontWeight: "700" }}>
-                  Active Version: v{config?.ActiveVersionNumber ?? config?.activeVersionNumber ?? 1}
+                  Active Version: v{activeVersionNumber}
                 </div>
               </div>
 
               {/* Questions List */}
               <div className="fb-questions-container">
-                {questions.map((q, idx) => (
+                {activeQuestions.map((q, idx) => (
                   <div key={q.id || idx} className="fb-question-card">
                     <div className="fb-question-top">
                       <div className="fb-question-number-pill">
                         <span>#{idx + 1}</span>
-                        <span>{q.questionType === 1 ? "⭐ Star Rating" : q.questionType === 2 ? "🔘 Single Choice" : q.questionType === 4 ? "☑ Multiple Choice" : "📝 Text Response"}</span>
+                        <span>
+                          {q.questionType === 1
+                            ? "⭐ Star Rating"
+                            : q.questionType === 2
+                            ? "🔘 Single Choice"
+                            : q.questionType === 4
+                            ? "☑ Multiple Choice"
+                            : "📝 Text Response"}
+                        </span>
                       </div>
 
                       <div className="fb-question-controls">
@@ -414,7 +665,7 @@ export default function AdminWorkshopFeedback() {
                           type="button"
                           className="fb-ctrl-btn"
                           onClick={() => handleMoveQuestion(idx, 1)}
-                          disabled={idx === questions.length - 1}
+                          disabled={idx === activeQuestions.length - 1}
                           title="Move Down"
                         >
                           ▼
@@ -438,44 +689,29 @@ export default function AdminWorkshopFeedback() {
                         className="fb-input"
                         value={q.promptText}
                         onChange={(e) => handleUpdateQuestion(idx, "promptText", e.target.value)}
-                        placeholder="e.g. How would you rate the workshop choreography?"
+                        placeholder="e.g. How was your overall experience?"
                       />
                     </div>
 
-                    {/* Question Parameters: Type & Target Audience */}
-                    <div className="fb-grid-2col">
-                      <div className="fb-form-group">
-                        <label className="fb-form-label">Response Type</label>
-                        <select
-                          className="fb-select"
-                          value={q.questionType}
-                          onChange={(e) => handleUpdateQuestion(idx, "questionType", Number(e.target.value))}
-                        >
-                          <option value={1}>⭐ Rating (1–5 Stars)</option>
-                          <option value={3}>📝 Text Response (Open Ended)</option>
-                          <option value={2}>🔘 Single Choice (Radio)</option>
-                          <option value={4}>☑ Multiple Choice (Checkboxes)</option>
-                        </select>
-                      </div>
-
-                      <div className="fb-form-group">
-                        <label className="fb-form-label">Target Audience Filter</label>
-                        <select
-                          className="fb-select"
-                          value={q.targetAudience}
-                          onChange={(e) => handleUpdateQuestion(idx, "targetAudience", Number(e.target.value))}
-                        >
-                          <option value={3}>🌐 Both (All Attendees)</option>
-                          <option value={1}>✓ Attended Only</option>
-                          <option value={2}>✕ No-Show Only</option>
-                        </select>
-                      </div>
+                    {/* Response Type */}
+                    <div className="fb-form-group">
+                      <label className="fb-form-label">Response Type</label>
+                      <select
+                        className="fb-select"
+                        value={q.questionType}
+                        onChange={(e) => handleUpdateQuestion(idx, "questionType", Number(e.target.value))}
+                      >
+                        <option value={1}>⭐ Rating (1–5 Stars)</option>
+                        <option value={3}>📝 Text Response (Open Ended)</option>
+                        <option value={2}>🔘 Single Choice (Radio)</option>
+                        <option value={4}>☑ Multiple Choice (Checkboxes)</option>
+                      </select>
                     </div>
 
-                    {/* Optional Choices Editor for Single/Multi Choice */}
+                    {/* Choices Editor for Single/Multi Choice */}
                     {(Number(q.questionType) === 2 || Number(q.questionType) === 4) && (
                       <div className="fb-form-group" style={{ background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                        <label className="fb-form-label">Answer Options / Choices</label>
+                        <label className="fb-form-label">Answer Choices / Options</label>
                         <div className="fb-choices-list">
                           {(q.choices || []).map((c, cIdx) => (
                             <div key={cIdx} className="fb-choice-row">
@@ -524,8 +760,12 @@ export default function AdminWorkshopFeedback() {
 
                 {/* Add Question Button */}
                 <div className="fb-add-question-box" onClick={handleAddQuestion}>
-                  <div style={{ fontSize: "18px", fontWeight: "800", marginBottom: "4px" }}>+ Add Question</div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>Rating, short text, or choice question</div>
+                  <div style={{ fontSize: "16px", fontWeight: "800", marginBottom: "3px" }}>
+                    + Add Question to {formSubTab} Form
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Rating, open text, or single/multiple choice question
+                  </div>
                 </div>
               </div>
             </div>
@@ -534,44 +774,21 @@ export default function AdminWorkshopFeedback() {
           {/* Right Column: Live Mobile Attendee Preview */}
           <div className="fb-preview-sticky">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-              <span style={{ fontSize: "13px", fontWeight: "750", color: "#334155" }}>📱 Live Attendee Mobile Preview</span>
-              {/* Audience Preview Toggle */}
-              <div style={{ display: "flex", background: "#f1f5f9", padding: "2px", borderRadius: "6px" }}>
-                <button
-                  type="button"
-                  onClick={() => setPreviewAudience("Attended")}
-                  style={{
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    border: "none",
-                    borderRadius: "4px",
-                    background: previewAudience === "Attended" ? "#ffffff" : "none",
-                    color: previewAudience === "Attended" ? "#1d4ed8" : "#64748b",
-                    boxShadow: previewAudience === "Attended" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Attended
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewAudience("NoShow")}
-                  style={{
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    border: "none",
-                    borderRadius: "4px",
-                    background: previewAudience === "NoShow" ? "#ffffff" : "none",
-                    color: previewAudience === "NoShow" ? "#b91c1c" : "#64748b",
-                    boxShadow: previewAudience === "NoShow" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  No-Show
-                </button>
-              </div>
+              <span style={{ fontSize: "13px", fontWeight: "750", color: "#334155" }}>
+                📱 Live {formSubTab} Preview
+              </span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  background: formSubTab === "Attended" ? "#dbeafe" : "#fee2e2",
+                  color: formSubTab === "Attended" ? "#1d4ed8" : "#b91c1c",
+                }}
+              >
+                {formSubTab === "Attended" ? "🙋 Attended View" : "🚫 No-Show View"}
+              </span>
             </div>
 
             <div className="fb-phone-frame">
@@ -581,12 +798,12 @@ export default function AdminWorkshopFeedback() {
                   <div className="fb-preview-studio-tag">ETHOS DANCE STUDIO</div>
                   <h4 className="fb-preview-ws-title">{workshop?.Title || workshop?.title || "Masterclass Workshop"}</h4>
                   <div className="fb-preview-ws-meta">
-                    {previewAudience === "Attended" ? "How was your experience?" : "We missed you!"}
+                    {formSubTab === "Attended" ? "How was your experience?" : "We missed you!"}
                   </div>
                 </div>
 
                 <div className="fb-preview-questions">
-                  {previewFilteredQuestions.map((q, idx) => (
+                  {activeQuestions.map((q, idx) => (
                     <div key={q.id || idx} className="fb-mock-q">
                       <div className="fb-mock-q-title">
                         {q.promptText || "Untitled Question"}
@@ -656,7 +873,7 @@ export default function AdminWorkshopFeedback() {
               <div>
                 <h3 className="fb-card-title">Automated MSG91 WhatsApp Feedback Campaign</h3>
                 <p className="fb-card-desc" style={{ margin: 0 }}>
-                  Dispatches verified post-workshop feedback requests to attendees via the durable WhatsApp Outbox.
+                  Automatically dispatches verified post-workshop feedback requests to attendees via the durable WhatsApp Outbox.
                 </p>
               </div>
               <span
@@ -699,9 +916,9 @@ export default function AdminWorkshopFeedback() {
               </div>
 
               <div style={{ background: "#f8fafc", padding: "14px 16px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Dispatch Window</div>
-                <div style={{ fontSize: "14px", fontWeight: "750", color: "#0f172a", marginTop: "4px" }}>2 Hours Post-Event</div>
-                <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>Auto-queued by worker daemon</div>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Automated Dispatch</div>
+                <div style={{ fontSize: "14px", fontWeight: "750", color: "#0f172a", marginTop: "4px" }}>Instant Background Trigger</div>
+                <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>Audience resolved automatically</div>
               </div>
             </div>
           </div>
@@ -737,10 +954,10 @@ export default function AdminWorkshopFeedback() {
                     <td style={{ fontWeight: "600" }}>{workshop?.Title || workshop?.title || "Naari Naari By Sreekanth"}</td>
                   </tr>
                   <tr>
-                    <td style={{ fontFamily: "monospace", fontWeight: "700", color: "#7c3aed" }}>Button Payload (URL Suffix)</td>
+                    <td style={{ fontFamily: "monospace", fontWeight: "700", color: "#7c3aed" }}>Button Payload (Path)</td>
                     <td>tokenEntity.RawToken</td>
                     <td style={{ color: "#64748b" }}>Cryptographic HMAC token for authenticated 1-click feedback</td>
-                    <td style={{ fontFamily: "monospace", fontSize: "12px", color: "#475569" }}>https://ethosdancestudio.com/feedback?token=&lt;secure-token&gt;</td>
+                    <td style={{ fontFamily: "monospace", fontSize: "12px", color: "#475569" }}>https://ethosdancestudio.com/feedback/workshop/&lt;secure-token&gt;</td>
                   </tr>
                 </tbody>
               </table>
@@ -761,7 +978,7 @@ export default function AdminWorkshopFeedback() {
                 <p style={{ margin: "0 0 10px 0" }}>Thank you for dancing with us at {"{{2}}"}!</p>
                 <p style={{ margin: "0 0 10px 0" }}>We would love to hear your thoughts and experience to help us keep improving. It only takes 30 seconds:</p>
                 <div style={{ margin: "0 0 10px 0", padding: "8px 12px", background: "#e2e8f0", borderRadius: "6px", color: "#1e293b", fontWeight: "700" }}>
-                  👉 [Button] Give Feedback &rarr; https://ethosdancestudio.com/feedback?token=&lt;token&gt;
+                  👉 [Button] Give Feedback &rarr; https://ethosdancestudio.com/feedback/workshop/&lt;token&gt;
                 </div>
                 <p style={{ margin: 0 }}>
                   See you on the dance floor soon! ✨<br />
@@ -809,10 +1026,38 @@ export default function AdminWorkshopFeedback() {
       {/* TAB 3: RESPONSES & ANALYTICS */}
       {activeTab === "analytics" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Audience Filter Pills for Analytics */}
+          <div className="fb-analytics-filter-row">
+            <span style={{ fontSize: "13px", fontWeight: "700", color: "#475569" }}>Audience Segment:</span>
+            <div className="fb-filter-pills">
+              <button
+                type="button"
+                className={`fb-filter-pill ${analyticsAudienceFilter === "All" ? "active" : ""}`}
+                onClick={() => setAnalyticsAudienceFilter("All")}
+              >
+                All Responses ({analytics?.Submissions?.length || 0})
+              </button>
+              <button
+                type="button"
+                className={`fb-filter-pill attended ${analyticsAudienceFilter === "Attended" ? "active" : ""}`}
+                onClick={() => setAnalyticsAudienceFilter("Attended")}
+              >
+                🙋 Attended ({analytics?.Submissions?.filter((s) => s.AudienceType === "Attended").length || 0})
+              </button>
+              <button
+                type="button"
+                className={`fb-filter-pill noshow ${analyticsAudienceFilter === "NoShow" ? "active" : ""}`}
+                onClick={() => setAnalyticsAudienceFilter("NoShow")}
+              >
+                🚫 No-Show ({analytics?.Submissions?.filter((s) => s.AudienceType === "NoShow").length || 0})
+              </button>
+            </div>
+          </div>
+
           {/* Rating Breakdown & Summary */}
           <div className="fb-card">
             <h3 className="fb-card-title">Star Ratings Distribution</h3>
-            <p className="fb-card-desc">Comprehensive breakdown of all verified participant ratings.</p>
+            <p className="fb-card-desc">Comprehensive breakdown of participant feedback ratings.</p>
 
             <div className="fb-rating-bars">
               {[5, 4, 3, 2, 1].map((stars) => {
@@ -839,11 +1084,13 @@ export default function AdminWorkshopFeedback() {
           </div>
 
           {/* Question-Level Analytics */}
-          {analytics?.QuestionAnalytics?.length > 0 && (
+          {filteredQuestionAnalytics.length > 0 && (
             <div className="fb-card">
-              <h3 className="fb-card-title">Question-Level Breakdown</h3>
+              <h3 className="fb-card-title">
+                Question-Level Breakdown ({analyticsAudienceFilter === "All" ? "All Questions" : `${analyticsAudienceFilter} Questions`})
+              </h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px", marginTop: "16px" }}>
-                {analytics.QuestionAnalytics.map((qa, idx) => (
+                {filteredQuestionAnalytics.map((qa, idx) => (
                   <div key={qa.QuestionId || idx} style={{ background: "#f8fafc", padding: "16px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
                     <div style={{ fontSize: "13px", fontWeight: "750", color: "#0f172a", marginBottom: "8px" }}>
                       #{idx + 1}. {qa.PromptText}
@@ -871,16 +1118,18 @@ export default function AdminWorkshopFeedback() {
 
           {/* Individual Submissions Feed */}
           <div className="fb-card">
-            <h3 className="fb-card-title">Individual Participant Reviews</h3>
-            <p className="fb-card-desc">Verified feedback submissions with answers.</p>
+            <h3 className="fb-card-title">
+              Individual Participant Reviews ({filteredSubmissions.length})
+            </h3>
+            <p className="fb-card-desc">Verified feedback submissions segmented by audience.</p>
 
-            {(analytics?.Submissions?.length || 0) === 0 ? (
+            {filteredSubmissions.length === 0 ? (
               <div style={{ textAlign: "center", padding: "30px 20px", color: "#64748b" }}>
-                💬 No written reviews submitted yet.
+                💬 No written reviews found for the selected audience filter.
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {analytics.Submissions.map((sub) => (
+                {filteredSubmissions.map((sub) => (
                   <div key={sub.FeedbackId} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1006,12 +1255,12 @@ export default function AdminWorkshopFeedback() {
         </div>
       )}
 
-      {/* RESEND FEEDBACK MODAL */}
+      {/* RESEND FEEDBACK MODAL (EXCEPTIONAL RECOVERY TOOL) */}
       {showResendModal && (
         <div className="fb-modal-overlay">
           <div className="fb-modal-card">
             <div className="fb-modal-header">
-              <h3>📲 Send / Resend WhatsApp Feedback</h3>
+              <h3>📲 Manual Feedback Resend Tool</h3>
               <button
                 type="button"
                 style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#64748b" }}
@@ -1033,9 +1282,9 @@ export default function AdminWorkshopFeedback() {
                 </div>
               ) : (
                 <>
-                  <p style={{ fontSize: "13.5px", color: "#475569", margin: "0 0 16px 0", lineHeight: "1.5" }}>
-                    Select target audience to queue approved WhatsApp feedback requests into the MSG91 outbox.
-                  </p>
+                  <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", padding: "12px 14px", borderRadius: "8px", marginBottom: "16px", fontSize: "12.5px", color: "#9a3412", lineHeight: "1.5" }}>
+                    <strong>Recovery Notice:</strong> Automated WhatsApp feedback messages are dispatched on schedule upon workshop completion. Use this tool only if an attendee did not receive their message or requested a link resend.
+                  </div>
 
                   <div className="fb-form-group">
                     <label className="fb-form-label">Target Audience</label>

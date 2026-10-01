@@ -717,26 +717,28 @@ public class AdminWorkshopsController : ControllerBase
     [HttpPut("workshops/{workshopId:guid}/feedback/setting")]
     public async Task<IActionResult> UpdateFeedbackSetting(
         Guid workshopId,
-        [FromBody] AdminUpdateFeedbackSettingRequest request,
+        [FromBody] AdminUpdateFeedbackSettingRequest? request,
         CancellationToken cancellationToken)
     {
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
-        await _workshopService.UpdateFeedbackSettingAsync(workshopId, request, cancellationToken);
+        var req = request ?? new AdminUpdateFeedbackSettingRequest();
+        await _workshopService.UpdateFeedbackSettingAsync(workshopId, req, cancellationToken);
         return NoContent();
     }
 
     [HttpPost("workshops/{workshopId:guid}/feedback/resend")]
     public async Task<ActionResult<AdminResendFeedbackResponse>> ResendWorkshopFeedback(
         Guid workshopId,
-        [FromBody] AdminResendFeedbackRequest request,
+        [FromBody] AdminResendFeedbackRequest? request,
         CancellationToken cancellationToken)
     {
         var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
-        var result = await _workshopService.ResendWorkshopFeedbackAsync(workshopId, request, cancellationToken);
+        var req = request ?? new AdminResendFeedbackRequest();
+        var result = await _workshopService.ResendWorkshopFeedbackAsync(workshopId, req, cancellationToken);
         return Ok(result);
     }
 
