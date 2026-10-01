@@ -27,7 +27,7 @@
   align-items: flex-start;
   gap: 14px;
   flex: 1;
-  min-width: 320px;
+  min-width: 0;
 }
 
 .step6-header-icon {

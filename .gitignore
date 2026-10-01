@@ -5,6 +5,7 @@ dist/
 node_modules/
 publish_output/
 publish_clean/
+publish-production-*/
 temp_zip_staging/
 
 # IDE & OS

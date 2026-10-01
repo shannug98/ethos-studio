@@ -9,8 +9,9 @@ import {
 } from "../../services/adminApi";
 import { formatAdminLastActive } from "../../utils/adminFormatters";
 import { trackLoginStarted, trackLoginCompleted } from "../../services/analytics";
-import ethosLogo from "../../assets/brand/ethos-emblem.png";
 import "./AdminLogin.css";
+
+const ethosLogo = "/favicon.png";
 
 export default function AdminLogin() {
   const navigate = useNavigate();

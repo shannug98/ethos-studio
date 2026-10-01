@@ -163,6 +163,34 @@ public interface IAdminWorkshopService
         Guid workshopId,
         CancellationToken cancellationToken);
 
+    Task<Ethos.Api.Contracts.Feedback.AdminWorkshopFeedbackConfigResponse> GetWorkshopFeedbackConfigAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
+
+    Task<Ethos.Api.Contracts.Feedback.AdminWorkshopFeedbackConfigResponse> SaveFeedbackVersionAsync(
+        Guid workshopId,
+        Ethos.Api.Contracts.Feedback.AdminSaveFeedbackVersionRequest request,
+        CancellationToken cancellationToken);
+
+    Task<bool> ActivateFeedbackVersionAsync(
+        Guid workshopId,
+        Guid versionId,
+        CancellationToken cancellationToken);
+
+    Task<bool> UpdateFeedbackSettingAsync(
+        Guid workshopId,
+        Ethos.Api.Contracts.Feedback.AdminUpdateFeedbackSettingRequest request,
+        CancellationToken cancellationToken);
+
+    Task<Ethos.Api.Contracts.Feedback.AdminResendFeedbackResponse> ResendWorkshopFeedbackAsync(
+        Guid workshopId,
+        Ethos.Api.Contracts.Feedback.AdminResendFeedbackRequest request,
+        CancellationToken cancellationToken);
+
+    Task<Ethos.Api.Contracts.Feedback.AdminWorkshopFeedbackAnalyticsResponse> GetWorkshopFeedbackAnalyticsAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken);
+
     Task<AdminWorkshopDraftResponse?> GetDraftAsync(
         Guid adminUserId,
         Guid? workshopId,

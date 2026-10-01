@@ -284,9 +284,9 @@ export default function WorkshopPassModal({ isOpen, booking, student, onClose })
             <div className="ticket-qr-spotlight">
               <div className="ticket-qr-container">
                 {currentTicket?.qrToken ? (
-                  <QrCode value={currentTicket.qrToken} size={180} color="#ffffff" bgColor="#0d0b0a" />
+                  <QrCode value={currentTicket.qrToken} size={220} color="#000000" bgColor="#ffffff" margin={4} />
                 ) : (
-                  <QrCode value={currentTicket?.ticketNumber || bookingRef} size={180} color="#ffffff" bgColor="#0d0b0a" />
+                  <QrCode value={currentTicket?.ticketNumber || bookingRef} size={220} color="#000000" bgColor="#ffffff" margin={4} />
                 )}
               </div>
               <div className="ticket-qr-caption">

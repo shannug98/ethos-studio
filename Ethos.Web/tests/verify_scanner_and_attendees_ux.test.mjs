@@ -64,10 +64,10 @@ test("Image 1 & Image 2 UX Verification: Scanner Detection, Live Verification Ca
       "Should enable useBarCodeDetectorIfSupported for native browser decoding"
     );
 
-    // Verify dynamic responsive qrbox
+    // Verify full-frame decoding
     assert.ok(
-      scannerCode.includes("qrbox: (viewfinderWidth, viewfinderHeight) =>"),
-      "Should dynamically size qrbox based on container dimensions"
+      !scannerCode.includes("qrbox: (viewfinderWidth"),
+      "Should use full-frame full-sensor decoding without restrictive qrbox crop"
     );
 
     // Verify audio feedback is integrated

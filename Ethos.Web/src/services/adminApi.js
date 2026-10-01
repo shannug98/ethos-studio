@@ -813,6 +813,35 @@ export const adminApi = {
   getWorkshopFeedback: (workshopId) =>
     adminRequest(`/api/admin/workshops/${workshopId}/feedback`),
 
+  getWorkshopFeedbackConfig: (workshopId) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/config`),
+
+  saveWorkshopFeedbackVersion: (workshopId, payload) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/versions`, {
+      method: "POST",
+      body: payload,
+    }),
+
+  activateWorkshopFeedbackVersion: (workshopId, versionId) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/versions/${versionId}/activate`, {
+      method: "POST",
+    }),
+
+  updateWorkshopFeedbackSetting: (workshopId, payload) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/setting`, {
+      method: "PUT",
+      body: payload,
+    }),
+
+  resendWorkshopFeedback: (workshopId, payload) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/resend`, {
+      method: "POST",
+      body: payload,
+    }),
+
+  getWorkshopFeedbackAnalytics: (workshopId) =>
+    adminRequest(`/api/admin/workshops/${workshopId}/feedback/analytics`),
+
   overrideWorkshopTicket: (workshopId, ticketId, reason) =>
     adminRequest(`/api/admin/workshops/${workshopId}/tickets/${ticketId}/override`, {
       method: "POST",

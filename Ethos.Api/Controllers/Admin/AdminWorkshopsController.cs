@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Ethos.Api.Application.Admin;
 using Ethos.Api.Contracts.Admin;
+using Ethos.Api.Contracts.Feedback;
 using Ethos.Api.Contracts.Trainers;
 using Ethos.Api.Domain.Constants;
 using Ethos.Api.Domain.Enums;
@@ -672,6 +673,82 @@ public class AdminWorkshopsController : ControllerBase
         if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
 
         var result = await _workshopService.GetWorkshopFeedbackAsync(workshopId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("workshops/{workshopId:guid}/feedback/config")]
+    public async Task<ActionResult<AdminWorkshopFeedbackConfigResponse>> GetWorkshopFeedbackConfig(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.GetWorkshopFeedbackConfigAsync(workshopId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("workshops/{workshopId:guid}/feedback/versions")]
+    public async Task<ActionResult<AdminWorkshopFeedbackConfigResponse>> SaveFeedbackVersion(
+        Guid workshopId,
+        [FromBody] AdminSaveFeedbackVersionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.SaveFeedbackVersionAsync(workshopId, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("workshops/{workshopId:guid}/feedback/versions/{versionId:guid}/activate")]
+    public async Task<IActionResult> ActivateFeedbackVersion(
+        Guid workshopId,
+        Guid versionId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        await _workshopService.ActivateFeedbackVersionAsync(workshopId, versionId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPut("workshops/{workshopId:guid}/feedback/setting")]
+    public async Task<IActionResult> UpdateFeedbackSetting(
+        Guid workshopId,
+        [FromBody] AdminUpdateFeedbackSettingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        await _workshopService.UpdateFeedbackSettingAsync(workshopId, request, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("workshops/{workshopId:guid}/feedback/resend")]
+    public async Task<ActionResult<AdminResendFeedbackResponse>> ResendWorkshopFeedback(
+        Guid workshopId,
+        [FromBody] AdminResendFeedbackRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopUpdate, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.ResendWorkshopFeedbackAsync(workshopId, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("workshops/{workshopId:guid}/feedback/analytics")]
+    public async Task<ActionResult<AdminWorkshopFeedbackAnalyticsResponse>> GetWorkshopFeedbackAnalytics(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var authCheck = await _authService.AuthorizeActionAsync(User, AdminPermissions.WorkshopView, "Workshop", workshopId, HttpContext, cancellationToken);
+        if (!authCheck.Success) return StatusCode(authCheck.StatusCode, new { message = authCheck.ErrorMessage });
+
+        var result = await _workshopService.GetWorkshopFeedbackAnalyticsAsync(workshopId, cancellationToken);
         return Ok(result);
     }
 

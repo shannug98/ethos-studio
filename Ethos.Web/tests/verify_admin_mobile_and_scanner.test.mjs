@@ -24,10 +24,10 @@ test("PHASE 1 — QR Scanner: Safe Camera Constraints & Lifecycle Guard Verifica
     "Scanner must not force rigid 1280x720 videoConstraints which fail on portrait mobile cameras"
   );
 
-  // 3. Verifies dynamic qrbox calculation based on viewfinder dimensions
+  // 3. Verifies full-frame decoding across entire camera sensor (no restrictive crop)
   assert.ok(
-    scannerContent.includes("qrbox: (viewfinderWidth, viewfinderHeight)"),
-    "Scanner must use dynamic function-based qrbox calculation"
+    !scannerContent.includes("qrbox: (viewfinderWidth"),
+    "Scanner must use full-frame full-sensor decoding without restrictive qrbox crop"
   );
 
   // 4. Verifies lifecycle guards (isTransitioningRef / isMountedRef) to prevent race conditions
@@ -53,8 +53,8 @@ test("PHASE 1 — QR Scanner: DOM Isolation & Artifact Suppression Verification"
     "Scanner CSS must isolate and hide #qr-camera-viewport__dashboard"
   );
   assert.ok(
-    scannerCss.includes("#qr-camera-viewport video") && scannerCss.includes("object-fit: cover !important"),
-    "Scanner CSS must style video element with object-fit: cover"
+    scannerCss.includes("#qr-camera-viewport video") && (scannerCss.includes("object-fit: contain") || scannerCss.includes("object-fit: cover")),
+    "Scanner CSS must style video element with clean object-fit"
   );
 
   // 2. Verifies mobile responsive breakpoints exist for scanner

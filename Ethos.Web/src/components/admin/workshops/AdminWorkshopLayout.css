@@ -12,6 +12,8 @@
   gap: 16px;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #1e293b;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Breadcrumbs */
@@ -22,12 +24,15 @@
   font-size: 13px;
   font-weight: 500;
   color: #64748b;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .breadcrumb-link {
   color: #6366f1;
   text-decoration: none;
   transition: color 0.15s ease;
+  white-space: nowrap;
 }
 
 .breadcrumb-link:hover {
@@ -43,19 +48,24 @@
 .breadcrumb-current {
   color: #0f172a;
   font-weight: 600;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Portal Body: Sub-Sidebar + Main Content */
 .workshop-portal-body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1080px) {
   .workshop-portal-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -71,6 +81,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   position: sticky;
   top: 20px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Summary Card */
@@ -282,34 +295,52 @@
 /* Mobile & Tablet Responsive Sub-Portal */
 @media (max-width: 900px) {
   .workshop-portal-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
+    width: 100%;
   }
 
   .workshop-sub-sidebar {
     position: static;
-    padding: 12px;
-    gap: 12px;
+    padding: 10px 12px;
+    gap: 10px;
     border-radius: 10px;
+    width: 100%;
+    overflow: hidden;
   }
 
   .workshop-summary-card {
     flex-direction: row;
     align-items: center;
+    width: 100%;
+    min-width: 0;
   }
 
   .workshop-banner-wrap {
-    width: 90px;
-    height: 70px;
+    width: 72px;
+    height: 60px;
     flex-shrink: 0;
   }
 
   .workshop-card-body {
-    padding: 8px 12px;
+    padding: 6px 10px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
 
   .ws-title {
-    font-size: 14px;
+    font-size: 13.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ws-schedule {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .workshop-sub-nav {
@@ -317,14 +348,20 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     gap: 6px;
-    padding-bottom: 6px;
-    scrollbar-width: thin;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .workshop-sub-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .sub-nav-item {
     white-space: nowrap;
-    padding: 8px 12px;
-    font-size: 12.5px;
+    padding: 7px 11px;
+    font-size: 12px;
     flex-shrink: 0;
     border: 1px solid #e2e8f0;
     background: #f8fafc;

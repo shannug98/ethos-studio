@@ -1,13 +1,17 @@
+using System.Text.Json;
+using Ethos.Api.Application.Feedback;
 using Ethos.Api.Application.Storage;
 using Ethos.Api.Application.Students;
 using Ethos.Api.Application.Workshops;
 using Ethos.Api.Contracts.Admin;
+using Ethos.Api.Contracts.Feedback;
 using Ethos.Api.Contracts.Trainers;
 using Ethos.Api.Domain.Entities;
 using Ethos.Api.Domain.Enums;
 using Ethos.Api.Domain.Exceptions;
 using Ethos.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Ethos.Api.Application.Admin;
 
@@ -18,19 +22,22 @@ public class AdminWorkshopService : IAdminWorkshopService
     private readonly IWorkshopPricingService _pricingService;
     private readonly ICloudflareR2StorageService? _r2Storage;
     private readonly IWorkshopTicketService? _ticketService;
+    private readonly IConfiguration? _configuration;
 
     public AdminWorkshopService(
         AppDbContext db,
         IAdminAuditService auditService,
         IWorkshopPricingService? pricingService = null,
         ICloudflareR2StorageService? r2Storage = null,
-        IWorkshopTicketService? ticketService = null)
+        IWorkshopTicketService? ticketService = null,
+        IConfiguration? configuration = null)
     {
         _db = db;
         _auditService = auditService;
         _pricingService = pricingService ?? new WorkshopPricingService(db, new AdminWorkshopFallbackStudentEligibilityService());
         _r2Storage = r2Storage;
         _ticketService = ticketService;
+        _configuration = configuration;
     }
 
     private static string? ExtractExactR2Key(string? mediaUrl)
@@ -3850,6 +3857,752 @@ public class AdminWorkshopService : IAdminWorkshopService
                 FormattedDate = f.SubmittedAt.ToString("dd MMM yyyy, hh:mm tt")
             };
         }).ToList();
+    }
+
+    private async Task<WorkshopFeedbackSetting> EnsureWorkshopFeedbackSettingAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var setting = await _db.WorkshopFeedbackSettings
+            .Include(s => s.ActiveVersion)
+                .ThenInclude(v => v!.Questions)
+            .Include(s => s.FormVersions)
+                .ThenInclude(v => v.Questions)
+            .FirstOrDefaultAsync(s => s.WorkshopId == workshopId, cancellationToken);
+
+        if (setting == null)
+        {
+            var now = DateTime.UtcNow;
+            setting = new WorkshopFeedbackSetting
+            {
+                Id = Guid.NewGuid(),
+                WorkshopId = workshopId,
+                IsFeedbackEnabled = true,
+                IsLocked = false,
+                CreatedAtUtc = now
+            };
+
+            var defaultVersion = new FeedbackFormVersion
+            {
+                Id = Guid.NewGuid(),
+                WorkshopFeedbackSettingId = setting.Id,
+                VersionNumber = 1,
+                IsFrozen = false,
+                CreatedAtUtc = now
+            };
+
+            var defaultQuestions = new List<FeedbackQuestion>
+            {
+                new FeedbackQuestion
+                {
+                    Id = Guid.NewGuid(),
+                    FeedbackFormVersionId = defaultVersion.Id,
+                    QuestionKey = "overall_rating",
+                    PromptText = "Overall Masterclass Rating",
+                    QuestionType = FeedbackQuestionType.Rating1To5,
+                    TargetAudience = FeedbackAudienceType.Both,
+                    IsRequired = true,
+                    SortOrder = 1
+                },
+                new FeedbackQuestion
+                {
+                    Id = Guid.NewGuid(),
+                    FeedbackFormVersionId = defaultVersion.Id,
+                    QuestionKey = "instruction_rating",
+                    PromptText = "How would you rate the choreography & instruction?",
+                    QuestionType = FeedbackQuestionType.Rating1To5,
+                    TargetAudience = FeedbackAudienceType.Attended,
+                    IsRequired = false,
+                    SortOrder = 2
+                },
+                new FeedbackQuestion
+                {
+                    Id = Guid.NewGuid(),
+                    FeedbackFormVersionId = defaultVersion.Id,
+                    QuestionKey = "feedback_comment",
+                    PromptText = "What did you enjoy most or what could we improve?",
+                    QuestionType = FeedbackQuestionType.Text,
+                    TargetAudience = FeedbackAudienceType.Attended,
+                    IsRequired = false,
+                    SortOrder = 3
+                },
+                new FeedbackQuestion
+                {
+                    Id = Guid.NewGuid(),
+                    FeedbackFormVersionId = defaultVersion.Id,
+                    QuestionKey = "noshow_reason",
+                    PromptText = "We missed you! What was the main reason you could not attend?",
+                    QuestionType = FeedbackQuestionType.SingleChoice,
+                    TargetAudience = FeedbackAudienceType.NoShow,
+                    OptionsJson = JsonSerializer.Serialize(new[] { "Schedule Conflict", "Health / Feeling Unwell", "Travel / Transportation Delay", "Emergency", "Other" }),
+                    IsRequired = false,
+                    SortOrder = 4
+                }
+            };
+
+            foreach (var q in defaultQuestions)
+            {
+                defaultVersion.Questions.Add(q);
+            }
+
+            setting.FormVersions.Add(defaultVersion);
+            setting.ActiveVersionId = defaultVersion.Id;
+            setting.ActiveVersion = defaultVersion;
+
+            _db.WorkshopFeedbackSettings.Add(setting);
+            _db.FeedbackFormVersions.Add(defaultVersion);
+            _db.FeedbackQuestions.AddRange(defaultQuestions);
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return setting;
+    }
+
+    public async Task<AdminWorkshopFeedbackConfigResponse> GetWorkshopFeedbackConfigAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var workshop = await _db.Workshops
+            .AsNoTracking()
+            .Include(w => w.Bookings)
+                .ThenInclude(b => b.Tickets)
+                    .ThenInclude(t => t.Attendance)
+            .Include(w => w.Bookings)
+                .ThenInclude(b => b.StudentProfile)
+                    .ThenInclude(sp => sp!.User)
+            .FirstOrDefaultAsync(w => w.Id == workshopId, cancellationToken);
+
+        if (workshop == null)
+        {
+            throw new KeyNotFoundException($"Workshop {workshopId} not found.");
+        }
+
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+
+        var feedbacks = await _db.WorkshopFeedbacks
+            .AsNoTracking()
+            .Where(f => (f.WorkshopId == workshopId || (f.WorkshopBooking != null && f.WorkshopBooking.WorkshopId == workshopId)) && f.IsValid)
+            .ToListAsync(cancellationToken);
+
+        var bookingIds = workshop.Bookings.Select(b => b.Id).ToList();
+
+        var refundedBookingIds = await _db.PaymentRefunds
+            .AsNoTracking()
+            .Where(r => bookingIds.Contains(r.BookingId) &&
+                        (r.Status == RefundStatus.Processed ||
+                         r.Status == RefundStatus.Requested ||
+                         r.Status == RefundStatus.Processing))
+            .Select(r => r.BookingId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var notifications = await _db.WhatsAppNotifications
+            .AsNoTracking()
+            .Where(n => bookingIds.Contains(n.BookingId))
+            .ToListAsync(cancellationToken);
+
+        var existingTokens = await _db.WorkshopFeedbackTokens
+            .AsNoTracking()
+            .Where(t => bookingIds.Contains(t.WorkshopBookingId))
+            .ToListAsync(cancellationToken);
+
+        var activeVersion = setting.ActiveVersion ?? setting.FormVersions.FirstOrDefault(v => v.Id == setting.ActiveVersionId) ?? setting.FormVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var activeQuestionDtos = new List<FeedbackQuestionDto>();
+        if (activeVersion?.Questions != null)
+        {
+            foreach (var q in activeVersion.Questions.OrderBy(x => x.SortOrder))
+            {
+                var choices = new List<string>();
+                if (!string.IsNullOrWhiteSpace(q.OptionsJson))
+                {
+                    try
+                    {
+                        var parsed = JsonSerializer.Deserialize<List<string>>(q.OptionsJson);
+                        if (parsed != null) choices.AddRange(parsed);
+                    }
+                    catch
+                    {
+                        choices.AddRange(q.OptionsJson.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+                    }
+                }
+
+                activeQuestionDtos.Add(new FeedbackQuestionDto
+                {
+                    Id = q.Id,
+                    QuestionKey = q.QuestionKey,
+                    PromptText = q.PromptText,
+                    QuestionType = q.QuestionType,
+                    TargetAudience = q.TargetAudience,
+                    OptionsJson = q.OptionsJson,
+                    Choices = choices,
+                    IsRequired = q.IsRequired,
+                    SortOrder = q.SortOrder
+                });
+            }
+        }
+
+        var versionDtos = setting.FormVersions.OrderByDescending(v => v.VersionNumber).Select(v =>
+        {
+            var qDtos = v.Questions.OrderBy(q => q.SortOrder).Select(q =>
+            {
+                var choices = new List<string>();
+                if (!string.IsNullOrWhiteSpace(q.OptionsJson))
+                {
+                    try
+                    {
+                        var parsed = JsonSerializer.Deserialize<List<string>>(q.OptionsJson);
+                        if (parsed != null) choices.AddRange(parsed);
+                    }
+                    catch
+                    {
+                        choices.AddRange(q.OptionsJson.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+                    }
+                }
+
+                return new FeedbackQuestionDto
+                {
+                    Id = q.Id,
+                    QuestionKey = q.QuestionKey,
+                    PromptText = q.PromptText,
+                    QuestionType = q.QuestionType,
+                    TargetAudience = q.TargetAudience,
+                    OptionsJson = q.OptionsJson,
+                    Choices = choices,
+                    IsRequired = q.IsRequired,
+                    SortOrder = q.SortOrder
+                };
+            }).ToList();
+
+            return new AdminFeedbackFormVersionDto
+            {
+                Id = v.Id,
+                VersionNumber = v.VersionNumber,
+                IsFrozen = v.IsFrozen,
+                FrozenAtUtc = v.FrozenAtUtc,
+                CreatedAtUtc = v.CreatedAtUtc,
+                QuestionCount = v.Questions.Count,
+                IsActive = v.Id == setting.ActiveVersionId,
+                Questions = qDtos
+            };
+        }).ToList();
+
+        int eligibleAttended = 0;
+        int eligibleNoShow = 0;
+        var recipients = new List<AdminFeedbackRecipientDto>();
+
+        var rawSecret = _configuration?["TicketSecurity:SecretKey"] ?? "EthosWorkshopTicket2026MasterSecretKey!";
+
+        foreach (var b in workshop.Bookings)
+        {
+            if (b.Status == WorkshopBookingStatus.Cancelled || b.CancelledAt.HasValue) continue;
+            if (b.Status == WorkshopBookingStatus.PendingPayment) continue;
+            if (refundedBookingIds.Contains(b.Id)) continue;
+            if (b.Tickets.Count > 0 && b.Tickets.All(t => t.Status == TicketStatus.Cancelled || t.Status == TicketStatus.Refunded)) continue;
+
+            var hasCheckIn = b.Tickets.Any(t =>
+                t.Attendance != null ||
+                t.CheckedInAt.HasValue ||
+                (t.Status == TicketStatus.Issued && t.CheckedInAt.HasValue));
+
+            var aud = hasCheckIn ? "Attended" : "NoShow";
+            if (hasCheckIn) eligibleAttended++;
+            else eligibleNoShow++;
+
+            var fb = feedbacks.FirstOrDefault(f => f.WorkshopBookingId == b.Id);
+            var notif = notifications.FirstOrDefault(n => n.BookingId == b.Id);
+            var token = existingTokens.FirstOrDefault(t => t.WorkshopBookingId == b.Id);
+
+            string deliveryStatus = "NotQueued";
+            if (fb != null) deliveryStatus = "Submitted";
+            else if (notif != null)
+            {
+                deliveryStatus = notif.Status switch
+                {
+                    WhatsAppNotificationStatus.Pending => "Queued",
+                    WhatsAppNotificationStatus.Sent => "Sent",
+                    WhatsAppNotificationStatus.Failed => "Failed",
+                    _ => notif.Status.ToString()
+                };
+            }
+
+            var name = b.GuestName ?? b.StudentProfile?.User?.FullName ?? "Attendee";
+            var phone = b.GuestPhone ?? b.StudentProfile?.User?.Phone ?? b.Tickets.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.AttendeePhone))?.AttendeePhone;
+
+            string? feedbackUrl = null;
+            try
+            {
+                var rawToken = FeedbackTokenHelper.DeriveRawToken(b.Id, rawSecret);
+                feedbackUrl = $"https://ethosdancestudio.com/feedback/workshop/{rawToken}";
+            }
+            catch { }
+
+            recipients.Add(new AdminFeedbackRecipientDto
+            {
+                BookingId = b.Id,
+                BookingReference = b.Id.ToString()[..8].ToUpperInvariant(),
+                AttendeeName = name,
+                AttendeePhone = phone,
+                AudienceType = aud,
+                DeliveryStatus = deliveryStatus,
+                SentAtUtc = notif?.SentAt,
+                SubmittedAtUtc = fb?.SubmittedAt,
+                SubmittedRating = fb?.Rating,
+                FeedbackUrl = feedbackUrl
+            });
+        }
+
+        var totalEligible = eligibleAttended + eligibleNoShow;
+        var submittedCount = feedbacks.Count;
+        var responseRate = totalEligible > 0 ? Math.Round((decimal)submittedCount / totalEligible * 100m, 1) : 0m;
+        var avgRating = submittedCount > 0 ? Math.Round((decimal)feedbacks.Average(f => f.Rating ?? 5), 1) : 0m;
+
+        var metrics = new AdminFeedbackMetricsDto
+        {
+            TotalBookings = totalEligible,
+            EligibleAttendedCount = eligibleAttended,
+            EligibleNoShowCount = eligibleNoShow,
+            SubmittedCount = submittedCount,
+            ResponseRate = responseRate,
+            AverageRating = avgRating,
+            FiveStars = feedbacks.Count(f => (f.Rating ?? 0) == 5),
+            FourStars = feedbacks.Count(f => (f.Rating ?? 0) == 4),
+            ThreeStars = feedbacks.Count(f => (f.Rating ?? 0) == 3),
+            TwoStars = feedbacks.Count(f => (f.Rating ?? 0) == 2),
+            OneStar = feedbacks.Count(f => (f.Rating ?? 0) == 1)
+        };
+
+        var automation = new AdminFeedbackAutomationDto
+        {
+            AttendedTemplateName = "ethos_feedback_attended",
+            NoShowTemplateName = "ethos_feedback_noshow",
+            TriggerCondition = "Workshop Concludes",
+            PostEventDelayMinutes = 120,
+            IsAutomationActive = setting.IsFeedbackEnabled,
+            QueuedNotificationsCount = notifications.Count(n => n.Status == WhatsAppNotificationStatus.Pending),
+            SentNotificationsCount = notifications.Count(n => n.Status == WhatsAppNotificationStatus.Sent),
+            FailedNotificationsCount = notifications.Count(n => n.Status == WhatsAppNotificationStatus.Failed)
+        };
+
+        return new AdminWorkshopFeedbackConfigResponse
+        {
+            WorkshopId = workshop.Id,
+            WorkshopTitle = workshop.Title,
+            IsFeedbackEnabled = setting.IsFeedbackEnabled,
+            ConfigCutoffUtc = setting.ConfigCutoffUtc,
+            IsLocked = setting.IsLocked,
+            LockedAtUtc = setting.LockedAtUtc,
+            ActiveVersionId = setting.ActiveVersionId,
+            ActiveVersionNumber = activeVersion?.VersionNumber ?? 1,
+            ActiveVersionIsFrozen = activeVersion?.IsFrozen ?? false,
+            ActiveQuestions = activeQuestionDtos,
+            Versions = versionDtos,
+            Metrics = metrics,
+            Automation = automation,
+            Recipients = recipients
+        };
+    }
+
+    public async Task<AdminWorkshopFeedbackConfigResponse> SaveFeedbackVersionAsync(
+        Guid workshopId,
+        AdminSaveFeedbackVersionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        var activeVersion = setting.ActiveVersion ?? setting.FormVersions.FirstOrDefault(v => v.Id == setting.ActiveVersionId);
+
+        var hasSubmissionsOnActive = activeVersion != null && await _db.WorkshopFeedbacks
+            .AnyAsync(f => f.FeedbackFormVersionId == activeVersion.Id && f.IsValid, cancellationToken);
+
+        var canEditInPlace = activeVersion != null && !activeVersion.IsFrozen && !setting.IsLocked && !hasSubmissionsOnActive;
+
+        FeedbackFormVersion targetVersion;
+
+        if (canEditInPlace && activeVersion != null)
+        {
+            targetVersion = activeVersion;
+            _db.FeedbackQuestions.RemoveRange(targetVersion.Questions);
+            targetVersion.Questions.Clear();
+        }
+        else
+        {
+            var maxVersionNumber = setting.FormVersions.Count > 0 ? setting.FormVersions.Max(v => v.VersionNumber) : 0;
+            targetVersion = new FeedbackFormVersion
+            {
+                Id = Guid.NewGuid(),
+                WorkshopFeedbackSettingId = setting.Id,
+                VersionNumber = maxVersionNumber + 1,
+                IsFrozen = false,
+                CreatedAtUtc = now
+            };
+
+            _db.FeedbackFormVersions.Add(targetVersion);
+            setting.FormVersions.Add(targetVersion);
+            setting.ActiveVersionId = targetVersion.Id;
+            setting.ActiveVersion = targetVersion;
+        }
+
+        int sortOrder = 1;
+        foreach (var q in request.Questions)
+        {
+            var optionsJson = q.OptionsJson;
+            if (q.Choices != null && q.Choices.Count > 0)
+            {
+                optionsJson = JsonSerializer.Serialize(q.Choices);
+            }
+
+            var questionEntity = new FeedbackQuestion
+            {
+                Id = Guid.NewGuid(),
+                FeedbackFormVersionId = targetVersion.Id,
+                QuestionKey = string.IsNullOrWhiteSpace(q.QuestionKey) ? $"q_{sortOrder}_{Guid.NewGuid().ToString()[..6]}" : q.QuestionKey.Trim(),
+                PromptText = q.PromptText.Trim(),
+                QuestionType = q.QuestionType,
+                TargetAudience = q.TargetAudience,
+                OptionsJson = optionsJson,
+                IsRequired = q.IsRequired,
+                SortOrder = sortOrder++
+            };
+
+            targetVersion.Questions.Add(questionEntity);
+            _db.FeedbackQuestions.Add(questionEntity);
+        }
+
+        setting.UpdatedAtUtc = now;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return await GetWorkshopFeedbackConfigAsync(workshopId, cancellationToken);
+    }
+
+    public async Task<bool> ActivateFeedbackVersionAsync(
+        Guid workshopId,
+        Guid versionId,
+        CancellationToken cancellationToken)
+    {
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+        var version = setting.FormVersions.FirstOrDefault(v => v.Id == versionId);
+        if (version == null)
+        {
+            throw new KeyNotFoundException($"Version {versionId} not found for Workshop {workshopId}.");
+        }
+
+        setting.ActiveVersionId = versionId;
+        setting.ActiveVersion = version;
+        setting.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateFeedbackSettingAsync(
+        Guid workshopId,
+        AdminUpdateFeedbackSettingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+        setting.IsFeedbackEnabled = request.IsFeedbackEnabled;
+        if (request.ConfigCutoffUtc.HasValue)
+        {
+            setting.ConfigCutoffUtc = request.ConfigCutoffUtc.Value;
+        }
+        setting.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<AdminResendFeedbackResponse> ResendWorkshopFeedbackAsync(
+        Guid workshopId,
+        AdminResendFeedbackRequest request,
+        CancellationToken cancellationToken)
+    {
+        var workshop = await _db.Workshops
+            .Include(w => w.Bookings)
+                .ThenInclude(b => b.Tickets)
+                    .ThenInclude(t => t.Attendance)
+            .Include(w => w.Bookings)
+                .ThenInclude(b => b.StudentProfile)
+                    .ThenInclude(sp => sp!.User)
+            .Include(w => w.FeedbackSetting)
+                .ThenInclude(fs => fs!.ActiveVersion)
+            .FirstOrDefaultAsync(w => w.Id == workshopId, cancellationToken);
+
+        if (workshop == null)
+        {
+            throw new KeyNotFoundException($"Workshop {workshopId} not found.");
+        }
+
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        var bookingIds = workshop.Bookings.Select(b => b.Id).ToList();
+
+        var refundedBookingIds = await _db.PaymentRefunds
+            .Where(r => bookingIds.Contains(r.BookingId) &&
+                        (r.Status == RefundStatus.Processed ||
+                         r.Status == RefundStatus.Requested ||
+                         r.Status == RefundStatus.Processing))
+            .Select(r => r.BookingId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var existingSubmittedFeedbackBookingIds = await _db.WorkshopFeedbacks
+            .Where(f => f.WorkshopBookingId.HasValue &&
+                        bookingIds.Contains(f.WorkshopBookingId.Value) &&
+                        f.IsValid)
+            .Select(f => f.WorkshopBookingId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var existingTokens = await _db.WorkshopFeedbackTokens
+            .Where(t => bookingIds.Contains(t.WorkshopBookingId))
+            .ToListAsync(cancellationToken);
+
+        var rawSecret = _configuration?["TicketSecurity:SecretKey"] ?? "EthosWorkshopTicket2026MasterSecretKey!";
+
+        int queuedCount = 0;
+        int skippedCount = 0;
+
+        foreach (var booking in workshop.Bookings)
+        {
+            if (request.RecipientBookingIds != null && request.RecipientBookingIds.Count > 0)
+            {
+                if (!request.RecipientBookingIds.Contains(booking.Id)) continue;
+            }
+
+            if (booking.Status is WorkshopBookingStatus.Cancelled or WorkshopBookingStatus.PendingPayment ||
+                booking.CancelledAt.HasValue ||
+                refundedBookingIds.Contains(booking.Id) ||
+                existingSubmittedFeedbackBookingIds.Contains(booking.Id))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var hasCheckIn = booking.Tickets.Any(t =>
+                t.Attendance != null ||
+                t.CheckedInAt.HasValue ||
+                (t.Status == TicketStatus.Issued && t.CheckedInAt.HasValue));
+
+            var aud = hasCheckIn ? FeedbackAudienceType.Attended : FeedbackAudienceType.NoShow;
+
+            if (string.Equals(request.Audience, "Attended", StringComparison.OrdinalIgnoreCase) && aud != FeedbackAudienceType.Attended)
+            {
+                skippedCount++;
+                continue;
+            }
+            if (string.Equals(request.Audience, "NoShow", StringComparison.OrdinalIgnoreCase) && aud != FeedbackAudienceType.NoShow)
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var recipientPhone = booking.GuestPhone
+                                 ?? booking.StudentProfile?.User?.Phone
+                                 ?? booking.Tickets.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.AttendeePhone))?.AttendeePhone;
+
+            if (string.IsNullOrWhiteSpace(recipientPhone))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var tokenEntity = existingTokens.FirstOrDefault(t => t.WorkshopBookingId == booking.Id);
+            if (tokenEntity == null)
+            {
+                var rawToken = FeedbackTokenHelper.DeriveRawToken(booking.Id, rawSecret);
+                var tokenHash = FeedbackTokenHelper.HashToken(rawToken);
+
+                tokenEntity = new WorkshopFeedbackToken
+                {
+                    Id = Guid.NewGuid(),
+                    WorkshopBookingId = booking.Id,
+                    TokenHash = tokenHash,
+                    AudienceType = aud,
+                    FeedbackFormVersionId = setting.ActiveVersionId,
+                    ExpiresAt = now.AddDays(7),
+                    UsedAt = null,
+                    CreatedAt = now
+                };
+
+                _db.WorkshopFeedbackTokens.Add(tokenEntity);
+                existingTokens.Add(tokenEntity);
+            }
+            else if (tokenEntity.ExpiresAt < now)
+            {
+                tokenEntity.ExpiresAt = now.AddDays(7);
+            }
+
+            var notifType = aud == FeedbackAudienceType.Attended
+                ? WhatsAppNotificationType.FeedbackAttended
+                : WhatsAppNotificationType.FeedbackNoShow;
+
+            var primaryTicket = booking.Tickets.FirstOrDefault(t => t.IsPrimaryAttendee) ?? booking.Tickets.FirstOrDefault();
+            var resendIdempotencyKey = $"feedback:resend:{workshop.Id}:{booking.Id}:{aud}:{DateTime.UtcNow.Ticks}";
+
+            var notification = new WhatsAppNotification
+            {
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                WorkshopTicketId = primaryTicket?.Id,
+                NotificationType = notifType,
+                RecipientPhone = recipientPhone.Trim(),
+                IdempotencyKey = resendIdempotencyKey,
+                Status = WhatsAppNotificationStatus.Pending,
+                CreatedAt = now
+            };
+
+            _db.WhatsAppNotifications.Add(notification);
+            queuedCount++;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new AdminResendFeedbackResponse
+        {
+            QueuedCount = queuedCount,
+            SkippedCount = skippedCount,
+            Message = $"Successfully queued {queuedCount} WhatsApp feedback {(queuedCount == 1 ? "request" : "requests")}."
+        };
+    }
+
+    public async Task<AdminWorkshopFeedbackAnalyticsResponse> GetWorkshopFeedbackAnalyticsAsync(
+        Guid workshopId,
+        CancellationToken cancellationToken)
+    {
+        var workshop = await _db.Workshops
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == workshopId, cancellationToken);
+
+        if (workshop == null)
+        {
+            throw new KeyNotFoundException($"Workshop {workshopId} not found.");
+        }
+
+        var feedbacks = await _db.WorkshopFeedbacks
+            .AsNoTracking()
+            .Include(f => f.StudentProfile)
+                .ThenInclude(sp => sp!.User)
+            .Include(f => f.WorkshopBooking)
+            .Include(f => f.Answers)
+                .ThenInclude(a => a.FeedbackQuestion)
+            .Where(f => (f.WorkshopId == workshopId || (f.WorkshopBooking != null && f.WorkshopBooking.WorkshopId == workshopId)) && f.IsValid)
+            .OrderByDescending(f => f.SubmittedAt)
+            .ToListAsync(cancellationToken);
+
+        var setting = await EnsureWorkshopFeedbackSettingAsync(workshopId, cancellationToken);
+        var allQuestions = setting.FormVersions.SelectMany(v => v.Questions).DistinctBy(q => q.Id).ToList();
+        var questionAnalyticsList = new List<AdminQuestionAnalyticsDto>();
+
+        foreach (var q in allQuestions)
+        {
+            var answers = feedbacks.SelectMany(f => f.Answers).Where(a => a.FeedbackQuestionId == q.Id).ToList();
+
+            decimal? avgScore = null;
+            Dictionary<string, int>? choiceCounts = null;
+            List<string>? textAnswers = null;
+
+            if (q.QuestionType == FeedbackQuestionType.Rating1To5)
+            {
+                var ratedAnswers = answers.Where(a => a.NumericValue.HasValue).Select(a => a.NumericValue!.Value).ToList();
+                if (ratedAnswers.Count > 0)
+                {
+                    avgScore = Math.Round((decimal)ratedAnswers.Average(), 1);
+                }
+            }
+            else if (q.QuestionType is FeedbackQuestionType.SingleChoice or FeedbackQuestionType.MultiChoice)
+            {
+                choiceCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var ans in answers.Where(a => !string.IsNullOrWhiteSpace(a.TextValue)))
+                {
+                    var val = ans.TextValue!.Trim();
+                    if (!choiceCounts.ContainsKey(val)) choiceCounts[val] = 0;
+                    choiceCounts[val]++;
+                }
+            }
+            else if (q.QuestionType == FeedbackQuestionType.Text)
+            {
+                textAnswers = answers.Where(a => !string.IsNullOrWhiteSpace(a.TextValue)).Select(a => a.TextValue!.Trim()).ToList();
+            }
+
+            questionAnalyticsList.Add(new AdminQuestionAnalyticsDto
+            {
+                QuestionId = q.Id,
+                QuestionKey = q.QuestionKey,
+                PromptText = q.PromptText,
+                QuestionType = q.QuestionType,
+                TargetAudience = q.TargetAudience,
+                TotalAnswers = answers.Count,
+                AverageRating = avgScore,
+                ChoiceCounts = choiceCounts,
+                TextAnswers = textAnswers
+            });
+        }
+
+        var submissions = feedbacks.Select(f =>
+        {
+            var rawName = f.StudentProfile?.User?.FullName ?? f.WorkshopBooking?.GuestName;
+            string masked = "Verified Attendee";
+            if (!string.IsNullOrWhiteSpace(rawName))
+            {
+                var parts = rawName.Trim().Split(' ');
+                masked = parts.Length > 1 ? $"{parts[0]} {parts[1][0]}." : parts[0];
+            }
+
+            var ansDtos = f.Answers.Select(a => new AdminFeedbackAnswerDetailDto
+            {
+                QuestionId = a.FeedbackQuestionId,
+                PromptText = a.FeedbackQuestion?.PromptText ?? "Question",
+                QuestionType = a.FeedbackQuestion?.QuestionType ?? FeedbackQuestionType.Rating1To5,
+                NumericValue = a.NumericValue,
+                TextValue = a.TextValue
+            }).ToList();
+
+            return new AdminWorkshopFeedbackSubmissionDetailDto
+            {
+                FeedbackId = f.Id,
+                BookingId = f.WorkshopBookingId,
+                BookingReference = f.WorkshopBookingId.HasValue ? f.WorkshopBookingId.Value.ToString()[..8].ToUpperInvariant() : string.Empty,
+                StudentNameMasked = masked,
+                Rating = f.Rating ?? 0,
+                Comment = f.Comment,
+                WouldRecommend = f.WouldRecommend,
+                WouldAttendTrainerAgain = f.WouldAttendTrainerAgain,
+                AudienceType = f.AudienceType.ToString(),
+                SubmittedAt = f.SubmittedAt,
+                FormattedDate = f.SubmittedAt.ToString("dd MMM yyyy, hh:mm tt"),
+                Answers = ansDtos
+            };
+        }).ToList();
+
+        var totalCount = feedbacks.Count;
+        var avg = totalCount > 0 ? Math.Round((decimal)feedbacks.Average(f => f.Rating ?? 5), 1) : 0m;
+
+        var metrics = new AdminFeedbackMetricsDto
+        {
+            TotalBookings = totalCount,
+            EligibleAttendedCount = feedbacks.Count(f => f.AudienceType == FeedbackAudienceType.Attended),
+            EligibleNoShowCount = feedbacks.Count(f => f.AudienceType == FeedbackAudienceType.NoShow),
+            SubmittedCount = totalCount,
+            ResponseRate = 100m,
+            AverageRating = avg,
+            FiveStars = feedbacks.Count(f => (f.Rating ?? 0) == 5),
+            FourStars = feedbacks.Count(f => (f.Rating ?? 0) == 4),
+            ThreeStars = feedbacks.Count(f => (f.Rating ?? 0) == 3),
+            TwoStars = feedbacks.Count(f => (f.Rating ?? 0) == 2),
+            OneStar = feedbacks.Count(f => (f.Rating ?? 0) == 1)
+        };
+
+        return new AdminWorkshopFeedbackAnalyticsResponse
+        {
+            WorkshopId = workshop.Id,
+            WorkshopTitle = workshop.Title,
+            Metrics = metrics,
+            QuestionAnalytics = questionAnalyticsList,
+            Submissions = submissions
+        };
     }
 
     public async Task UpdateSessionAsync(

@@ -167,14 +167,22 @@
 }
 
 .ticket-qr-container {
-  padding: 12px;
-  background: #0d0b0a;
-  border: 1.5px solid rgba(223, 128, 108, 0.35);
+  padding: 14px;
+  background: #ffffff;
+  border: 1.5px solid rgba(223, 128, 108, 0.4);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(223, 128, 108, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(223, 128, 108, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.ticket-qr-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .ticket-qr-caption {

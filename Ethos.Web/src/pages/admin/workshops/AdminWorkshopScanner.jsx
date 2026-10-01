@@ -70,6 +70,30 @@ export default function AdminWorkshopScanner() {
   // Safe scanner unmount cleanup
   useEffect(() => {
     isMountedRef.current = true;
+
+    // Pre-enumerate available cameras on mount
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length > 0 && isMountedRef.current) {
+          setAvailableCameras(devices);
+          const brioCam = devices.find(
+            (c) => c.label && c.label.toLowerCase().includes("brio")
+          );
+          const backCam = devices.find(
+            (c) =>
+              c.label &&
+              (c.label.toLowerCase().includes("back") ||
+                c.label.toLowerCase().includes("rear") ||
+                c.label.toLowerCase().includes("environment"))
+          );
+          const preferred = brioCam || backCam || devices[0];
+          if (preferred) {
+            setSelectedCameraId(preferred.id);
+          }
+        }
+      })
+      .catch(() => {});
+
     return () => {
       isMountedRef.current = false;
       if (html5QrCodeRef.current) {
@@ -209,11 +233,13 @@ export default function AdminWorkshopScanner() {
     [isProcessing, workshopId, workshop, reloadWorkshop]
   );
 
-  const startCameraScanner = async () => {
+  const startCameraScanner = async (explicitCameraId) => {
     if (isTransitioningRef.current) return;
     isTransitioningRef.current = true;
     setCameraError(null);
     setFeedback(null);
+
+    const targetCameraId = explicitCameraId || selectedCameraId;
 
     try {
       // Ensure previous scanner is cleanly stopped
@@ -234,32 +260,44 @@ export default function AdminWorkshopScanner() {
       });
       html5QrCodeRef.current = scanner;
 
-      const cameraConfig = selectedCameraId
-        ? { deviceId: { exact: selectedCameraId } }
+      const cameraConfig = targetCameraId
+        ? { deviceId: { exact: targetCameraId } }
         : { facingMode: "environment" };
 
-      await scanner.start(
-        cameraConfig,
-        {
-          fps: 20,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edge = Math.floor(minEdge * 0.75);
-            return { width: Math.max(180, edge), height: Math.max(180, edge) };
-          },
-          aspectRatio: 1.0,
-          disableFlip: false,
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true,
-          },
+      const scanConfig = {
+        fps: 20,
+        disableFlip: true,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
         },
-        (decodedText) => {
-          handleCheckInResult({ qrToken: decodedText });
-        },
-        () => {
-          // Parse tick
+      };
+
+      try {
+        await scanner.start(
+          cameraConfig,
+          scanConfig,
+          (decodedText) => {
+            handleCheckInResult({ qrToken: decodedText });
+          },
+          () => {}
+        );
+      } catch (firstErr) {
+        // Fallback for desktop webcams where facingMode: environment might fail
+        if (!targetCameraId && availableCameras.length > 0) {
+          const fallbackId = availableCameras[0].id;
+          setSelectedCameraId(fallbackId);
+          await scanner.start(
+            { deviceId: { exact: fallbackId } },
+            scanConfig,
+            (decodedText) => {
+              handleCheckInResult({ qrToken: decodedText });
+            },
+            () => {}
+          );
+        } else {
+          throw firstErr;
         }
-      );
+      }
 
       if (isMountedRef.current) {
         setIsScanning(true);
@@ -279,7 +317,10 @@ export default function AdminWorkshopScanner() {
           const devices = await Html5Qrcode.getCameras();
           if (devices && devices.length > 0) {
             setAvailableCameras(devices);
-            if (!selectedCameraId) {
+            if (!targetCameraId) {
+              const brioCam = devices.find(
+                (c) => c.label && c.label.toLowerCase().includes("brio")
+              );
               const backCam = devices.find(
                 (c) =>
                   c.label &&
@@ -287,8 +328,9 @@ export default function AdminWorkshopScanner() {
                     c.label.toLowerCase().includes("rear") ||
                     c.label.toLowerCase().includes("environment"))
               );
-              if (backCam) {
-                setSelectedCameraId(backCam.id);
+              const preferred = brioCam || backCam || devices[0];
+              if (preferred) {
+                setSelectedCameraId(preferred.id);
               }
             }
           }
@@ -331,6 +373,20 @@ export default function AdminWorkshopScanner() {
     }
   };
 
+  const handleCameraSelectChange = async (e) => {
+    const newCamId = e.target.value;
+    setSelectedCameraId(newCamId);
+
+    if (isScanning) {
+      await stopCameraScanner();
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          startCameraScanner(newCamId);
+        }
+      }, 300);
+    }
+  };
+
   const handleSwitchCamera = async () => {
     if (availableCameras.length <= 1 || isTransitioningRef.current) return;
     const currentIndex = availableCameras.findIndex((c) => c.id === selectedCameraId);
@@ -342,7 +398,7 @@ export default function AdminWorkshopScanner() {
       await stopCameraScanner();
       setTimeout(() => {
         if (isMountedRef.current) {
-          startCameraScanner();
+          startCameraScanner(nextCamera.id);
         }
       }, 300);
     }
@@ -525,7 +581,7 @@ export default function AdminWorkshopScanner() {
                 <button
                   type="button"
                   className="scanner-btn-primary"
-                  onClick={startCameraScanner}
+                  onClick={() => startCameraScanner()}
                 >
                   ▶ Start Scanner
                 </button>
@@ -539,16 +595,16 @@ export default function AdminWorkshopScanner() {
                 </button>
               )}
 
-              {availableCameras.length > 1 && (
+              {availableCameras.length > 0 && (
                 <select
                   className="camera-select-dropdown"
                   value={selectedCameraId || ""}
-                  onChange={(e) => setSelectedCameraId(e.target.value)}
-                  disabled={isScanning}
+                  onChange={handleCameraSelectChange}
+                  title="Select Camera"
                 >
                   {availableCameras.map((cam, idx) => (
                     <option key={cam.id} value={cam.id}>
-                      {cam.label || `Camera ${idx + 1}`}
+                      📷 {cam.label || `Camera ${idx + 1}`}
                     </option>
                   ))}
                 </select>
@@ -561,10 +617,32 @@ export default function AdminWorkshopScanner() {
           {/* Real-time Verification Alert directly under Camera Viewport */}
           {lastScanResult && (
             <div className={`scanner-live-alert alert-${lastScanResult.status}`}>
+              <button
+                type="button"
+                className="live-alert-dismiss-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLastScanResult(null);
+                  setFeedback(null);
+                }}
+                title="Dismiss and close"
+                aria-label="Close"
+              >
+                ✕
+              </button>
               <div className="live-alert-header">
-                <span className="live-alert-icon">
+                <button
+                  type="button"
+                  className="live-alert-icon-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLastScanResult(null);
+                    setFeedback(null);
+                  }}
+                  title="Dismiss and close"
+                >
                   {lastScanResult.status === "success" ? "✓" : lastScanResult.status === "wrong_workshop" ? "⚠️" : "✕"}
-                </span>
+                </button>
                 <div className="live-alert-heading-wrap">
                   <span className={`live-alert-badge badge-${lastScanResult.status}`}>
                     {lastScanResult.status === "success" ? "Valid Check-In" : lastScanResult.status === "wrong_workshop" ? "Cross-Workshop Warning" : "Scan Error"}
@@ -686,13 +764,35 @@ export default function AdminWorkshopScanner() {
             {lastScanResult ? (
               <div className="live-scan-body">
                 <div className={`scan-result-banner banner-${lastScanResult.status}`}>
-                  <div className="scan-result-icon">
+                  <button
+                    type="button"
+                    className="scan-result-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLastScanResult(null);
+                      setFeedback(null);
+                    }}
+                    title="Dismiss and close"
+                  >
                     {lastScanResult.status === "success" ? "✓" : lastScanResult.status === "wrong_workshop" ? "⚠️" : "✕"}
-                  </div>
+                  </button>
                   <div className="scan-result-text">
                     <strong>{lastScanResult.title}</strong>
                     <p>{lastScanResult.message}</p>
                   </div>
+                  <button
+                    type="button"
+                    className="scan-result-close-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLastScanResult(null);
+                      setFeedback(null);
+                    }}
+                    title="Dismiss and close"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
                 </div>
 
                 <div className="scan-meta-table">
@@ -806,7 +906,11 @@ export default function AdminWorkshopScanner() {
           <button
             type="button"
             className="feedback-dismiss-btn"
-            onClick={() => setFeedback(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setFeedback(null);
+              setLastScanResult(null);
+            }}
             aria-label="Dismiss message"
           >
             ✕

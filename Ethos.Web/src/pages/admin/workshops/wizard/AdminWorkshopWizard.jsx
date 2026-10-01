@@ -738,9 +738,22 @@ export default function AdminWorkshopWizard() {
     let finalLandscapeUrl = form.landscapeImageUrl;
 
     const dataUrlToFile = async (dataUrl, filename) => {
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      return new File([blob], filename, { type: blob.type || "image/jpeg" });
+      if (!dataUrl || typeof dataUrl !== "string") {
+        throw new Error("Invalid data URL");
+      }
+      const parts = dataUrl.split(",");
+      if (parts.length < 2) {
+        throw new Error("Malformed data URL: missing data payload");
+      }
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, { type: mime });
     };
 
     let pBlob = portraitBlob;

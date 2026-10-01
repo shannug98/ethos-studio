@@ -15,7 +15,20 @@ function Hero() {
 
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
-  const videoRef = useRef(null);
+  const videoRefs = useRef([]);
+
+  // Cleanup all video playbacks on component unmount
+  useEffect(() => {
+    return () => {
+      videoRefs.current.forEach((el) => {
+        if (el) {
+          el.pause();
+          el.currentTime = 0;
+          el.muted = true;
+        }
+      });
+    };
+  }, []);
 
   // Fetch dynamic cloud media for HomepageScrolling (Images and short muted videos)
   useEffect(() => {
@@ -84,15 +97,20 @@ function Hero() {
   }, [activeSlide, isPaused, totalSlides, slides]);
 
   useEffect(() => {
-    const currentSlide = slides[activeSlide];
+    slides.forEach((slide, idx) => {
+      const videoEl = videoRefs.current[idx];
+      if (!videoEl) return;
 
-    if (currentSlide?.type === "video" && videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.muted = isHeroMuted;
-      videoRef.current.play().catch(() => {});
-    } else if (videoRef.current) {
-      videoRef.current.pause();
-    }
+      if (idx === activeSlide && slide.type === "video") {
+        videoEl.muted = isHeroMuted;
+        videoEl.currentTime = 0;
+        videoEl.play().catch(() => {});
+      } else {
+        videoEl.pause();
+        videoEl.currentTime = 0;
+        videoEl.muted = true;
+      }
+    });
   }, [activeSlide, slides, isHeroMuted]);
 
   const handleTouchStart = (event) => {
@@ -153,11 +171,15 @@ function Hero() {
                   />
                 ) : (
                   <video
-                    ref={isActive ? videoRef : null}
+                    ref={(el) => {
+                      if (el) {
+                        videoRefs.current[index] = el;
+                      }
+                    }}
                     className="ethos-hero__video"
                     src={slide.src}
                     poster={slide.poster}
-                    muted={isHeroMuted}
+                    muted={isActive ? isHeroMuted : true}
                     loop
                     playsInline
                     autoPlay={isActive}
@@ -232,8 +254,9 @@ function Hero() {
             e.stopPropagation();
             const nextMuted = !isHeroMuted;
             setIsHeroMuted(nextMuted);
-            if (videoRef.current) {
-              videoRef.current.muted = nextMuted;
+            const currentVideo = videoRefs.current[activeSlide];
+            if (currentVideo && slides[activeSlide]?.type === "video") {
+              currentVideo.muted = nextMuted;
             }
           }}
           title={isHeroMuted ? "Unmute audio" : "Mute audio"}
