@@ -406,7 +406,7 @@ public class Msg91WhatsAppService : IMsg91WhatsAppService
                             {
                                 Body1 = new TextComponent { Value = data.AttendeeName },
                                 Body2 = new TextComponent { Value = data.WorkshopTitle },
-                                Button1 = new ButtonComponent { Type = "button", Value = data.RawToken }
+                                Button1 = new TextComponent { Value = data.RawToken }
                             }
                         }
                     }

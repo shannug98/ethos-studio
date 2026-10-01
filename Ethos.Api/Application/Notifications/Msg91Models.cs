@@ -179,16 +179,7 @@ public class FeedbackComponents
     public TextComponent Body2 { get; set; } = new();
 
     [JsonPropertyName("button_1")]
-    public ButtonComponent Button1 { get; set; } = new();
-}
-
-public class ButtonComponent
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "button";
-
-    [JsonPropertyName("value")]
-    public string Value { get; set; } = string.Empty;
+    public TextComponent Button1 { get; set; } = new();
 }
 
 public class TextComponent

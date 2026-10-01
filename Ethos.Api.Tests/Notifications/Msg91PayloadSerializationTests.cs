@@ -140,7 +140,7 @@ public class Msg91PayloadSerializationTests
         Assert.Equal("Urban Contemporary Intensive", comps.GetProperty("body_2").GetProperty("value").GetString());
 
         var button = comps.GetProperty("button_1");
-        Assert.Equal("button", button.GetProperty("type").GetString());
+        Assert.Equal("text", button.GetProperty("type").GetString());
         Assert.Equal(rawToken, button.GetProperty("value").GetString());
 
         // Validate Feedback URL composition (zero predictable IDs)
@@ -177,7 +177,7 @@ public class Msg91PayloadSerializationTests
         Assert.Equal("Heels Foundation Intensive", comps.GetProperty("body_2").GetProperty("value").GetString());
 
         var button = comps.GetProperty("button_1");
-        Assert.Equal("button", button.GetProperty("type").GetString());
+        Assert.Equal("text", button.GetProperty("type").GetString());
         Assert.Equal(rawToken, button.GetProperty("value").GetString());
     }
 }
