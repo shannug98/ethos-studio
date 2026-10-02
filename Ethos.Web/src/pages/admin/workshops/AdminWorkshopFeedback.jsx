@@ -132,9 +132,13 @@ export default function AdminWorkshopFeedback() {
 
   // Resend Feedback Modal (Exceptional Recovery Tool)
   const [showResendModal, setShowResendModal] = useState(false);
-  const [resendAudience, setResendAudience] = useState("All"); // "All" | "Attended" | "NoShow"
+  const [resendAudience, setResendAudience] = useState("All"); // "All" (Both) | "Attended" | "NoShow"
   const [resending, setResending] = useState(false);
   const [resendResult, setResendResult] = useState(null);
+
+  // Individual Participant Sending State
+  const [individualSendingBookingId, setIndividualSendingBookingId] = useState(null);
+  const [rowActionNotice, setRowActionNotice] = useState(null);
 
   // Search filter for recipient ledger
   const [recipientSearch, setRecipientSearch] = useState("");
@@ -156,180 +160,28 @@ export default function AdminWorkshopFeedback() {
     return ["Option 1", "Option 2"];
   };
 
-  // Load Configuration & Analytics
-  const loadConfig = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [configData, analyticsData] = await Promise.all([
-        adminApi.getWorkshopFeedbackConfig(workshopId),
-        adminApi.getWorkshopFeedbackAnalytics(workshopId).catch(() => null),
-      ]);
-      setConfig(configData);
-      setAnalytics(analyticsData);
+  // Dynamic Eligible Counts Computed from Attendee Ledger
+  const eligibleAttendedCount = useMemo(() => {
+    const list = config?.Recipients || config?.recipients || [];
+    return list.filter((r) => {
+      const aud = r.AudienceType || r.audienceType;
+      const status = (r.DeliveryStatus || r.deliveryStatus || "").toLowerCase();
+      return aud === "Attended" && status !== "submitted";
+    }).length;
+  }, [config]);
 
-      const rawQs = configData?.ActiveQuestions || configData?.activeQuestions || [];
-      if (rawQs.length > 0) {
-        const attended = [];
-        const noshow = [];
+  const eligibleNoShowCount = useMemo(() => {
+    const list = config?.Recipients || config?.recipients || [];
+    return list.filter((r) => {
+      const aud = r.AudienceType || r.audienceType;
+      const status = (r.DeliveryStatus || r.deliveryStatus || "").toLowerCase();
+      return aud === "NoShow" && status !== "submitted";
+    }).length;
+  }, [config]);
 
-        rawQs.forEach((q) => {
-          const aud = Number(q.TargetAudience ?? q.targetAudience ?? 1);
-          const normalized = {
-            id: q.Id || q.id,
-            questionKey: q.QuestionKey || q.questionKey || "",
-            promptText: q.PromptText || q.promptText || "",
-            questionType: Number(q.QuestionType ?? q.questionType ?? 1),
-            targetAudience: aud,
-            optionsJson: q.OptionsJson || q.optionsJson || "",
-            choices: parseChoices(q),
-            isRequired: Boolean(q.IsRequired ?? q.isRequired ?? true),
-            sortOrder: q.SortOrder || q.sortOrder || 1,
-          };
+  const eligibleBothCount = eligibleAttendedCount + eligibleNoShowCount;
 
-          if (aud === 1) {
-            attended.push({ ...normalized, targetAudience: 1 });
-          } else if (aud === 2) {
-            noshow.push({ ...normalized, targetAudience: 2 });
-          } else if (aud === 3) {
-            // "Both" legacy questions: duplicate into both forms with specific audience
-            attended.push({ ...normalized, targetAudience: 1 });
-            noshow.push({ ...normalized, targetAudience: 2 });
-          }
-        });
-
-        // If either set is empty, supply default questions
-        setAttendedQuestions(attended.length > 0 ? attended : DEFAULT_ATTENDED_QUESTIONS);
-        setNoShowQuestions(noshow.length > 0 ? noshow : DEFAULT_NOSHOW_QUESTIONS);
-      } else {
-        setAttendedQuestions(DEFAULT_ATTENDED_QUESTIONS);
-        setNoShowQuestions(DEFAULT_NOSHOW_QUESTIONS);
-      }
-    } catch (err) {
-      setError(err?.message || "Failed to load workshop feedback configuration.");
-    } finally {
-      setLoading(false);
-    }
-  }, [workshopId]);
-
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
-
-  // Active Questions pointer based on formSubTab
-  const activeQuestions = formSubTab === "Attended" ? attendedQuestions : noShowQuestions;
-  const setActiveQuestions = formSubTab === "Attended" ? setAttendedQuestions : setNoShowQuestions;
-
-  // Question Management Handlers for Current Active Form View
-  const handleAddQuestion = () => {
-    const audNum = formSubTab === "Attended" ? 1 : 2;
-    const newQ = {
-      id: "temp_" + Date.now(),
-      questionKey: `q_${formSubTab.toLowerCase()}_${activeQuestions.length + 1}_${Math.random().toString(36).substring(2, 6)}`,
-      promptText: formSubTab === "Attended" ? "How was your experience with..." : "Tell us what could have helped...",
-      questionType: 1, // Rating1To5
-      targetAudience: audNum,
-      optionsJson: "",
-      choices: ["Option 1", "Option 2"],
-      isRequired: true,
-      sortOrder: activeQuestions.length + 1,
-    };
-    setActiveQuestions([...activeQuestions, newQ]);
-  };
-
-  const handleUpdateQuestion = (index, field, value) => {
-    const updated = [...activeQuestions];
-    updated[index] = { ...updated[index], [field]: value };
-    setActiveQuestions(updated);
-  };
-
-  const handleDeleteQuestion = (index) => {
-    if (activeQuestions.length <= 1) {
-      alert(`At least one question is required for the ${formSubTab} Form.`);
-      return;
-    }
-    const updated = activeQuestions.filter((_, i) => i !== index);
-    setActiveQuestions(updated);
-  };
-
-  const handleMoveQuestion = (index, direction) => {
-    const targetIdx = index + direction;
-    if (targetIdx < 0 || targetIdx >= activeQuestions.length) return;
-    const updated = [...activeQuestions];
-    const temp = updated[index];
-    updated[index] = updated[targetIdx];
-    updated[targetIdx] = temp;
-    setActiveQuestions(updated);
-  };
-
-  const handleAddChoice = (qIndex) => {
-    const q = activeQuestions[qIndex];
-    const newChoices = [...(q.choices || []), `Option ${(q.choices?.length || 0) + 1}`];
-    handleUpdateQuestion(qIndex, "choices", newChoices);
-  };
-
-  const handleUpdateChoice = (qIndex, cIndex, text) => {
-    const q = activeQuestions[qIndex];
-    const newChoices = [...(q.choices || [])];
-    newChoices[cIndex] = text;
-    handleUpdateQuestion(qIndex, "choices", newChoices);
-  };
-
-  const handleRemoveChoice = (qIndex, cIndex) => {
-    const q = activeQuestions[qIndex];
-    const newChoices = (q.choices || []).filter((_, i) => i !== cIndex);
-    handleUpdateQuestion(qIndex, "choices", newChoices);
-  };
-
-  // Atomic Save Form Version (Combines Attended & No-Show questions)
-  const handleSaveFormVersion = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccessMsg(null);
-    try {
-      let sortOrderCounter = 1;
-
-      const formattedAttended = attendedQuestions.map((q) => ({
-        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
-        questionKey: q.questionKey || `att_q_${sortOrderCounter}`,
-        promptText: q.promptText.trim(),
-        questionType: Number(q.questionType),
-        targetAudience: 1, // Strictly Attended
-        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
-        choices: q.choices,
-        isRequired: Boolean(q.isRequired),
-        sortOrder: sortOrderCounter++,
-      }));
-
-      const formattedNoShow = noShowQuestions.map((q) => ({
-        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
-        questionKey: q.questionKey || `noshow_q_${sortOrderCounter}`,
-        promptText: q.promptText.trim(),
-        questionType: Number(q.questionType),
-        targetAudience: 2, // Strictly No-Show
-        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
-        choices: q.choices,
-        isRequired: Boolean(q.isRequired),
-        sortOrder: sortOrderCounter++,
-      }));
-
-      const payload = {
-        questions: [...formattedAttended, ...formattedNoShow],
-      };
-
-      const res = await adminApi.saveWorkshopFeedbackVersion(workshopId, payload);
-      setConfig(res);
-      setSuccessMsg("Attended & No-Show feedback forms saved successfully!");
-      setTimeout(() => setSuccessMsg(null), 4000);
-      await loadConfig();
-    } catch (err) {
-      setError(err?.message || "Failed to save feedback form versions.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Resend Feedback Handler (Recovery Tool)
+  // Resend Feedback Handler (Bulk Recovery Tool)
   const handleResendFeedback = async () => {
     setResending(true);
     setResendResult(null);
@@ -342,6 +194,30 @@ export default function AdminWorkshopFeedback() {
       alert(err?.message || "Failed to trigger feedback resend.");
     } finally {
       setResending(false);
+    }
+  };
+
+  // Individual Send / Resend Action Handler
+  const handleIndividualSend = async (bookingId, attendeeName) => {
+    setIndividualSendingBookingId(bookingId);
+    setRowActionNotice(null);
+    setError(null);
+    try {
+      const payload = {
+        audience: "All",
+        recipientBookingIds: [bookingId],
+      };
+      const res = await adminApi.resendWorkshopFeedback(workshopId, payload);
+      setRowActionNotice({
+        bookingId,
+        message: res.Message || res.message || `Queued feedback request for ${attendeeName}.`,
+      });
+      setTimeout(() => setRowActionNotice(null), 4000);
+      await loadConfig();
+    } catch (err) {
+      alert(err?.message || `Failed to queue feedback request for ${attendeeName}.`);
+    } finally {
+      setIndividualSendingBookingId(null);
     }
   };
 
@@ -1189,6 +1065,23 @@ export default function AdminWorkshopFeedback() {
             />
           </div>
 
+          {rowActionNotice && (
+            <div
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #86efac",
+                color: "#166534",
+                padding: "10px 14px",
+                borderRadius: "8px",
+                marginBottom: "16px",
+                fontSize: "13px",
+                fontWeight: "600",
+              }}
+            >
+              ✓ {rowActionNotice.message}
+            </div>
+          )}
+
           <div className="fb-table-container">
             <table className="fb-table">
               <thead>
@@ -1199,6 +1092,7 @@ export default function AdminWorkshopFeedback() {
                   <th>Delivery Status</th>
                   <th>Submitted Rating</th>
                   <th>Feedback Link</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1210,6 +1104,7 @@ export default function AdminWorkshopFeedback() {
                   const status = (r.DeliveryStatus || r.deliveryStatus || "NotQueued").toLowerCase();
                   const rating = r.SubmittedRating ?? r.submittedRating;
                   const url = r.FeedbackUrl || r.feedbackUrl;
+                  const isRowSending = individualSendingBookingId === bId;
 
                   return (
                     <tr key={bId}>
@@ -1222,7 +1117,7 @@ export default function AdminWorkshopFeedback() {
                       </td>
                       <td>
                         <span className={`fb-pill-status ${status}`}>
-                          {status === "submitted" ? "✓ Submitted" : status === "sent" ? "● Sent" : status === "queued" ? "⏳ Queued" : "○ Not Queued"}
+                          {status === "submitted" ? "✓ Submitted" : status === "sent" ? "● Sent" : status === "queued" ? "⏳ Queued" : status === "failed" ? "⚠️ Failed" : "○ Not Queued"}
                         </span>
                       </td>
                       <td>
@@ -1246,6 +1141,47 @@ export default function AdminWorkshopFeedback() {
                           <span style={{ color: "#94a3b8" }}>—</span>
                         )}
                       </td>
+                      <td>
+                        {status === "submitted" ? (
+                          <span className="fb-btn-row-action disabled completed" title="Participant already completed this feedback questionnaire">
+                            ✓ Completed
+                          </span>
+                        ) : status === "queued" ? (
+                          <span className="fb-btn-row-action disabled queued" title="WhatsApp message is currently queued in the outbox">
+                            ⏳ Queued
+                          </span>
+                        ) : status === "sent" ? (
+                          <button
+                            type="button"
+                            className="fb-btn-row-action resend"
+                            onClick={() => handleIndividualSend(bId, name)}
+                            disabled={isRowSending || individualSendingBookingId !== null}
+                            title="Resend feedback WhatsApp message to this participant"
+                          >
+                            {isRowSending ? "Sending..." : "🔄 Resend"}
+                          </button>
+                        ) : status === "failed" ? (
+                          <button
+                            type="button"
+                            className="fb-btn-row-action retry"
+                            onClick={() => handleIndividualSend(bId, name)}
+                            disabled={isRowSending || individualSendingBookingId !== null}
+                            title="Retry sending feedback WhatsApp message"
+                          >
+                            {isRowSending ? "Retrying..." : "⚠️ Retry Send"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="fb-btn-row-action send"
+                            onClick={() => handleIndividualSend(bId, name)}
+                            disabled={isRowSending || individualSendingBookingId !== null}
+                            title="Send feedback WhatsApp message to this participant"
+                          >
+                            {isRowSending ? "Sending..." : "📨 Send"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -1260,7 +1196,7 @@ export default function AdminWorkshopFeedback() {
         <div className="fb-modal-overlay">
           <div className="fb-modal-card">
             <div className="fb-modal-header">
-              <h3>📲 Manual Feedback Resend Tool</h3>
+              <h3>📲 Bulk Manual Feedback Send</h3>
               <button
                 type="button"
                 style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#64748b" }}
@@ -1283,50 +1219,83 @@ export default function AdminWorkshopFeedback() {
               ) : (
                 <>
                   <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", padding: "12px 14px", borderRadius: "8px", marginBottom: "16px", fontSize: "12.5px", color: "#9a3412", lineHeight: "1.5" }}>
-                    <strong>Recovery Notice:</strong> Automated WhatsApp feedback messages are dispatched on schedule upon workshop completion. Use this tool only if an attendee did not receive their message or requested a link resend.
+                    <strong>Recovery Notice:</strong> Automated WhatsApp feedback messages are dispatched on schedule upon workshop completion. Use this bulk tool only for batch manual recovery or resending.
                   </div>
 
                   <div className="fb-form-group">
                     <label className="fb-form-label">Target Audience</label>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "All" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "All" ? "#2563eb" : "#cbd5e1" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "All" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "All" ? "#2563eb" : "#cbd5e1" }}>
                         <input
                           type="radio"
                           name="resend_aud"
                           checked={resendAudience === "All"}
                           onChange={() => setResendAudience("All")}
                         />
-                        <div>
-                          <div style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>All Eligible Attendees</div>
-                          <div style={{ fontSize: "12px", color: "#64748b" }}>Attended + No-Show attendees without submitted feedback</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>Both (Attended &amp; No-Show)</span>
+                            <span style={{ fontSize: "11px", fontWeight: "750", padding: "2px 7px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8" }}>
+                              {eligibleBothCount} eligible
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                            Send to {eligibleBothCount} participants ({eligibleAttendedCount} Attended · {eligibleNoShowCount} No-Show)
+                          </div>
                         </div>
                       </label>
 
-                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "Attended" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "Attended" ? "#2563eb" : "#cbd5e1" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "Attended" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "Attended" ? "#2563eb" : "#cbd5e1" }}>
                         <input
                           type="radio"
                           name="resend_aud"
                           checked={resendAudience === "Attended"}
                           onChange={() => setResendAudience("Attended")}
                         />
-                        <div>
-                          <div style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>Attended Only</div>
-                          <div style={{ fontSize: "12px", color: "#64748b" }}>Attendees checked in at the studio</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>Attended Only</span>
+                            <span style={{ fontSize: "11px", fontWeight: "750", padding: "2px 7px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8" }}>
+                              {eligibleAttendedCount} eligible
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                            Send to {eligibleAttendedCount} participants who checked in at the studio
+                          </div>
                         </div>
                       </label>
 
-                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "NoShow" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "NoShow" ? "#2563eb" : "#cbd5e1" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", background: resendAudience === "NoShow" ? "#eff6ff" : "#ffffff", borderColor: resendAudience === "NoShow" ? "#2563eb" : "#cbd5e1" }}>
                         <input
                           type="radio"
                           name="resend_aud"
                           checked={resendAudience === "NoShow"}
                           onChange={() => setResendAudience("NoShow")}
                         />
-                        <div>
-                          <div style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>No-Show Only</div>
-                          <div style={{ fontSize: "12px", color: "#64748b" }}>Registered attendees who did not check in</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontWeight: "750", fontSize: "13.5px", color: "#0f172a" }}>No-Show Only</span>
+                            <span style={{ fontSize: "11px", fontWeight: "750", padding: "2px 7px", borderRadius: "10px", background: "#fee2e2", color: "#b91c1c" }}>
+                              {eligibleNoShowCount} eligible
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                            Send to {eligibleNoShowCount} registered participants who did not check in
+                          </div>
                         </div>
                       </label>
+                    </div>
+                  </div>
+
+                  {/* Explicit Confirmation Block */}
+                  <div className="fb-resend-confirmation-box">
+                    <div className="fb-resend-confirmation-title">
+                      {resendAudience === "All" && `⚡ Send feedback requests to ${eligibleBothCount} participants? (${eligibleAttendedCount} Attended · ${eligibleNoShowCount} No-Show)`}
+                      {resendAudience === "Attended" && `⚡ Send feedback requests to ${eligibleAttendedCount} Attended participants?`}
+                      {resendAudience === "NoShow" && `⚡ Send feedback requests to ${eligibleNoShowCount} No-Show participants?`}
+                    </div>
+                    <div className="fb-resend-confirmation-subtitle">
+                      Each recipient will receive their audience-specific Meta-approved WhatsApp template with an authenticated 1-click feedback link.
                     </div>
                   </div>
                 </>
@@ -1349,9 +1318,15 @@ export default function AdminWorkshopFeedback() {
                   type="button"
                   className="fb-btn-primary"
                   onClick={handleResendFeedback}
-                  disabled={resending}
+                  disabled={resending || (resendAudience === "All" ? eligibleBothCount === 0 : resendAudience === "Attended" ? eligibleAttendedCount === 0 : eligibleNoShowCount === 0)}
                 >
-                  {resending ? "Queuing..." : "Confirm & Send WhatsApp"}
+                  {resending
+                    ? "Queuing..."
+                    : resendAudience === "All"
+                    ? `Confirm & Send to ${eligibleBothCount} Participants`
+                    : resendAudience === "Attended"
+                    ? `Confirm & Send to ${eligibleAttendedCount} Attended`
+                    : `Confirm & Send to ${eligibleNoShowCount} No-Show`}
                 </button>
               )}
             </div>

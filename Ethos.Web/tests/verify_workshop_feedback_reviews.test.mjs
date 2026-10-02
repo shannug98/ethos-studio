@@ -53,13 +53,18 @@ describe("Workshop Feedback & Reviews Comprehensive Verification", () => {
     assert.ok(content.includes("{{1}}") && content.includes("{{2}}"), "Must document dynamic template placeholders");
   });
 
-  test("5. Send / Resend Feedback modal is explicitly configured as a manual recovery tool", () => {
+  test("5. Send / Resend Feedback modal is explicitly configured as a manual recovery tool with dynamic counts and ledger actions", () => {
     const content = fs.readFileSync(feedbackComponentPath, "utf-8");
     assert.ok(content.includes("showResendModal"), "Must include resend modal state");
-    assert.ok(content.includes("Manual Feedback Resend Tool") || content.includes("Manual Resend"), "Must label as manual recovery tool");
-    assert.ok(content.includes("All Eligible Attendees"), "Must offer All Eligible option");
+    assert.ok(content.includes("Bulk Manual Feedback Send") || content.includes("Manual Feedback Resend Tool") || content.includes("Manual Resend"), "Must label as manual recovery tool");
+    assert.ok(content.includes("Both (Attended & No-Show)") || content.includes("Both (Attended &amp; No-Show)"), "Must offer Both option");
     assert.ok(content.includes("Attended Only"), "Must offer Attended Only option");
     assert.ok(content.includes("No-Show Only"), "Must offer No-Show Only option");
+    assert.ok(content.includes("eligibleBothCount"), "Must calculate dynamic eligible count for Both");
+    assert.ok(content.includes("eligibleAttendedCount"), "Must calculate dynamic eligible count for Attended");
+    assert.ok(content.includes("eligibleNoShowCount"), "Must calculate dynamic eligible count for No-Show");
+    assert.ok(content.includes("fb-resend-confirmation-box"), "Must render explicit confirmation block with recipient counts");
+    assert.ok(content.includes("handleIndividualSend"), "Must provide individual attendee send/resend action");
     assert.ok(content.includes("handleResendFeedback"), "Must invoke resend API handler");
   });
 

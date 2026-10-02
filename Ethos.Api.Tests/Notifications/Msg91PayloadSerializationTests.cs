@@ -141,6 +141,7 @@ public class Msg91PayloadSerializationTests
 
         var button = comps.GetProperty("button_1");
         Assert.Equal("text", button.GetProperty("type").GetString());
+        Assert.Equal("url", button.GetProperty("subtype").GetString());
         Assert.Equal(rawToken, button.GetProperty("value").GetString());
 
         // Validate Feedback URL composition (zero predictable IDs)
@@ -178,6 +179,7 @@ public class Msg91PayloadSerializationTests
 
         var button = comps.GetProperty("button_1");
         Assert.Equal("text", button.GetProperty("type").GetString());
+        Assert.Equal("url", button.GetProperty("subtype").GetString());
         Assert.Equal(rawToken, button.GetProperty("value").GetString());
     }
 }

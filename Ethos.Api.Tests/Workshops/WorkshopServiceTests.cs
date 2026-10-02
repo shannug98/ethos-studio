@@ -822,4 +822,180 @@ public class WorkshopServiceTests
         Assert.Equal(400m, pStudent.FinalAmount);
         Assert.Equal(500m, pStudent.CurrentPublicPrice);
     }
+
+    [Fact]
+    public async Task GetApprovedWorkshopsAsync_ReturnsPublicCompletedWorkshops()
+    {
+        var db = CreateDbContext();
+        var service = new WorkshopService(
+            db,
+            new MockCurrentUserService(),
+            new MockPricingService(),
+            new MockNotificationService(),
+            new MockTicketService(),
+            null!,
+            Options.Create(new RazorpaySettings()),
+            null!);
+
+        var publishedWorkshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Published Workshop",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Published,
+            WorkshopDate = DateTime.UtcNow.AddDays(5)
+        };
+        var approvedWorkshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Approved Workshop",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Approved,
+            WorkshopDate = DateTime.UtcNow.AddDays(2)
+        };
+        var completedPublicWorkshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Completed Public Workshop",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Completed,
+            WorkshopDate = DateTime.UtcNow.AddDays(-2)
+        };
+        var completedHiddenWorkshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Completed Hidden Workshop",
+            PublicVisibility = false,
+            Status = WorkshopStatus.Completed,
+            WorkshopDate = DateTime.UtcNow.AddDays(-3)
+        };
+        var draftWorkshop = new Workshop
+        {
+            Id = Guid.NewGuid(),
+            Title = "Draft Workshop",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Draft,
+            WorkshopDate = DateTime.UtcNow.AddDays(10)
+        };
+
+        db.Workshops.AddRange(publishedWorkshop, approvedWorkshop, completedPublicWorkshop, completedHiddenWorkshop, draftWorkshop);
+        await db.SaveChangesAsync();
+
+        var results = await service.GetApprovedWorkshopsAsync();
+
+        Assert.Equal(3, results.Count);
+        Assert.Contains(results, w => w.Id == publishedWorkshop.Id && w.Status == WorkshopStatus.Published);
+        Assert.Contains(results, w => w.Id == approvedWorkshop.Id && w.Status == WorkshopStatus.Approved);
+        Assert.Contains(results, w => w.Id == completedPublicWorkshop.Id && w.Status == WorkshopStatus.Completed);
+        Assert.DoesNotContain(results, w => w.Id == completedHiddenWorkshop.Id);
+        Assert.DoesNotContain(results, w => w.Id == draftWorkshop.Id);
+    }
+
+    [Fact]
+    public async Task GetWorkshopByIdAsync_WhenStatusIsCompletedAndPublic_ReturnsWorkshop()
+    {
+        var db = CreateDbContext();
+        var service = new WorkshopService(
+            db,
+            new MockCurrentUserService(),
+            new MockPricingService(),
+            new MockNotificationService(),
+            new MockTicketService(),
+            null!,
+            Options.Create(new RazorpaySettings()),
+            null!);
+
+        var completedWorkshopId = Guid.NewGuid();
+        var completedWorkshop = new Workshop
+        {
+            Id = completedWorkshopId,
+            Title = "Past Masterclass",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Completed,
+            WorkshopDate = DateTime.UtcNow.AddDays(-5),
+            Capacity = 30,
+            Price = 1000m
+        };
+        db.Workshops.Add(completedWorkshop);
+        await db.SaveChangesAsync();
+
+        var result = await service.GetWorkshopByIdAsync(completedWorkshopId);
+
+        Assert.NotNull(result);
+        Assert.Equal(completedWorkshopId, result!.Id);
+        Assert.Equal(WorkshopStatus.Completed, result.Status);
+    }
+
+    [Fact]
+    public async Task GetWorkshopByIdAsync_WhenStatusIsCompletedAndPrivate_ReturnsNull()
+    {
+        var db = CreateDbContext();
+        var service = new WorkshopService(
+            db,
+            new MockCurrentUserService(),
+            new MockPricingService(),
+            new MockNotificationService(),
+            new MockTicketService(),
+            null!,
+            Options.Create(new RazorpaySettings()),
+            null!);
+
+        var privateCompletedId = Guid.NewGuid();
+        var privateCompletedWorkshop = new Workshop
+        {
+            Id = privateCompletedId,
+            Title = "Private Past Workshop",
+            PublicVisibility = false,
+            Status = WorkshopStatus.Completed,
+            WorkshopDate = DateTime.UtcNow.AddDays(-5)
+        };
+        db.Workshops.Add(privateCompletedWorkshop);
+        await db.SaveChangesAsync();
+
+        var result = await service.GetWorkshopByIdAsync(privateCompletedId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CreateWorkshopOrderAsync_WhenStatusIsCompleted_RejectsOrderCreation()
+    {
+        var db = CreateDbContext();
+        var service = new WorkshopService(
+            db,
+            new MockCurrentUserService(),
+            new MockPricingService(),
+            new MockNotificationService(),
+            new MockTicketService(),
+            null!,
+            Options.Create(new RazorpaySettings()),
+            null!);
+
+        var completedWorkshopId = Guid.NewGuid();
+        var completedWorkshop = new Workshop
+        {
+            Id = completedWorkshopId,
+            Title = "Completed Workshop",
+            PublicVisibility = true,
+            Status = WorkshopStatus.Completed,
+            WorkshopDate = DateTime.UtcNow.AddDays(-5),
+            Capacity = 30,
+            Price = 1000m
+        };
+        db.Workshops.Add(completedWorkshop);
+        await db.SaveChangesAsync();
+
+        var orderRequest = new CreateWorkshopOrderRequest
+        {
+            FullName = "Aarav Sharma",
+            Email = "aarav@example.com",
+            Phone = "919876543210",
+            Quantity = 1
+        };
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateWorkshopOrderAsync(completedWorkshopId, orderRequest, CancellationToken.None));
+
+        Assert.Contains("not found or is not approved", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

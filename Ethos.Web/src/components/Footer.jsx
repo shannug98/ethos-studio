@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/footer.css";
 import ethosEmblem from "../assets/brand/ethos-emblem.png";
+import shanmukaPhoto from "../assets/shanmuka.jpg";
 
 function Footer({ onOpenPolicy }) {
   const navigate = useNavigate();
@@ -278,10 +279,20 @@ function Footer({ onOpenPolicy }) {
           <span>Crafted with</span>
           <span className="footer-bottom__heart">♥</span>
           <span>for Ethos Dance Studio by</span>
-          <div className="footer-bottom__creator-profile">
-            <span className="footer-bottom__creator-avatar">S</span>
+          <a
+            href="https://shannu98.netlify.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-bottom__creator-profile"
+            title="Visit Shanmuka's Portfolio"
+          >
+            <img
+              src={shanmukaPhoto}
+              alt="Shanmuka"
+              className="footer-bottom__creator-avatar"
+            />
             <strong>Shanmuka</strong>
-          </div>
+          </a>
         </div>
 
         <button

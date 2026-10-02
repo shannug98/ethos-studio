@@ -776,6 +776,17 @@
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.09);
   color: #f6eee9;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.25s ease;
+}
+
+.footer-bottom__creator-profile:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+  color: #ffffff;
 }
 
 .footer-bottom__creator-profile img,
@@ -784,6 +795,7 @@
   height: 30px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center 20%;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
 }
 

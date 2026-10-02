@@ -393,7 +393,7 @@ public class WorkshopService : IWorkshopService
                     .ThenInclude(st => st.TrainerProfile)
             .Include(w => w.PassTypes)
                 .ThenInclude(p => p.PricingTiers)
-            .Where(w => w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved))
+            .Where(w => w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Completed))
             .OrderBy(w => w.WorkshopDate)
             .ToListAsync();
 
@@ -511,7 +511,7 @@ public class WorkshopService : IWorkshopService
                     .ThenInclude(st => st.TrainerProfile)
             .Include(w => w.PassTypes)
                 .ThenInclude(p => p.PricingTiers)
-            .FirstOrDefaultAsync(w => w.Id == id && w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved));
+            .FirstOrDefaultAsync(w => w.Id == id && w.PublicVisibility && (w.Status == WorkshopStatus.Published || w.Status == WorkshopStatus.Approved || w.Status == WorkshopStatus.Completed));
 
         if (workshop == null)
         {

@@ -115,10 +115,12 @@ public class FeedbackEligibilityBackgroundWorkerTests
             liveness);
 
         using var cts = new CancellationTokenSource();
-        var task = worker.StartAsync(cts.Token);
-        await Task.Delay(100);
+        await worker.StartAsync(cts.Token);
+        if (worker.ExecuteTask != null)
+        {
+            await worker.ExecuteTask;
+        }
         cts.Cancel();
-        await task;
 
         Assert.Equal(0, mockEligibility.InvocationCount);
         Assert.True(liveness.Heartbeats.ContainsKey("worker_feedback_eligibility"));
