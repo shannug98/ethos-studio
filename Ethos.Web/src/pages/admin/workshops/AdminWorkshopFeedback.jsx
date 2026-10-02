@@ -181,6 +181,177 @@ export default function AdminWorkshopFeedback() {
 
   const eligibleBothCount = eligibleAttendedCount + eligibleNoShowCount;
 
+  // Load Configuration & Analytics
+  const loadConfig = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [configData, analyticsData] = await Promise.all([
+        adminApi.getWorkshopFeedbackConfig(workshopId),
+        adminApi.getWorkshopFeedbackAnalytics(workshopId).catch(() => null),
+      ]);
+      setConfig(configData);
+      setAnalytics(analyticsData);
+
+      const rawQs = configData?.ActiveQuestions || configData?.activeQuestions || [];
+      if (rawQs.length > 0) {
+        const attended = [];
+        const noshow = [];
+
+        rawQs.forEach((q) => {
+          const aud = Number(q.TargetAudience ?? q.targetAudience ?? 1);
+          const normalized = {
+            id: q.Id || q.id,
+            questionKey: q.QuestionKey || q.questionKey || "",
+            promptText: q.PromptText || q.promptText || "",
+            questionType: Number(q.QuestionType ?? q.questionType ?? 1),
+            targetAudience: aud,
+            optionsJson: q.OptionsJson || q.optionsJson || "",
+            choices: parseChoices(q),
+            isRequired: Boolean(q.IsRequired ?? q.isRequired ?? true),
+            sortOrder: q.SortOrder || q.sortOrder || 1,
+          };
+
+          if (aud === 1) {
+            attended.push({ ...normalized, targetAudience: 1 });
+          } else if (aud === 2) {
+            noshow.push({ ...normalized, targetAudience: 2 });
+          } else if (aud === 3) {
+            attended.push({ ...normalized, targetAudience: 1 });
+            noshow.push({ ...normalized, targetAudience: 2 });
+          }
+        });
+
+        setAttendedQuestions(attended.length > 0 ? attended : DEFAULT_ATTENDED_QUESTIONS);
+        setNoShowQuestions(noshow.length > 0 ? noshow : DEFAULT_NOSHOW_QUESTIONS);
+      } else {
+        setAttendedQuestions(DEFAULT_ATTENDED_QUESTIONS);
+        setNoShowQuestions(DEFAULT_NOSHOW_QUESTIONS);
+      }
+    } catch (err) {
+      setError(err?.message || "Failed to load workshop feedback configuration.");
+    } finally {
+      setLoading(false);
+    }
+  }, [workshopId]);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  // Active Questions pointer based on formSubTab
+  const activeQuestions = formSubTab === "Attended" ? attendedQuestions : noShowQuestions;
+  const setActiveQuestions = formSubTab === "Attended" ? setAttendedQuestions : setNoShowQuestions;
+
+  // Question Management Handlers for Current Active Form View
+  const handleAddQuestion = () => {
+    const audNum = formSubTab === "Attended" ? 1 : 2;
+    const newQ = {
+      id: "temp_" + Date.now(),
+      questionKey: `q_${formSubTab.toLowerCase()}_${activeQuestions.length + 1}_${Math.random().toString(36).substring(2, 6)}`,
+      promptText: formSubTab === "Attended" ? "How was your experience with..." : "Tell us what could have helped...",
+      questionType: 1, // Rating1To5
+      targetAudience: audNum,
+      optionsJson: "",
+      choices: ["Option 1", "Option 2"],
+      isRequired: true,
+      sortOrder: activeQuestions.length + 1,
+    };
+    setActiveQuestions([...activeQuestions, newQ]);
+  };
+
+  const handleUpdateQuestion = (index, field, value) => {
+    const updated = [...activeQuestions];
+    updated[index] = { ...updated[index], [field]: value };
+    setActiveQuestions(updated);
+  };
+
+  const handleDeleteQuestion = (index) => {
+    if (activeQuestions.length <= 1) {
+      alert(`At least one question is required for the ${formSubTab} Form.`);
+      return;
+    }
+    const updated = activeQuestions.filter((_, i) => i !== index);
+    setActiveQuestions(updated);
+  };
+
+  const handleMoveQuestion = (index, direction) => {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= activeQuestions.length) return;
+    const updated = [...activeQuestions];
+    const temp = updated[index];
+    updated[index] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setActiveQuestions(updated);
+  };
+
+  const handleAddChoice = (qIndex) => {
+    const q = activeQuestions[qIndex];
+    const newChoices = [...(q.choices || []), `Option ${(q.choices?.length || 0) + 1}`];
+    handleUpdateQuestion(qIndex, "choices", newChoices);
+  };
+
+  const handleUpdateChoice = (qIndex, cIndex, text) => {
+    const q = activeQuestions[qIndex];
+    const newChoices = [...(q.choices || [])];
+    newChoices[cIndex] = text;
+    handleUpdateQuestion(qIndex, "choices", newChoices);
+  };
+
+  const handleRemoveChoice = (qIndex, cIndex) => {
+    const q = activeQuestions[qIndex];
+    const newChoices = (q.choices || []).filter((_, i) => i !== cIndex);
+    handleUpdateQuestion(qIndex, "choices", newChoices);
+  };
+
+  // Atomic Save Form Version (Combines Attended & No-Show questions)
+  const handleSaveFormVersion = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      let sortOrderCounter = 1;
+
+      const formattedAttended = attendedQuestions.map((q) => ({
+        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
+        questionKey: q.questionKey || `att_q_${sortOrderCounter}`,
+        promptText: q.promptText.trim(),
+        questionType: Number(q.questionType),
+        targetAudience: 1, // Strictly Attended
+        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
+        choices: q.choices,
+        isRequired: Boolean(q.isRequired),
+        sortOrder: sortOrderCounter++,
+      }));
+
+      const formattedNoShow = noShowQuestions.map((q) => ({
+        id: String(q.id).startsWith("temp_") || String(q.id).startsWith("def_") ? null : q.id,
+        questionKey: q.questionKey || `noshow_q_${sortOrderCounter}`,
+        promptText: q.promptText.trim(),
+        questionType: Number(q.questionType),
+        targetAudience: 2, // Strictly No-Show
+        optionsJson: q.choices && q.choices.length > 0 ? JSON.stringify(q.choices) : null,
+        choices: q.choices,
+        isRequired: Boolean(q.isRequired),
+        sortOrder: sortOrderCounter++,
+      }));
+
+      const payload = {
+        questions: [...formattedAttended, ...formattedNoShow],
+      };
+
+      const res = await adminApi.saveWorkshopFeedbackVersion(workshopId, payload);
+      setConfig(res);
+      setSuccessMsg("Attended & No-Show feedback forms saved successfully!");
+      setTimeout(() => setSuccessMsg(null), 4000);
+      await loadConfig();
+    } catch (err) {
+      setError(err?.message || "Failed to save feedback form versions.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Resend Feedback Handler (Bulk Recovery Tool)
   const handleResendFeedback = async () => {
     setResending(true);
